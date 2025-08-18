@@ -1,3 +1,20 @@
 {
-	"siteId": "e4ab83bb-d621-4533-8c9a-9f4640b0ff5b"
+	"geolocation": {
+		"data": {
+			"city": "Yate",
+			"country": {
+				"code": "GB",
+				"name": "United Kingdom"
+			},
+			"subdivision": {
+				"code": "ENG",
+				"name": "England"
+			},
+			"timezone": "Europe/London",
+			"latitude": 51.5352,
+			"longitude": -2.4222,
+			"postalCode": "BS37"
+		},
+		"timestamp": 1755509064956
+	}
 }
