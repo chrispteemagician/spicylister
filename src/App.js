@@ -362,16 +362,16 @@ Just chat naturally - we'll make it sound professional! ✨"
           </div>
 
           {/* Generate Button */}
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <button
               onClick={analyzeImages}
               disabled={isAnalyzing || images.length === 0}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 mx-auto transform hover:scale-105 disabled:scale-100"
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 mx-auto transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
             >
               {isAnalyzing ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  SpicyBrain is analyzing...
+                  SpicyBrain is thinking...
                 </>
               ) : (
                 <>
@@ -380,6 +380,19 @@ Just chat naturally - we'll make it sound professional! ✨"
                 </>
               )}
             </button>
+            
+            <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">🚀 Want Maximum Money?</h3>
+              <p className="text-gray-700 mb-4">Get competitor analysis, advanced market research, and platform-specific optimization!</p>
+              <button 
+                onClick={() => window.open('https://buy.stripe.com/your-link-here', '_blank')}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 mx-auto transform hover:scale-105"
+              >
+                <Sparkles className="w-5 h-5" />
+                Premium Analysis - £1.99 💰
+              </button>
+              <p className="text-sm text-gray-600 mt-2">⚡ Instant results • 💡 Higher selling prices • 🎯 Platform optimization</p>
+            </div>
           </div>
 
           {/* Error Display */}

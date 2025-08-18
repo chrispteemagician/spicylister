@@ -8,7 +8,6 @@ redirects = []
 publish = "C:\\Users\\comed\\Desktop\\spicylister\\build"
 publishOrigin = "config"
 commandOrigin = "ui"
-base = "C:\\Users\\comed\\Desktop\\spicylister"
 command = "npm run build"
 functions = "C:\\Users\\comed\\Desktop\\spicylister\\netlify\\functions"
 
