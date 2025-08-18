@@ -385,7 +385,7 @@ Just chat naturally - we'll make it sound professional! ✨"
               <h3 className="text-xl font-bold text-gray-800 mb-2">🚀 Want Maximum Money?</h3>
               <p className="text-gray-700 mb-4">Get competitor analysis, advanced market research, and platform-specific optimization!</p>
               <button 
-                onClick={() => window.open('https://buy.stripe.com/your-link-here', '_blank')}
+                onClick={() => window.open('https://paypal.me/chrisptee/1.99', '_blank')}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 mx-auto transform hover:scale-105"
               >
                 <Sparkles className="w-5 h-5" />
