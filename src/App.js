@@ -22,9 +22,6 @@ export default function App() {
     const authInstance = getAuth(app);
     const dbInstance = getFirestore(app);
 
-    setAuth(authInstance);
-    setDb(dbInstance);
-
     // Listener for authentication state changes
     const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
       setIsInitializing(true);
