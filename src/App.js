@@ -12,8 +12,6 @@ const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial
 // --- Main App Component ---
 export default function App() {
   // --- State Management ---
-  const [auth, setAuth] = useState(null);
-  const [db, setDb] = useState(null);
   const [user, setUser] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
