@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, Sparkles, Coffee, Heart, CheckCircle, Copy, MessageCircle, RotateCcw, Search, X, AlertCircle, Crown, TrendingUp, Zap, Target, TrendingDown, Share2, Facebook, Twitter, Mail } from 'lucide-react';
+import { Upload, Sparkles, Coffee, Heart, CheckCircle, Copy, MessageCircle, RotateCcw, Search, X, AlertCircle, Crown, TrendingUp, Zap, Target, TrendingDown } from 'lucide-react';
 
 const SpicyLister = () => {
   const [images, setImages] = useState([]);
@@ -11,13 +11,10 @@ const SpicyLister = () => {
   const [processingImages, setProcessingImages] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState(''); // New: for supporter tracking
   const fileInputRef = useRef(null);
 
-  // All your existing functions remain the same...
+  // Smart image compression optimized for AI recognition
   const compressImage = useCallback((file, maxDimension = 1024, quality = 0.85) => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
@@ -26,6 +23,8 @@ const SpicyLister = () => {
 
       img.onload = () => {
         let { width, height } = img;
+
+        // Calculate optimal dimensions (keeping aspect ratio)
         const maxSize = Math.max(width, height);
         if (maxSize > maxDimension) {
           const scale = maxDimension / maxSize;
@@ -35,10 +34,13 @@ const SpicyLister = () => {
 
         canvas.width = width;
         canvas.height = height;
+
+        // Use high-quality image rendering for better AI recognition
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
+        // Convert to blob with optimal quality for AI + file size
         canvas.toBlob((blob) => {
           if (blob) {
             resolve(blob);
@@ -56,6 +58,7 @@ const SpicyLister = () => {
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
     
+    // Neurospicy-friendly limits: max 3 images (front, back, detail)
     if (images.length + files.length > 3) {
       setError("Max 3 photos please! 📸 (Perfect for front, back & condition shots)");
       return;
@@ -66,20 +69,25 @@ const SpicyLister = () => {
 
     try {
       const imagePromises = files.map(async (file) => {
+        // Check if it's actually an image
         if (!file.type.startsWith('image/')) {
           throw new Error(`${file.name} isn't an image file 🤔`);
         }
 
+        // Generous size limit for phone photos (20MB raw)
         if (file.size > 20 * 1024 * 1024) {
           throw new Error(`${file.name} is huge! Try a smaller photo 📱`);
         }
 
+        // Compress for optimal AI recognition + speed
         const compressedFile = await compressImage(file);
 
+        // Final size check (should be under 2MB after compression)
         if (compressedFile.size > 2 * 1024 * 1024) {
           throw new Error(`${file.name} is still too large after compression`);
         }
 
+        // Create preview URL
         const previewUrl = URL.createObjectURL(compressedFile);
 
         return {
@@ -88,7 +96,7 @@ const SpicyLister = () => {
           originalSize: file.size,
           compressedSize: compressedFile.size,
           preview: previewUrl,
-          id: Date.now() + Math.random()
+          id: Date.now() + Math.random() // Unique ID for React keys
         };
       });
 
@@ -117,6 +125,7 @@ const SpicyLister = () => {
       return;
     }
 
+    // If premium features requested but not paid, show modal
     if (usePremium && !isPremium) {
       setShowPremiumModal(true);
       return;
@@ -126,6 +135,7 @@ const SpicyLister = () => {
     setError(null);
 
     try {
+      // Convert optimized images to base64 for Gemini
       const imageData = await Promise.all(
         images.map(async (img) => {
           return new Promise((resolve) => {
@@ -142,6 +152,7 @@ const SpicyLister = () => {
         })
       );
 
+      // Call your existing Netlify function with premium flag
       const response = await fetch('/.netlify/functions/analyze-item', {
         method: 'POST',
         headers: {
@@ -150,7 +161,7 @@ const SpicyLister = () => {
         body: JSON.stringify({
           images: imageData,
           extraInfo: extraInfo.trim(),
-          isPremium: usePremium || isPremium
+          isPremium: usePremium || isPremium // Pass premium status
         }),
       });
 
@@ -167,7 +178,9 @@ const SpicyLister = () => {
     }
   };
 
+  // NEW: Enhanced supporter tracking with email collection
   const handlePayPalUpgrade = async () => {
+    // Collect email first
     const email = prompt("Enter your email for premium access & SpicyLister updates:");
     if (!email || !email.includes('@')) {
       alert("Please enter a valid email address");
@@ -177,6 +190,7 @@ const SpicyLister = () => {
     setUserEmail(email);
     localStorage.setItem('spicylister_email', email);
     
+    // Track supporter intent
     try {
       await fetch('/.netlify/functions/track-supporter', {
         method: 'POST',
@@ -192,14 +206,16 @@ const SpicyLister = () => {
       console.log('Tracking failed:', err);
     }
     
+    // Open PayPal in new window
     window.open('https://paypal.me/chrisptee/1.99', '_blank');
     
+    // Set premium after payment (simplified for now)
     setTimeout(() => {
       const confirmed = confirm("Did you complete the PayPal payment? Click OK if yes.");
       if (confirmed) {
         handlePayPalSuccess(email);
       }
-    }, 10000);
+    }, 10000); // 10 second delay
   };
 
   const handlePayPalSuccess = async (email = userEmail) => {
@@ -207,6 +223,7 @@ const SpicyLister = () => {
     setShowPremiumModal(false);
     localStorage.setItem('spicylister_premium', 'true');
     
+    // Track successful payment
     try {
       await fetch('/.netlify/functions/track-supporter', {
         method: 'POST',
@@ -225,6 +242,7 @@ const SpicyLister = () => {
     analyzeImages(true);
   };
 
+  // Check for premium status on load
   React.useEffect(() => {
     const premiumStatus = localStorage.getItem('spicylister_premium');
     const storedEmail = localStorage.getItem('spicylister_email');
@@ -267,6 +285,7 @@ const SpicyLister = () => {
   };
 
   const startNewListing = () => {
+    // Clean up image URLs to prevent memory leaks
     images.forEach(img => {
       if (img.preview) URL.revokeObjectURL(img.preview);
     });
@@ -277,188 +296,7 @@ const SpicyLister = () => {
     setCopiedSection('');
   };
 
-  // NEW: Social sharing functions
-  const shareToFacebook = () => {
-    const url = encodeURIComponent('https://spicylister.netlify.app');
-    const text = encodeURIComponent('Check out SpicyLister - AI-powered eBay listings in 60 seconds! Perfect for neurospicy brains 🌶️');
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
-  };
-
-  const shareToTwitter = () => {
-    const url = encodeURIComponent('https://spicylister.netlify.app');
-    const text = encodeURIComponent('Sell Your Clutter without a Stutter! 🎯 SpicyLister makes eBay listings in 60 seconds with AI. Perfect for ADHD/neurospicy brains! 🌶️✨');
-    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
-  };
-
-  const shareByEmail = () => {
-    const subject = encodeURIComponent('Check out SpicyLister - AI eBay Listings!');
-    const body = encodeURIComponent(`Hey! 
-
-I found this amazing tool called SpicyLister that creates eBay listings in 60 seconds using AI. It's perfect for people with ADHD/neurodivergence who find selling stuff overwhelming.
-
-"Sell Your Clutter without a Stutter" - love that tagline! 
-
-Check it out: https://spicylister.netlify.app
-
-Built by Chris P Tee, a touring magician living in a van. Pretty cool story!
-
-Thought you might find it useful! 🌶️✨`);
-    window.open(`mailto:?subject=${subject}&body=${body}`);
-  };
-
-  // Modal Components
-  const ShareModal = () => (
-    showShareModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-md w-full p-6">
-          <div className="text-center">
-            <Share2 className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">Share SpicyLister! 🌶️</h3>
-            <p className="text-gray-600 mb-6">
-              Help other neurospicy people discover the magic of stress-free selling!
-            </p>
-            
-            <div className="space-y-3">
-              <button
-                onClick={shareToFacebook}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Facebook className="w-5 h-5" />
-                Share on Facebook
-              </button>
-              
-              <button
-                onClick={shareToTwitter}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-400 text-white rounded-lg hover:bg-blue-500"
-              >
-                <Twitter className="w-5 h-5" />
-                Share on Twitter
-              </button>
-              
-              <button
-                onClick={shareByEmail}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                <Mail className="w-5 h-5" />
-                Share by Email
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowShareModal(false)}
-              className="mt-4 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  );
-
-  const PrivacyModal = () => (
-    showPrivacyModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">Privacy Policy</h3>
-          <div className="text-sm text-gray-700 space-y-4">
-            <p><strong>Last updated:</strong> September 6, 2025</p>
-            
-            <h4 className="font-semibold text-lg">What We Collect</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Email addresses (when you upgrade to premium)</li>
-              <li>Images you upload for listing generation</li>
-              <li>Generated listing content</li>
-              <li>Basic usage analytics (anonymous)</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">How We Use Your Data</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Process images with AI to generate listings</li>
-              <li>Send updates about SpicyLister (premium users only)</li>
-              <li>Improve our service and user experience</li>
-              <li>Provide customer support</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Data Security</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Images are processed securely and not stored permanently</li>
-              <li>Email addresses stored securely with industry-standard encryption</li>
-              <li>No data is sold to third parties</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Your Rights</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Request deletion of your data anytime</li>
-              <li>Unsubscribe from emails anytime</li>
-              <li>Contact us for any privacy concerns</li>
-            </ul>
-
-            <p><strong>Contact:</strong> privacy@spicylister.com</p>
-          </div>
-          <button
-            onClick={() => setShowPrivacyModal(false)}
-            className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    )
-  );
-
-  const TermsModal = () => (
-    showTermsModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">Terms of Service</h3>
-          <div className="text-sm text-gray-700 space-y-4">
-            <p><strong>Last updated:</strong> September 6, 2025</p>
-            
-            <h4 className="font-semibold text-lg">Service Description</h4>
-            <p>SpicyLister is an AI-powered tool that helps users generate listings for online marketplaces. We provide both free and premium tiers of service.</p>
-
-            <h4 className="font-semibold text-lg">Fair Use Policy</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Use SpicyLister for legitimate selling purposes only</li>
-              <li>Don't upload inappropriate, illegal, or copyrighted content</li>
-              <li>Don't attempt to abuse or overwhelm our systems</li>
-              <li>Respect other users and our community guidelines</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Premium Services</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Premium features are available for £1.99 one-time payment</li>
-              <li>Premium access is lifetime with no recurring fees</li>
-              <li>30-day money-back guarantee if unsatisfied</li>
-              <li>Premium features include market research and competitor analysis</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Content & Accuracy</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>AI-generated listings are suggestions - always review before posting</li>
-              <li>We can't guarantee accuracy of pricing or descriptions</li>
-              <li>You're responsible for final listing content and compliance</li>
-              <li>Generated content should be considered a starting point</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Limitation of Liability</h4>
-            <p>SpicyLister is provided "as is" without warranties. We're not responsible for listing outcomes, sales results, or marketplace compliance issues.</p>
-
-            <p><strong>Contact:</strong> support@spicylister.com</p>
-          </div>
-          <button
-            onClick={() => setShowTermsModal(false)}
-            className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    )
-  );
-
-  // Your existing premium modal component stays the same...
+  // Enhanced Premium Modal Component with supporter tracking
   const PremiumModal = () => (
     showPremiumModal && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -473,6 +311,7 @@ Thought you might find it useful! 🌶️✨`);
               Stop guessing prices - GET PAID WHAT YOUR STUFF IS WORTH!
             </p>
             
+            {/* Value Proposition */}
             <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 mb-6 text-left">
               <h4 className="font-bold text-gray-800 mb-3 text-center">🔥 Why Premium Users Sell for 30-50% MORE:</h4>
               <div className="space-y-2 text-sm">
@@ -495,6 +334,7 @@ Thought you might find it useful! 🌶️✨`);
               </div>
             </div>
 
+            {/* Social Proof */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <h4 className="font-semibold text-green-800 mb-2">💬 What Premium Users Say:</h4>
               <div className="text-sm text-green-700 space-y-2">
@@ -503,6 +343,7 @@ Thought you might find it useful! 🌶️✨`);
               </div>
             </div>
 
+            {/* Urgency */}
             <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-6">
               <p className="text-sm text-yellow-800">
                 <strong>⏰ LIMITED TIME:</strong> £1.99 intro price! 
@@ -537,6 +378,7 @@ Thought you might find it useful! 🌶️✨`);
     )
   );
 
+  // AdSense Component (place where you want ads)
   const AdSenseAd = ({ slot, format = "auto", responsive = true }) => {
     React.useEffect(() => {
       try {
@@ -553,7 +395,7 @@ Thought you might find it useful! 🌶️✨`);
         <ins
           className="adsbygoogle"
           style={{ display: 'block' }}
-          data-ad-client="ca-pub-YOUR_ADSENSE_ID"
+          data-ad-client="ca-pub-YOUR_ADSENSE_ID" // Replace with your AdSense ID
           data-ad-slot={slot}
           data-ad-format={format}
           data-full-width-responsive={responsive}
@@ -579,7 +421,7 @@ Thought you might find it useful! 🌶️✨`);
             <Sparkles className="w-8 h-8 text-red-500" />
           </div>
           
-          {/* Enhanced Tagline with Share Button */}
+          {/* Enhanced Tagline */}
           <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 mb-4 border border-orange-200">
             <p className="text-xl font-bold text-gray-800 mb-2">
               🎯 Sell Your Clutter without a Stutter!
@@ -593,17 +435,6 @@ Thought you might find it useful! 🌶️✨`);
               <span>AI-powered listings in 60 seconds</span>
               <span>•</span>
               <span>Perfect for neurospicy brains ✨</span>
-            </div>
-            
-            {/* Share Button */}
-            <div className="mt-3">
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="flex items-center gap-2 mx-auto px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
-              >
-                <Share2 className="w-4 h-4" />
-                Share SpicyLister
-              </button>
             </div>
           </div>
         </div>
@@ -637,18 +468,6 @@ Thought you might find it useful! 🌶️✨`);
           </div>
         )}
 
-        {/* Future Camera Features Teaser */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 mb-6">
-          <div className="text-center">
-            <h3 className="font-semibold text-purple-800 mb-2">🚀 Coming Soon: Camera Magic!</h3>
-            <p className="text-sm text-purple-700">
-              Point your camera at multiple items and get instant valuations, condition assessments, and shipping suggestions! 
-              <span className="font-semibold">Valuation Cam • Pros & Cons Cam • Help Me Decide Cam</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Rest of your existing app remains the same... */}
         {/* Tips */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-2">
@@ -668,9 +487,6 @@ Thought you might find it useful! 🌶️✨`);
         {/* AdSense Ad - Top */}
         <AdSenseAd slot="1234567890" />
 
-        {/* All your existing upload, analysis, and results sections remain the same... */}
-        {/* I'll abbreviate here for space, but include all existing functionality */}
-        
         {/* Image Upload */}
         <div className="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-200 hover:border-orange-300 transition-all duration-200 mb-6">
           <div className="p-8">
@@ -701,7 +517,260 @@ Thought you might find it useful! 🌶️✨`);
           </div>
         </div>
 
-        {/* Enhanced Footer with Privacy & Terms */}
+        {/* Image Previews */}
+        {images.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {images.map((image, index) => (
+              <div key={image.id} className="relative bg-white rounded-lg border border-gray-200 p-3">
+                <img 
+                  src={image.preview} 
+                  alt={`Upload preview ${index + 1}`}
+                  className="w-full h-32 object-cover rounded-md mb-2"
+                />
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-500">
+                    <div>Photo {index + 1}</div>
+                    <div>{formatFileSize(image.originalSize)} → {formatFileSize(image.compressedSize)}</div>
+                    <div className="text-green-600">✓ Optimized for AI</div>
+                  </div>
+                  <button
+                    onClick={() => removeImage(image.id)}
+                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Extra Info */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Know anything extra about this item? (Optional but helpful!)
+          </label>
+          <textarea
+            value={extraInfo}
+            onChange={(e) => setExtraInfo(e.target.value)}
+            placeholder="e.g., 'Vintage camera from the 1970s, working condition, slight wear on leather'"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            rows={3}
+          />
+        </div>
+
+        {/* Enhanced Analyze Buttons */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => analyzeImages(false)}
+            disabled={images.length === 0 || isAnalyzing || processingImages}
+            className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            {processingImages ? (
+              <>Processing Images... 🔄</>
+            ) : isAnalyzing ? (
+              <>Analyzing with AI... 🤖</>
+            ) : (
+              <>✨ Generate Listing (Free)</>
+            )}
+          </button>
+
+          {!isPremium && (
+            <button
+              onClick={() => analyzeImages(true)}
+              disabled={images.length === 0 || isAnalyzing || processingImages}
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
+            >
+              <Crown className="w-5 h-5" />
+              <span className="hidden sm:inline">Get Premium</span>
+              <span className="sm:hidden">Premium</span>
+              £1.99
+            </button>
+          )}
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <p className="text-red-800">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Results */}
+        {result && (
+          <div className="space-y-6">
+            {/* Title */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">📝 Listing Title</h3>
+                <button
+                  onClick={() => copyToClipboard(result.title, 'title')}
+                  className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
+                >
+                  {copiedSection === 'title' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  {copiedSection === 'title' ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-gray-700 font-medium">{result.title}</p>
+            </div>
+
+            {/* Description */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">📋 Description</h3>
+                <button
+                  onClick={() => copyToClipboard(result.description, 'description')}
+                  className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
+                >
+                  {copiedSection === 'description' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  {copiedSection === 'description' ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-gray-700 whitespace-pre-line">{result.description}</p>
+            </div>
+
+            {/* AdSense Ad - Middle */}
+            <AdSenseAd slot="0987654321" format="rectangle" />
+
+            {/* Condition & Pricing */}
+            {result.condition && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">🔍 Condition & Pricing</h3>
+                  {result.isPremium && <Crown className="w-5 h-5 text-yellow-500" />}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-1">Condition</div>
+                    <div className="font-semibold">{result.condition}</div>
+                  </div>
+                  {result.pricing && (
+                    <>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-sm text-gray-600 mb-1">
+                          {result.isPremium ? '🎯 Market Price' : 'Starting Bid'}
+                        </div>
+                        <div className="font-semibold text-green-700">
+                          £{result.pricing.startingBid}
+                          {result.isPremium && <span className="text-xs ml-1">(researched)</span>}
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-sm text-gray-600 mb-1">
+                          {result.isPremium ? '💰 Premium Price' : 'Buy It Now'}
+                        </div>
+                        <div className="font-semibold text-blue-700">
+                          £{result.pricing.buyItNow}
+                          {result.isPremium && <span className="text-xs ml-1">(optimized)</span>}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {result.isPremium && result.marketInsights && (
+                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
+                    <h4 className="font-semibold text-yellow-800 mb-2">📊 Market Insights</h4>
+                    <p className="text-sm text-yellow-700">{result.marketInsights}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Premium Competitor Analysis */}
+            {result.isPremium && result.competitorAnalysis && (
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Crown className="w-5 h-5 text-yellow-600" />
+                  <h3 className="text-lg font-semibold text-yellow-800">🏆 Competitor Analysis</h3>
+                </div>
+                <div className="space-y-3">
+                  {result.competitorAnalysis.map((comp, index) => (
+                    <div key={index} className="bg-white rounded-lg p-3 border border-yellow-200">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-medium text-gray-800">{comp.title}</div>
+                          <div className="text-sm text-gray-600">{comp.condition}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-gray-800">£{comp.price}</div>
+                          <div className="text-xs text-gray-500">{comp.status}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Platform Tips */}
+            {result.platformTips && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">💡 Platform Tips</h3>
+                <p className="text-gray-700">{result.platformTips}</p>
+              </div>
+            )}
+
+            {/* Platform Specific Advice */}
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">🚀 Platform-Specific Advice</h3>
+              <p className="text-gray-600 mb-6">Want platform-specific advice? Here's how to optimize for each:</p>
+              
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h4 className="font-semibold text-blue-700 mb-2">📦 eBay</h4>
+                  <p className="text-sm text-gray-600">Use both auction and Buy It Now for maximum visibility. Start auctions at £0.99 to attract bidders. Include "Free P&P" to rank higher in search. List on Sunday evenings for best visibility.</p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h4 className="font-semibold text-purple-700 mb-2">👗 Vinted</h4>
+                  <p className="text-sm text-gray-600">Be honest about condition - buyers appreciate transparency. Use all available photo slots. Offer bundle discounts for multiple items. Respond quickly to messages for better seller ratings.</p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h4 className="font-semibold text-green-700 mb-2">📍 Facebook Marketplace</h4>
+                  <p className="text-sm text-gray-600">Include "collection only" or "can deliver locally" in title. Be specific about location. Join local selling groups for wider reach. Price competitively as buyers expect bargains.</p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h4 className="font-semibold text-pink-700 mb-2">📸 Depop</h4>
+                  <p className="text-sm text-gray-600">Use trendy hashtags and keywords. Aesthetic photos perform better. Include brand names and style descriptors. Engage with the community by liking and following others.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                onClick={searchEbayWithTitle}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Search className="w-4 h-4" />
+                Search eBay
+              </button>
+              
+              <button
+                onClick={regenerateWithInfo}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Regenerate
+              </button>
+              
+              <button
+                onClick={startNewListing}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                <MessageCircle className="w-4 h-4" />
+                New Listing
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
         <div className="text-center mt-12 py-8 border-t border-gray-200">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Heart className="w-5 h-5 text-red-500" />
@@ -711,7 +780,7 @@ Thought you might find it useful! 🌶️✨`);
           <p className="text-sm text-gray-500 mb-4">
             Built by neurospicy, for neurospicy - turning clutter into cash, one dopamine hit at a time! 🌶️
           </p>
-          <div className="flex items-center justify-center gap-4 mb-4">
+          <div className="flex items-center justify-center gap-4">
             <a 
               href="https://buymeacoffee.com/chrispteemagician"
               target="_blank"
@@ -722,40 +791,14 @@ Thought you might find it useful! 🌶️✨`);
               Support the Tour
             </a>
           </div>
-
-          {/* Privacy & Terms Links */}
-          <div className="flex justify-center gap-4 text-xs text-gray-500 mb-2">
-            <button 
-              onClick={() => setShowPrivacyModal(true)}
-              className="hover:text-orange-600 underline"
-            >
-              Privacy Policy
-            </button>
-            <button 
-              onClick={() => setShowTermsModal(true)}
-              className="hover:text-orange-600 underline"
-            >
-              Terms of Service
-            </button>
-            <button 
-              onClick={() => setShowShareModal(true)}
-              className="hover:text-orange-600 underline"
-            >
-              Share
-            </button>
-          </div>
-
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 mt-4">
             Made with ❤️ by Chris P Tee • Van Life + Comedy + Magic + Code
           </p>
         </div>
       </div>
 
-      {/* All Modals */}
+      {/* Enhanced Premium Modal */}
       <PremiumModal />
-      <ShareModal />
-      <PrivacyModal />
-      <TermsModal />
     </div>
   );
 };
