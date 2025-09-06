@@ -1,7 +1,7 @@
 {
 	"geolocation": {
 		"data": {
-			"city": "Yate",
+			"city": "Chipping Sodbury",
 			"country": {
 				"code": "GB",
 				"name": "United Kingdom"
@@ -11,11 +11,11 @@
 				"name": "England"
 			},
 			"timezone": "Europe/London",
-			"latitude": 51.5352,
-			"longitude": -2.4222,
+			"latitude": 51.5427,
+			"longitude": -2.3948,
 			"postalCode": "BS37"
 		},
-		"timestamp": 1755509064956
+		"timestamp": 1757078953880
 	},
 	"siteId": "95c63909-6eff-4f52-83ba-5ccaa0c6f004"
 }
