@@ -1,6 +1,39 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, Sparkles, Coffee, Heart, Copy, MessageCircle, RotateCcw, Search, X, Crown, TrendingUp, Zap, Share2, Facebook, Twitter, Mail } from 'lucide-react';
 
+const LOGO_URL = "/spicylister-logo.png"; // Place your logo here in /public/
+
+const SavePrompt = () => (
+  <div style={{
+    background: "#fff8e1",
+    color: "#b2532b",
+    border: "2px solid #fcad43",
+    borderRadius: 10,
+    margin: "25px 0",
+    padding: "17px 22px",
+    fontSize: 18,
+    fontWeight: "bold",
+    boxShadow: "0 2px 12px #fecb9024"
+  }}>
+    ⚠️ <span style={{ fontSize: 22, fontWeight: 900, color: "#fe7800" }}>Don’t Lose Your Work!</span><br />
+    Your photos and info disappear if you refresh, close, or leave this page.<br />
+    <ul style={{ margin: 8, marginLeft: 32, fontWeight: 600 }}>
+      <li>Please copy or download your results before leaving.</li>
+      <li>Bulk tools? Download your CSV template below!</li>
+      <li>Playing it safe? Paste your description into Notepad for backup.</li>
+    </ul>
+    <span style={{ color: "#e74c3c" }}>Refreshing = progress GONE!</span>
+  </div>
+);
+
+const BulkUploadBlock = () => (
+  <div style={{ margin: "24px 0", background: "#fff3ea", border: "2px dashed #fa9242", borderRadius: 8, padding: "16px", fontSize: 16 }}>
+    <b>🔥 NEW: Bulk Upload Power!</b> <br />
+    Download our <a href="/bulk-upload-template.csv" style={{ color: "#fa573b", fontWeight: 700, textDecoration: "underline" }}>CSV Template</a> to prepare multiple items at once.<br />
+    <span style={{ fontSize: 14, color: "#995" }}>Pro mode: Paste your details, upload as guided, and let SpicyLister do the rest.<br />Contact <a href="mailto:chrisptee@spicylister.com">chrisptee@spicylister.com</a> for bulk help.</span>
+  </div>
+);
+
 const SpicyLister = () => {
   const [images, setImages] = useState([]);
   const [extraInfo, setExtraInfo] = useState('');
@@ -133,7 +166,6 @@ const SpicyLister = () => {
     }
   };
 
-  // PAYPAL/PREMIUM FLOW -- ESLint CLEAN
   const handlePayPalUpgrade = async () => {
     const email = prompt("Enter your email for premium access & SpicyLister updates:");
     if (!email || !email.includes('@')) {
@@ -255,11 +287,21 @@ const SpicyLister = () => {
   );
 
   return (
-    <div style={{ maxWidth: 600, margin: "20px auto", padding: 18, borderRadius: 12, boxShadow: "0 7px 24px #2623" }}>
-      <h1 style={{ fontSize: 32, marginBottom: 6 }}>
-        <Sparkles /> SpicyLister
+    <div style={{ maxWidth: 600, margin: "36px auto", padding: 18, borderRadius: 15, background: "#fffefb", boxShadow: "0 7px 34px #f6632c22" }}>
+      <div style={{textAlign:"center", marginBottom: 5}}>
+        <img src={LOGO_URL} alt="SpicyLister Logo" style={{width: 110, margin: "0 auto 5px", borderRadius: 15, boxShadow:"0 2px 16px #fea82a39"}}/>
+      </div>
+      <h1 style={{ fontSize: 37, marginBottom: 5, color: "#fe632c", fontFamily: "Baloo 2, Arial, sans-serif", letterSpacing:2 }}>
+        <Sparkles /> SpicyLister <Zap style={{ color: "#e84118" }}/>
       </h1>
-      <div style={{ fontSize: 17, color: "#333" }}>AI-powered eBay listing generator for neurospicy brains 🌶️</div>
+      <div style={{ fontSize: 19, color: "#555", marginBottom:6, fontWeight: 600 }}>AI eBay Listing Helper for Neurospicy Sellers <span style={{ fontSize: 23 }}>🌶️</span></div>
+      <div style={{ fontSize: 17, color:"#994", fontWeight: 400, marginBottom: 9 }}>
+        Sell your clutter without a stutter! Listings in sixty seconds for that sweet dopamine buzz.
+      </div>
+
+      <SavePrompt />
+      <BulkUploadBlock />
+
       <input
         type="file"
         ref={fileInputRef}
@@ -268,7 +310,7 @@ const SpicyLister = () => {
         style={{ display: 'none' }}
         onChange={handleImageUpload}
       />
-      <button style={{ margin: "21px 0", background: "#f94", color: "#111", fontWeight: 900, fontSize: 22, border: 0, borderRadius: 8, padding: "12px 24px", cursor: "pointer" }} onClick={() => fileInputRef.current.click()}>
+      <button style={{ margin: "21px 0", background: "#fa9547", color: "#222", fontWeight: 900, fontSize: 23, border: 0, borderRadius: 9, padding: "13px 25px", cursor: "pointer", letterSpacing: 1 }} onClick={() => fileInputRef.current.click()}>
         <Upload /> Upload Photo{images.length !== 1 ? "s" : ""}
       </button>
       <div>
@@ -290,11 +332,11 @@ const SpicyLister = () => {
             placeholder="Add extra item info (brand, notes, flaws, etc)"
             value={extraInfo}
             onChange={e => setExtraInfo(e.target.value)}
-            style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 6, border: "1px solid #aaa", marginBottom: 12, marginTop: 7 }}
+            style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 7, border: "1px solid #faa264", marginBottom: 12, marginTop: 7, background:"#fff7f2" }}
             rows={2}
           ></textarea>
           <br />
-          <button style={{ background: "#1479fd", color: "#fff", fontSize: 21, fontWeight: 900, border: 0, borderRadius: 7, padding: "13px 20px", cursor: "pointer", marginBottom: 0 }} disabled={isAnalyzing} onClick={() => analyzeImages(false)}>
+          <button style={{ background: "#1479fd", color: "#fff", fontSize: 21, fontWeight: 900, border: 0, borderRadius: 9, padding: "13px 20px", cursor: "pointer", marginBottom: 0 }} disabled={isAnalyzing} onClick={() => analyzeImages(false)}>
             <Zap /> Analyze Item
           </button>
           <span style={{ marginLeft: 14 }}>
@@ -359,6 +401,7 @@ const SpicyLister = () => {
           <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 540, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
             <h2>Privacy Policy</h2>
             <p>We only ever store your email (for upgrade tracking). No uploaded photos or listing data is ever saved.</p>
+            <p>Questions? <a href="mailto:chrisptee@spicylister.com">chrisptee@spicylister.com</a></p>
             <button onClick={() => setShowPrivacyModal(false)} style={{ background: "#eee", color: "#111", fontSize: 17, borderRadius: 8, marginTop: 15 }}><X /> Close</button>
           </div>
         </div>
@@ -368,6 +411,9 @@ const SpicyLister = () => {
           <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 540, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
             <h2>Terms &amp; Conditions</h2>
             <p>Use this tool at your own risk. We recommend reviewing all AI-generated suggestions and prices before listing.</p>
+            <p>
+              Problems? Email <a href="mailto:chrisptee@spicylister.com">chrisptee@spicylister.com</a>
+            </p>
             <button onClick={() => setShowTermsModal(false)} style={{ background: "#eee", color: "#111", fontSize: 17, borderRadius: 8, marginTop: 15 }}><X /> Close</button>
           </div>
         </div>
@@ -375,7 +421,7 @@ const SpicyLister = () => {
       <footer style={{ marginTop: 36, textAlign: "center", color: "#555", fontWeight: 500, fontSize: 17 }}>
         Made with <Heart style={{ color: "#f55", verticalAlign: "middle" }} /> by Chris P Tee • Van Life + Comedy + Magic + Code
         <br />
-        <a href="mailto:privacy@spicylister.com" style={{ color: "#229", fontSize: 14 }}>privacy@spicylister.com</a>
+        <a href="mailto:chrisptee@spicylister.com" style={{ color: "#229", fontSize: 14 }}>chrisptee@spicylister.com</a>
       </footer>
     </div>
   );
