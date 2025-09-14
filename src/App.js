@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, Sparkles, Heart, Copy, RotateCcw, Search, X, Zap, Share2, Facebook as Fb, Twitter, Mail, ShoppingCart } from 'lucide-react';
+import { Upload, Sparkles, Heart, Copy, RotateCcw, X, Zap, Share2, Facebook as Fb, ShoppingCart } from 'lucide-react';
 
 const LOGO_URL = "/spicylister-logo.png";
 const BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/chrispteemagician";
@@ -14,7 +14,6 @@ const SpicyLister = () => {
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Compress and preview
   const compressImage = useCallback((file, maxDimension = 1024, quality = 0.85) => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
@@ -46,7 +45,6 @@ const SpicyLister = () => {
     });
   }, []);
 
-  // Handle images input
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
     if (images.length + files.length > 3) {
@@ -84,7 +82,6 @@ const SpicyLister = () => {
     });
   };
 
-  // Analyze trigger
   const analyzeImages = async () => {
     if (images.length === 0) {
       setError("Please upload at least one photo!");
@@ -134,7 +131,6 @@ const SpicyLister = () => {
     } catch {}
   };
 
-  // Selling Tips
   const tips = [
     "List on Sunday evenings for best visibility—especially for auctions.",
     "Use clear, honest descriptions. Small flaws? Mention them: buyers trust you more.",
@@ -144,7 +140,6 @@ const SpicyLister = () => {
     "For Facebook Marketplace: include your area, accept sensible offers."
   ];
 
-  // Output platforms
   const platforms = [
     { name: "eBay", icon: <ShoppingCart />, color: "#3f6be0" },
     { name: "Facebook Marketplace", icon: <Fb />, color: "#1671f5" },
@@ -155,13 +150,11 @@ const SpicyLister = () => {
 
   function formatOutput(platform) {
     if (!result) return "";
-    // You can customize output structure per platform if you want.
     let out = `Title: ${result.title}\n\n${result.description}\nCondition: ${result.condition}\nStarting Bid: £${result.pricing?.startingBid} | Buy It Now: £${result.pricing?.buyItNow}\n\n${result.platformTips || ''}`;
     if (platform.name === "Copy All") return out;
     return out + `\n\n(Listed via SpicyLister for ${platform.name})`;
   }
 
-  // UI
   return (
     <div style={{ maxWidth: 630, margin: "36px auto", padding: 22, borderRadius: 15, background: "#fffdfa", boxShadow: "0 9px 36px #fe573c20" }}>
       <div style={{textAlign:"center", marginBottom: 9}}>
@@ -252,7 +245,7 @@ const SpicyLister = () => {
             🎉 Well Done! You’re making it happen. Every photo is a win!
           </div>
           <div style={{marginTop:9, fontSize:15}}>
-            If this helped, <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener" style={{color:"#f4840a",fontWeight:700}}>buy me a coffee & get Pro free for a month!</a>
+            If this helped, <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener noreferrer" style={{color:"#f4840a",fontWeight:700}}>buy me a coffee & get Pro free for a month!</a>
           </div>
         </div>
       )}
@@ -281,7 +274,7 @@ const SpicyLister = () => {
       <footer style={{ marginTop: 30, textAlign: "center", color: "#555", fontWeight: 500, fontSize: 17 }}>
         Made with <Heart style={{ color: "#f55", verticalAlign: "middle" }}/> for neurospicy declutterers
         <br />
-        <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener" style={{ color: "#f4840a", fontSize: 15, marginLeft:7, fontWeight:700}}>Buy Me a Coffee</a>
+        <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener noreferrer" style={{ color: "#f4840a", fontSize: 15, marginLeft:7, fontWeight:700}}>Buy Me a Coffee</a>
       </footer>
     </div>
   );
