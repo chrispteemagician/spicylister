@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, Sparkles, Coffee, Heart, CheckCircle, Copy, MessageCircle, RotateCcw, Search, X, AlertCircle, Crown, TrendingUp, Zap, Target, TrendingDown, Share2, Facebook, Twitter, Mail } from 'lucide-react';
+import { Upload, Sparkles, Coffee, Heart, Copy, MessageCircle, RotateCcw, Search, X, Crown, TrendingUp, Zap, Share2, Facebook, Twitter, Mail } from 'lucide-react';
 
 const SpicyLister = () => {
   const [images, setImages] = useState([]);
@@ -133,11 +133,7 @@ const SpicyLister = () => {
     }
   };
 
-// eslint-disable-next-line no-restricted-globals
-const confirmed = window.confirm("Did you complete the PayPal payment? Click OK if yes.");
-
-
-  // PAYPAL/PREMIUM FLOW -- ESLint-SAFE
+  // PAYPAL/PREMIUM FLOW -- ESLint CLEAN
   const handlePayPalUpgrade = async () => {
     const email = prompt("Enter your email for premium access & SpicyLister updates:");
     if (!email || !email.includes('@')) {
@@ -155,9 +151,9 @@ const confirmed = window.confirm("Did you complete the PayPal payment? Click OK 
     } catch (err) { console.log('Tracking failed:', err); }
     window.open('https://paypal.me/chrisptee/1.99', '_blank');
     setTimeout(() => {
-      // eslint-disable-next-line no-restricted-globals
-      const confirmed = window.confirm("Did you complete the PayPal payment? Click OK if yes.");
-      if (confirmed) { handlePayPalSuccess(email); }
+      if (window.confirm("Did you complete the PayPal payment? Click OK if yes.")) {
+        handlePayPalSuccess(email);
+      }
     }, 10000);
   };
 
