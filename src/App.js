@@ -17,13 +17,11 @@ const SpicyLister = () => {
   const [userEmail, setUserEmail] = useState('');
   const fileInputRef = useRef(null);
 
-  // All your existing functions remain the same...
   const compressImage = useCallback((file, maxDimension = 1024, quality = 0.85) => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-
       img.onload = () => {
         let { width, height } = img;
         const maxSize = Math.max(width, height);
@@ -32,13 +30,11 @@ const SpicyLister = () => {
           width *= scale;
           height *= scale;
         }
-
         canvas.width = width;
         canvas.height = height;
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
-
         canvas.toBlob((blob) => {
           if (blob) {
             resolve(blob);
@@ -47,7 +43,6 @@ const SpicyLister = () => {
           }
         }, 'image/jpeg', quality);
       };
-
       img.onerror = () => reject(new Error('Failed to load image'));
       img.src = URL.createObjectURL(file);
     });
@@ -55,43 +50,27 @@ const SpicyLister = () => {
 
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
-    
     if (images.length + files.length > 3) {
       setError("Max 3 photos please! 📸 (Perfect for front, back & condition shots)");
       return;
     }
-
     setProcessingImages(true);
     setError(null);
-
     try {
       const imagePromises = files.map(async (file) => {
         if (!file.type.startsWith('image/')) {
           throw new Error(`${file.name} isn't an image file 🤔`);
         }
-
         if (file.size > 20 * 1024 * 1024) {
           throw new Error(`${file.name} is huge! Try a smaller photo 📱`);
         }
-
         const compressedFile = await compressImage(file);
-
         if (compressedFile.size > 2 * 1024 * 1024) {
           throw new Error(`${file.name} is still too large after compression`);
         }
-
         const previewUrl = URL.createObjectURL(compressedFile);
-
-        return {
-          file: compressedFile,
-          originalName: file.name,
-          originalSize: file.size,
-          compressedSize: compressedFile.size,
-          preview: previewUrl,
-          id: Date.now() + Math.random()
-        };
+        return { file: compressedFile, originalName: file.name, originalSize: file.size, compressedSize: compressedFile.size, preview: previewUrl, id: Date.now() + Math.random() };
       });
-
       const newImages = await Promise.all(imagePromises);
       setImages(prev => [...prev, ...newImages]);
     } catch (error) {
@@ -116,15 +95,12 @@ const SpicyLister = () => {
       setError("Upload at least one photo first! 📸");
       return;
     }
-
     if (usePremium && !isPremium) {
       setShowPremiumModal(true);
       return;
     }
-
     setIsAnalyzing(true);
     setError(null);
-
     try {
       const imageData = await Promise.all(
         images.map(async (img) => {
@@ -132,32 +108,22 @@ const SpicyLister = () => {
             const reader = new FileReader();
             reader.onload = (e) => {
               const base64 = e.target.result.split(',')[1];
-              resolve({
-                data: base64,
-                mimeType: img.file.type
-              });
+              resolve({ data: base64, mimeType: img.file.type });
             };
             reader.readAsDataURL(img.file);
           });
         })
       );
-
       const response = await fetch('/.netlify/functions/analyze-item', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          images: imageData,
-          extraInfo: extraInfo.trim(),
-          isPremium: usePremium || isPremium
-        }),
+        body: JSON.stringify({ images: imageData, extraInfo: extraInfo.trim(), isPremium: usePremium || isPremium }),
       });
-
       if (!response.ok) {
         throw new Error(`Analysis failed (${response.status})`);
       }
-
       const data = await response.json();
       setResult(data);
     } catch (err) {
@@ -167,38 +133,31 @@ const SpicyLister = () => {
     }
   };
 
+// eslint-disable-next-line no-restricted-globals
+const confirmed = window.confirm("Did you complete the PayPal payment? Click OK if yes.");
+
+
+  // PAYPAL/PREMIUM FLOW -- ESLint-SAFE
   const handlePayPalUpgrade = async () => {
     const email = prompt("Enter your email for premium access & SpicyLister updates:");
     if (!email || !email.includes('@')) {
       alert("Please enter a valid email address");
       return;
     }
-    
     setUserEmail(email);
     localStorage.setItem('spicylister_email', email);
-    
     try {
       await fetch('/.netlify/functions/track-supporter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          timestamp: new Date().toISOString(),
-          type: 'premium_intent',
-          amount: '1.99'
-        })
+        body: JSON.stringify({ email, timestamp: new Date().toISOString(), type: 'premium_intent', amount: '1.99' })
       });
-    } catch (err) {
-      console.log('Tracking failed:', err);
-    }
-    
+    } catch (err) { console.log('Tracking failed:', err); }
     window.open('https://paypal.me/chrisptee/1.99', '_blank');
-    
     setTimeout(() => {
-      const confirmed = confirm("Did you complete the PayPal payment? Click OK if yes.");
-      if (confirmed) {
-        handlePayPalSuccess(email);
-      }
+      // eslint-disable-next-line no-restricted-globals
+      const confirmed = window.confirm("Did you complete the PayPal payment? Click OK if yes.");
+      if (confirmed) { handlePayPalSuccess(email); }
     }, 10000);
   };
 
@@ -206,29 +165,19 @@ const SpicyLister = () => {
     setIsPremium(true);
     setShowPremiumModal(false);
     localStorage.setItem('spicylister_premium', 'true');
-    
     try {
       await fetch('/.netlify/functions/track-supporter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          timestamp: new Date().toISOString(),
-          type: 'premium_confirmed',
-          amount: '1.99'
-        })
+        body: JSON.stringify({ email, timestamp: new Date().toISOString(), type: 'premium_confirmed', amount: '1.99' })
       });
-    } catch (err) {
-      console.log('Success tracking failed:', err);
-    }
-    
+    } catch (err) { console.log('Success tracking failed:', err); }
     analyzeImages(true);
   };
 
   React.useEffect(() => {
     const premiumStatus = localStorage.getItem('spicylister_premium');
     const storedEmail = localStorage.getItem('spicylister_email');
-    
     if (premiumStatus === 'true') {
       setIsPremium(true);
     }
@@ -277,485 +226,161 @@ const SpicyLister = () => {
     setCopiedSection('');
   };
 
-  // NEW: Social sharing functions
+  // Social sharing functions
   const shareToFacebook = () => {
     const url = encodeURIComponent('https://spicylister.netlify.app');
     const text = encodeURIComponent('Check out SpicyLister - AI-powered eBay listings in 60 seconds! Perfect for neurospicy brains 🌶️');
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}"e=${text}`, '_blank');
   };
-
   const shareToTwitter = () => {
     const url = encodeURIComponent('https://spicylister.netlify.app');
     const text = encodeURIComponent('Sell Your Clutter without a Stutter! 🎯 SpicyLister makes eBay listings in 60 seconds with AI. Perfect for ADHD/neurospicy brains! 🌶️✨');
     window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
   };
-
   const shareByEmail = () => {
     const subject = encodeURIComponent('Check out SpicyLister - AI eBay Listings!');
-    const body = encodeURIComponent(`Hey! 
-
-I found this amazing tool called SpicyLister that creates eBay listings in 60 seconds using AI. It's perfect for people with ADHD/neurodivergence who find selling stuff overwhelming.
-
-"Sell Your Clutter without a Stutter" - love that tagline! 
-
-Check it out: https://spicylister.netlify.app
-
-Built by Chris P Tee, a touring magician living in a van. Pretty cool story!
-
-Thought you might find it useful! 🌶️✨`);
+    const body = encodeURIComponent(`Hey! I found this amazing tool called SpicyLister that creates eBay listings in 60 seconds using AI. Check it out: https://spicylister.netlify.app`);
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
 
   // Modal Components
   const ShareModal = () => (
     showShareModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-md w-full p-6">
-          <div className="text-center">
-            <Share2 className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">Share SpicyLister! 🌶️</h3>
-            <p className="text-gray-600 mb-6">
-              Help other neurospicy people discover the magic of stress-free selling!
-            </p>
-            
-            <div className="space-y-3">
-              <button
-                onClick={shareToFacebook}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Facebook className="w-5 h-5" />
-                Share on Facebook
-              </button>
-              
-              <button
-                onClick={shareToTwitter}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-400 text-white rounded-lg hover:bg-blue-500"
-              >
-                <Twitter className="w-5 h-5" />
-                Share on Twitter
-              </button>
-              
-              <button
-                onClick={shareByEmail}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                <Mail className="w-5 h-5" />
-                Share by Email
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowShareModal(false)}
-              className="mt-4 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-            >
-              Close
-            </button>
-          </div>
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.22)", zIndex: 1000 }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 370, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
+          <h2 style={{ marginTop: 0 }}>Share SpicyLister</h2>
+          <button onClick={shareToFacebook}><Facebook /> Facebook</button>
+          <button onClick={shareToTwitter}><Twitter /> Twitter / X</button>
+          <button onClick={shareByEmail}><Mail /> Email</button>
+          <button onClick={() => setShowShareModal(false)}><X /> Close</button>
         </div>
       </div>
     )
   );
-
-  const PrivacyModal = () => (
-    showPrivacyModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">Privacy Policy</h3>
-          <div className="text-sm text-gray-700 space-y-4">
-            <p><strong>Last updated:</strong> September 6, 2025</p>
-            
-            <h4 className="font-semibold text-lg">What We Collect</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Email addresses (when you upgrade to premium)</li>
-              <li>Images you upload for listing generation</li>
-              <li>Generated listing content</li>
-              <li>Basic usage analytics (anonymous)</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">How We Use Your Data</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Process images with AI to generate listings</li>
-              <li>Send updates about SpicyLister (premium users only)</li>
-              <li>Improve our service and user experience</li>
-              <li>Provide customer support</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Data Security</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Images are processed securely and not stored permanently</li>
-              <li>Email addresses stored securely with industry-standard encryption</li>
-              <li>No data is sold to third parties</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Your Rights</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Request deletion of your data anytime</li>
-              <li>Unsubscribe from emails anytime</li>
-              <li>Contact us for any privacy concerns</li>
-            </ul>
-
-            <p><strong>Contact:</strong> privacy@spicylister.com</p>
-          </div>
-          <button
-            onClick={() => setShowPrivacyModal(false)}
-            className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    )
-  );
-
-  const TermsModal = () => (
-    showTermsModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">Terms of Service</h3>
-          <div className="text-sm text-gray-700 space-y-4">
-            <p><strong>Last updated:</strong> September 6, 2025</p>
-            
-            <h4 className="font-semibold text-lg">Service Description</h4>
-            <p>SpicyLister is an AI-powered tool that helps users generate listings for online marketplaces. We provide both free and premium tiers of service.</p>
-
-            <h4 className="font-semibold text-lg">Fair Use Policy</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Use SpicyLister for legitimate selling purposes only</li>
-              <li>Don't upload inappropriate, illegal, or copyrighted content</li>
-              <li>Don't attempt to abuse or overwhelm our systems</li>
-              <li>Respect other users and our community guidelines</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Premium Services</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>Premium features are available for £1.99 one-time payment</li>
-              <li>Premium access is lifetime with no recurring fees</li>
-              <li>30-day money-back guarantee if unsatisfied</li>
-              <li>Premium features include market research and competitor analysis</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Content & Accuracy</h4>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>AI-generated listings are suggestions - always review before posting</li>
-              <li>We can't guarantee accuracy of pricing or descriptions</li>
-              <li>You're responsible for final listing content and compliance</li>
-              <li>Generated content should be considered a starting point</li>
-            </ul>
-
-            <h4 className="font-semibold text-lg">Limitation of Liability</h4>
-            <p>SpicyLister is provided "as is" without warranties. We're not responsible for listing outcomes, sales results, or marketplace compliance issues.</p>
-
-            <p><strong>Contact:</strong> support@spicylister.com</p>
-          </div>
-          <button
-            onClick={() => setShowTermsModal(false)}
-            className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    )
-  );
-
-  // Your existing premium modal component stays the same...
-  const PremiumModal = () => (
-    showPremiumModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Crown className="w-12 h-12 text-yellow-500" />
-              <Zap className="w-8 h-8 text-orange-500" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-800 mb-2">Unlock the MAGIC! ✨</h3>
-            <p className="text-lg text-orange-600 font-semibold mb-4">
-              Stop guessing prices - GET PAID WHAT YOUR STUFF IS WORTH!
-            </p>
-            
-            <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 mb-6 text-left">
-              <h4 className="font-bold text-gray-800 mb-3 text-center">🔥 Why Premium Users Sell for 30-50% MORE:</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-green-600" />
-                  <span><strong>Real Market Research:</strong> Know exactly what similar items sold for</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
-                  <span><strong>Competitor Analysis:</strong> See what others are charging RIGHT NOW</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-purple-600" />
-                  <span><strong>Optimal Timing:</strong> When to list for maximum visibility</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-yellow-600" />
-                  <span><strong>Condition Assessment:</strong> Professional evaluation of your item</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <h4 className="font-semibold text-green-800 mb-2">💬 What Premium Users Say:</h4>
-              <div className="text-sm text-green-700 space-y-2">
-                <p><em>"Made an extra £47 on one item thanks to premium pricing!" - Sarah M.</em></p>
-                <p><em>"Finally stopped selling stuff too cheap!" - Mike R.</em></p>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-6">
-              <p className="text-sm text-yellow-800">
-                <strong>⏰ LIMITED TIME:</strong> £1.99 intro price! 
-                <br />
-                <span className="text-xs">(Regular price £4.99 - save £3 today!)</span>
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowPremiumModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Maybe Later
-              </button>
-              <button
-                onClick={handlePayPalUpgrade}
-                className="flex-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-2 rounded-lg hover:from-yellow-600 hover:to-orange-600 text-center font-semibold"
-              >
-                🚀 YES! Get Premium £1.99
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-500 mt-4">
-              One-time payment • Lifetime access • 30-day money-back guarantee
-              <br />
-              <strong>Your first extra sale pays for itself!</strong>
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  );
-
-  const AdSenseAd = ({ slot, format = "auto", responsive = true }) => {
-    React.useEffect(() => {
-      try {
-        if (window.adsbygoogle) {
-          window.adsbygoogle.push({});
-        }
-      } catch (e) {
-        console.log('AdSense error:', e);
-      }
-    }, []);
-
-    return (
-      <div className="adsense-container my-4 text-center">
-        <ins
-          className="adsbygoogle"
-          style={{ display: 'block' }}
-          data-ad-client="ca-pub-YOUR_ADSENSE_ID"
-          data-ad-slot={slot}
-          data-ad-format={format}
-          data-full-width-responsive={responsive}
-        />
-      </div>
-    );
-  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header with Logo Support */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            {/* Logo placeholder - replace with your logo */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
-              <span className="text-2xl">🌶️</span>
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-              SpicyLister
-            </h1>
-            {isPremium && <Crown className="w-6 h-6 text-yellow-500" />}
-            <Sparkles className="w-8 h-8 text-red-500" />
-          </div>
-          
-          {/* Enhanced Tagline with Share Button */}
-          <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 mb-4 border border-orange-200">
-            <p className="text-xl font-bold text-gray-800 mb-2">
-              🎯 Sell Your Clutter without a Stutter!
-            </p>
-            <p className="text-lg text-gray-700">
-              Get Your Dopamine Hit in Less Than 60 Seconds and Let's SpicyLister! ⚡
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 text-sm text-gray-600 mt-2">
-              <span>Zero stress selling on eBay, Vinted and More!</span>
-              <span>•</span>
-              <span>AI-powered listings in 60 seconds</span>
-              <span>•</span>
-              <span>Perfect for neurospicy brains ✨</span>
-            </div>
-            
-            {/* Share Button */}
-            <div className="mt-3">
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="flex items-center gap-2 mx-auto px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
-              >
-                <Share2 className="w-4 h-4" />
-                Share SpicyLister
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Premium Status Banner */}
-        {isPremium ? (
-          <div className="bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-yellow-600" />
-              <span className="font-semibold text-yellow-800">🔥 PREMIUM ACTIVE!</span>
-              <span className="text-yellow-700">Research-based pricing enabled - Sell for MORE! ✨</span>
-              {userEmail && <span className="text-yellow-600 text-sm">({userEmail})</span>}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingDown className="w-5 h-5 text-red-500" />
-                <span className="font-semibold text-gray-800">Stop Selling Too Cheap!</span>
-                <span className="text-gray-600">Get research-based pricing ↗️</span>
-              </div>
-              <button
-                onClick={() => setShowPremiumModal(true)}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-lg text-sm hover:from-yellow-600 hover:to-orange-600 font-semibold flex items-center gap-1"
-              >
-                <Crown className="w-4 h-4" />
-                Unlock Premium £1.99
-              </button>
-            </div>
+    <div style={{ maxWidth: 600, margin: "20px auto", padding: 18, borderRadius: 12, boxShadow: "0 7px 24px #2623" }}>
+      <h1 style={{ fontSize: 32, marginBottom: 6 }}>
+        <Sparkles /> SpicyLister
+      </h1>
+      <div style={{ fontSize: 17, color: "#333" }}>AI-powered eBay listing generator for neurospicy brains 🌶️</div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleImageUpload}
+      />
+      <button style={{ margin: "21px 0", background: "#f94", color: "#111", fontWeight: 900, fontSize: 22, border: 0, borderRadius: 8, padding: "12px 24px", cursor: "pointer" }} onClick={() => fileInputRef.current.click()}>
+        <Upload /> Upload Photo{images.length !== 1 ? "s" : ""}
+      </button>
+      <div>
+        {images.length > 0 && (
+          <div style={{ margin: "14px 0" }}>
+            {images.map(img => (
+              <span key={img.id} style={{ display: "inline-block", marginRight: 8, verticalAlign: "middle", position: "relative" }}>
+                <img src={img.preview} alt="" style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 8, border: "2px solid #f94" }} />
+                <X style={{ position: "absolute", right: 2, top: 2, background: "#fff", borderRadius: "50%", cursor: "pointer", color: "#d11", fontSize: 17 }} onClick={() => removeImage(img.id)} />
+                <div style={{ fontSize: 11, color: "#98999f", textAlign: 'center' }}>{formatFileSize(img.compressedSize || img.originalSize)}</div>
+              </span>
+            ))}
           </div>
         )}
-
-        {/* Future Camera Features Teaser */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 mb-6">
-          <div className="text-center">
-            <h3 className="font-semibold text-purple-800 mb-2">🚀 Coming Soon: Camera Magic!</h3>
-            <p className="text-sm text-purple-700">
-              Point your camera at multiple items and get instant valuations, condition assessments, and shipping suggestions! 
-              <span className="font-semibold">Valuation Cam • Pros & Cons Cam • Help Me Decide Cam</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Rest of your existing app remains the same... */}
-        {/* Tips */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-semibold text-blue-900 mb-2">📱 Pro Tips for Better Results:</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Clean, bright photos work best</li>
-                <li>• Include front, back, and any damage/wear</li>
-                <li>• Add any extra details you know (brand, age, condition)</li>
-                {isPremium && <li>• Premium: Get real market research & competitor pricing! 🔥</li>}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* AdSense Ad - Top */}
-        <AdSenseAd slot="1234567890" />
-
-        {/* All your existing upload, analysis, and results sections remain the same... */}
-        {/* I'll abbreviate here for space, but include all existing functionality */}
-        
-        {/* Image Upload */}
-        <div className="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-200 hover:border-orange-300 transition-all duration-200 mb-6">
-          <div className="p-8">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-            
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="cursor-pointer text-center"
-            >
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                {images.length === 0 ? 'Upload Your Item Photos' : `${images.length}/3 Photos Added`}
-              </h3>
-              <p className="text-gray-500">
-                Click here or drag & drop up to 3 images
-              </p>
-              <p className="text-xs text-gray-400 mt-2">
-                JPG, PNG up to 20MB each • We'll optimize them for you
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Footer with Privacy & Terms */}
-        <div className="text-center mt-12 py-8 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Heart className="w-5 h-5 text-red-500" />
-            <span className="text-gray-600">SpicyLister is free forever!</span>
-            <Heart className="w-5 h-5 text-red-500" />
-          </div>
-          <p className="text-sm text-gray-500 mb-4">
-            Built by neurospicy, for neurospicy - turning clutter into cash, one dopamine hit at a time! 🌶️
-          </p>
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <a 
-              href="https://buymeacoffee.com/chrispteemagician"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
-            >
-              <Coffee className="w-4 h-4" />
-              Support the Tour
-            </a>
-          </div>
-
-          {/* Privacy & Terms Links */}
-          <div className="flex justify-center gap-4 text-xs text-gray-500 mb-2">
-            <button 
-              onClick={() => setShowPrivacyModal(true)}
-              className="hover:text-orange-600 underline"
-            >
-              Privacy Policy
-            </button>
-            <button 
-              onClick={() => setShowTermsModal(true)}
-              className="hover:text-orange-600 underline"
-            >
-              Terms of Service
-            </button>
-            <button 
-              onClick={() => setShowShareModal(true)}
-              className="hover:text-orange-600 underline"
-            >
-              Share
-            </button>
-          </div>
-
-          <p className="text-xs text-gray-400">
-            Made with ❤️ by Chris P Tee • Van Life + Comedy + Magic + Code
-          </p>
-        </div>
       </div>
-
-      {/* All Modals */}
-      <PremiumModal />
-      <ShareModal />
-      <PrivacyModal />
-      <TermsModal />
+      {images.length > 0 && (
+        <div>
+          <textarea
+            placeholder="Add extra item info (brand, notes, flaws, etc)"
+            value={extraInfo}
+            onChange={e => setExtraInfo(e.target.value)}
+            style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 6, border: "1px solid #aaa", marginBottom: 12, marginTop: 7 }}
+            rows={2}
+          ></textarea>
+          <br />
+          <button style={{ background: "#1479fd", color: "#fff", fontSize: 21, fontWeight: 900, border: 0, borderRadius: 7, padding: "13px 20px", cursor: "pointer", marginBottom: 0 }} disabled={isAnalyzing} onClick={() => analyzeImages(false)}>
+            <Zap /> Analyze Item
+          </button>
+          <span style={{ marginLeft: 14 }}>
+            or <button style={{ color: "#fd1919", fontWeight: 600, border: 0, background: "none", textDecoration: "underline", cursor: "pointer" }} onClick={() => analyzeImages(true)} disabled={isPremium}>Analyze as <Crown /> Premium</button>
+          </span>
+        </div>
+      )}
+      {processingImages && <div style={{ color: "#585", margin: "6px 0", fontWeight: 600 }}>Processing Images...</div>}
+      {error && <div style={{ color: "#d11", background: "#fee", padding: 9, borderRadius: 7, marginTop: 10, fontWeight: 700 }}>{error}</div>}
+      {isAnalyzing && <div style={{ color: "#1479fd", margin: "10px 0", fontWeight: 700 }}>Analyzing item... Please wait.</div>}
+      {result && (
+        <div style={{ marginTop: 18, padding: 14, background: "#fff9ee", borderRadius: 9 }}>
+          <div style={{ fontWeight: 800, fontSize: 21 }}><Sparkles /> {result.title || "AI Result"}</div>
+          <div style={{ color: "#525", margin: "10px 0 7px 0" }}>{result.description}</div>
+          {result.condition && <div><strong>Condition:</strong> {result.condition}</div>}
+          {result.pricing && (
+            <div>
+              <strong>Pricing:</strong> <span style={{ color: "#333" }}>Starting Bid: £{result.pricing.startingBid} | Buy It Now: £{result.pricing.buyItNow}</span>
+            </div>
+          )}
+          {result.marketInsights && <div><TrendingUp /> <strong>Insights:</strong> {result.marketInsights}</div>}
+          {result.platformTips && <div style={{ fontStyle: "italic", color: "#777" }}><MessageCircle /> {result.platformTips}</div>}
+          <div style={{ marginTop: 10 }}>
+            <button onClick={searchEbayWithTitle}><Search /> eBay Search</button>
+            <button onClick={regenerateWithInfo} style={{ marginLeft: 10 }}><RotateCcw /> Re-Analyze</button>
+            <button onClick={() => copyToClipboard(result.description, 'desc')} style={{ marginLeft: 10 }}>
+              <Copy /> {copiedSection === 'desc' ? "Copied!" : "Copy Description"}
+            </button>
+          </div>
+          <button style={{ marginTop: 15, background: "#fafafa", color: "#333", border: "1px solid #ddd", borderRadius: 6, padding: "10px 19px", cursor: "pointer" }} onClick={startNewListing}><RotateCcw /> New Listing</button>
+        </div>
+      )}
+      <div style={{ marginTop: 14 }}>
+        <button style={{ background: "#ffa755", color: "#282", fontWeight: 600, fontSize: 18, borderRadius: 7, border: 0, padding: "10px 20px", marginTop: 24 }} onClick={() => setShowShareModal(true)}><Share2 /> Share</button>
+        <button style={{ background: "#e0e1e7", color: "#444", fontWeight: 400, fontSize: 15, borderRadius: 7, border: 0, padding: "7px 15px", marginLeft: 16 }} onClick={() => setShowPrivacyModal(true)}>Privacy</button>
+        <button style={{ background: "#e1e0e7", color: "#444", fontWeight: 400, fontSize: 15, borderRadius: 7, border: 0, padding: "7px 15px", marginLeft: 10 }} onClick={() => setShowTermsModal(true)}>T&Cs</button>
+      </div>
+      {ShareModal()}
+      {showPremiumModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.39)", zIndex: 9999 }}>
+          <div style={{ background: "#fff", borderRadius: 17, padding: 35, maxWidth: 470, margin: "80px auto", fontSize: 18, boxShadow: "0 8px 46px #1117" }}>
+            <h2>Unlock Premium</h2>
+            <div style={{ fontSize: 21, color: "#B30", fontWeight: 700, marginBottom: 14 }}>
+              <Crown /> For a one-time payment of <b>£1.99</b> get lifetime access:
+            </div>
+            <ul>
+              <li>Premium pricing analysis using eBay sold data</li>
+              <li>Batch listing suggestions</li>
+              <li>Exclusive market insights</li>
+              <li>Supports the Comedy Magic Tour 🚐</li>
+            </ul>
+            <button style={{ background: "#fdc41a", border: 0, borderRadius: 8, padding: "10px 26px", fontWeight: 800, fontSize: 18, marginTop: 10 }} onClick={handlePayPalUpgrade}>
+              <Coffee /> Upgrade for £1.99
+            </button>
+            <button style={{ marginLeft: 14, border: 0, background: "#eee", color: "#222", fontWeight: 500, borderRadius: 8, padding: "10px 17px" }} onClick={() => setShowPremiumModal(false)}><X /> Cancel</button>
+            <div style={{ fontSize: 13, color: "#777", marginTop: 12 }}>30-day money-back guarantee</div>
+          </div>
+        </div>
+      )}
+      {showPrivacyModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#111a" }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 540, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
+            <h2>Privacy Policy</h2>
+            <p>We only ever store your email (for upgrade tracking). No uploaded photos or listing data is ever saved.</p>
+            <button onClick={() => setShowPrivacyModal(false)} style={{ background: "#eee", color: "#111", fontSize: 17, borderRadius: 8, marginTop: 15 }}><X /> Close</button>
+          </div>
+        </div>
+      )}
+      {showTermsModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#111a" }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 540, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
+            <h2>Terms &amp; Conditions</h2>
+            <p>Use this tool at your own risk. We recommend reviewing all AI-generated suggestions and prices before listing.</p>
+            <button onClick={() => setShowTermsModal(false)} style={{ background: "#eee", color: "#111", fontSize: 17, borderRadius: 8, marginTop: 15 }}><X /> Close</button>
+          </div>
+        </div>
+      )}
+      <footer style={{ marginTop: 36, textAlign: "center", color: "#555", fontWeight: 500, fontSize: 17 }}>
+        Made with <Heart style={{ color: "#f55", verticalAlign: "middle" }} /> by Chris P Tee • Van Life + Comedy + Magic + Code
+        <br />
+        <a href="mailto:privacy@spicylister.com" style={{ color: "#229", fontSize: 14 }}>privacy@spicylister.com</a>
+      </footer>
     </div>
   );
 };
