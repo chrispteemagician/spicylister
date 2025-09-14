@@ -1,38 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, Sparkles, Coffee, Heart, Copy, MessageCircle, RotateCcw, Search, X, Crown, TrendingUp, Zap, Share2, Facebook, Twitter, Mail } from 'lucide-react';
+import { Upload, Sparkles, Heart, Copy, RotateCcw, Search, X, Zap, Share2, Facebook as Fb, Twitter, Mail, ShoppingCart } from 'lucide-react';
 
-const LOGO_URL = "/spicylister-logo.png"; // Place your logo here in /public/
-
-const SavePrompt = () => (
-  <div style={{
-    background: "#fff8e1",
-    color: "#b2532b",
-    border: "2px solid #fcad43",
-    borderRadius: 10,
-    margin: "25px 0",
-    padding: "17px 22px",
-    fontSize: 18,
-    fontWeight: "bold",
-    boxShadow: "0 2px 12px #fecb9024"
-  }}>
-    ⚠️ <span style={{ fontSize: 22, fontWeight: 900, color: "#fe7800" }}>Don’t Lose Your Work!</span><br />
-    Your photos and info disappear if you refresh, close, or leave this page.<br />
-    <ul style={{ margin: 8, marginLeft: 32, fontWeight: 600 }}>
-      <li>Please copy or download your results before leaving.</li>
-      <li>Bulk tools? Download your CSV template below!</li>
-      <li>Playing it safe? Paste your description into Notepad for backup.</li>
-    </ul>
-    <span style={{ color: "#e74c3c" }}>Refreshing = progress GONE!</span>
-  </div>
-);
-
-const BulkUploadBlock = () => (
-  <div style={{ margin: "24px 0", background: "#fff3ea", border: "2px dashed #fa9242", borderRadius: 8, padding: "16px", fontSize: 16 }}>
-    <b>🔥 NEW: Bulk Upload Power!</b> <br />
-    Download our <a href="/bulk-upload-template.csv" style={{ color: "#fa573b", fontWeight: 700, textDecoration: "underline" }}>CSV Template</a> to prepare multiple items at once.<br />
-    <span style={{ fontSize: 14, color: "#995" }}>Pro mode: Paste your details, upload as guided, and let SpicyLister do the rest.<br />Contact <a href="mailto:chrisptee@spicylister.com">chrisptee@spicylister.com</a> for bulk help.</span>
-  </div>
-);
+const LOGO_URL = "/spicylister-logo.png";
+const BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/chrispteemagician";
 
 const SpicyLister = () => {
   const [images, setImages] = useState([]);
@@ -41,15 +11,10 @@ const SpicyLister = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [copiedSection, setCopiedSection] = useState('');
-  const [processingImages, setProcessingImages] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  const [tipsExpanded, setTipsExpanded] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Compress and preview
   const compressImage = useCallback((file, maxDimension = 1024, quality = 0.85) => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
@@ -81,13 +46,13 @@ const SpicyLister = () => {
     });
   }, []);
 
+  // Handle images input
   const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
     if (images.length + files.length > 3) {
-      setError("Max 3 photos please! 📸 (Perfect for front, back & condition shots)");
+      setError("Max 3 photos for best results!");
       return;
     }
-    setProcessingImages(true);
     setError(null);
     try {
       const imagePromises = files.map(async (file) => {
@@ -102,205 +67,117 @@ const SpicyLister = () => {
           throw new Error(`${file.name} is still too large after compression`);
         }
         const previewUrl = URL.createObjectURL(compressedFile);
-        return { file: compressedFile, originalName: file.name, originalSize: file.size, compressedSize: compressedFile.size, preview: previewUrl, id: Date.now() + Math.random() };
+        return { file: compressedFile, preview: previewUrl, id: Date.now() + Math.random() };
       });
       const newImages = await Promise.all(imagePromises);
       setImages(prev => [...prev, ...newImages]);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setProcessingImages(false);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
   const removeImage = (id) => {
     setImages(prev => {
       const imageToRemove = prev.find(img => img.id === id);
-      if (imageToRemove?.preview) {
-        URL.revokeObjectURL(imageToRemove.preview);
-      }
+      if (imageToRemove?.preview) URL.revokeObjectURL(imageToRemove.preview);
       return prev.filter(img => img.id !== id);
     });
   };
 
-  const analyzeImages = async (usePremium = false) => {
+  // Analyze trigger
+  const analyzeImages = async () => {
     if (images.length === 0) {
-      setError("Upload at least one photo first! 📸");
-      return;
-    }
-    if (usePremium && !isPremium) {
-      setShowPremiumModal(true);
+      setError("Please upload at least one photo!");
       return;
     }
     setIsAnalyzing(true);
     setError(null);
+    setResult(null);
     try {
       const imageData = await Promise.all(
-        images.map(async (img) => {
-          return new Promise((resolve) => {
+        images.map(img =>
+          new Promise(resolve => {
             const reader = new FileReader();
             reader.onload = (e) => {
               const base64 = e.target.result.split(',')[1];
               resolve({ data: base64, mimeType: img.file.type });
             };
             reader.readAsDataURL(img.file);
-          });
-        })
+          })
+        )
       );
       const response = await fetch('/.netlify/functions/analyze-item', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ images: imageData, extraInfo: extraInfo.trim(), isPremium: usePremium || isPremium }),
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ images: imageData, extraInfo: extraInfo.trim(), isPremium: false })
       });
-      if (!response.ok) {
-        throw new Error(`Analysis failed (${response.status})`);
-      }
+      if (!response.ok) throw new Error(`Analysis failed (${response.status})`);
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError(`Hmm, that didn't work: ${err.message} 😅`);
+      setError(`SpicyBrain had a wobble: ${err.message} 😅`);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handlePayPalUpgrade = async () => {
-    const email = prompt("Enter your email for premium access & SpicyLister updates:");
-    if (!email || !email.includes('@')) {
-      alert("Please enter a valid email address");
-      return;
-    }
-    setUserEmail(email);
-    localStorage.setItem('spicylister_email', email);
-    try {
-      await fetch('/.netlify/functions/track-supporter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, timestamp: new Date().toISOString(), type: 'premium_intent', amount: '1.99' })
-      });
-    } catch (err) { console.log('Tracking failed:', err); }
-    window.open('https://paypal.me/chrisptee/1.99', '_blank');
-    setTimeout(() => {
-      if (window.confirm("Did you complete the PayPal payment? Click OK if yes.")) {
-        handlePayPalSuccess(email);
-      }
-    }, 10000);
+  const startNewListing = () => {
+    images.forEach(img => { if (img.preview) URL.revokeObjectURL(img.preview); });
+    setImages([]); setExtraInfo(''); setResult(null); setError(null);
   };
-
-  const handlePayPalSuccess = async (email = userEmail) => {
-    setIsPremium(true);
-    setShowPremiumModal(false);
-    localStorage.setItem('spicylister_premium', 'true');
-    try {
-      await fetch('/.netlify/functions/track-supporter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, timestamp: new Date().toISOString(), type: 'premium_confirmed', amount: '1.99' })
-      });
-    } catch (err) { console.log('Success tracking failed:', err); }
-    analyzeImages(true);
-  };
-
-  React.useEffect(() => {
-    const premiumStatus = localStorage.getItem('spicylister_premium');
-    const storedEmail = localStorage.getItem('spicylister_email');
-    if (premiumStatus === 'true') {
-      setIsPremium(true);
-    }
-    if (storedEmail) {
-      setUserEmail(storedEmail);
-    }
-  }, []);
 
   const copyToClipboard = async (text, section = '') => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedSection(section);
       setTimeout(() => setCopiedSection(''), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
+    } catch {}
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
-    return Math.round(bytes / (1024 * 1024)) + ' MB';
-  };
+  // Selling Tips
+  const tips = [
+    "List on Sunday evenings for best visibility—especially for auctions.",
+    "Use clear, honest descriptions. Small flaws? Mention them: buyers trust you more.",
+    "Take photos from several angles (front, back, close-up).",
+    "Use keywords: brand, size, model, colour, condition.",
+    "Send quick, friendly replies to enquiries. People buy from people they like!",
+    "For Facebook Marketplace: include your area, accept sensible offers."
+  ];
 
-  const searchEbayWithTitle = () => {
-    if (result?.title) {
-      const searchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(result.title)}`;
-      window.open(searchUrl, '_blank');
-    }
-  };
+  // Output platforms
+  const platforms = [
+    { name: "eBay", icon: <ShoppingCart />, color: "#3f6be0" },
+    { name: "Facebook Marketplace", icon: <Fb />, color: "#1671f5" },
+    { name: "Gumtree", icon: <span style={{fontWeight:700}}>GT</span>, color: "#29a400" },
+    { name: "Vinted", icon: <span style={{fontWeight:700}}>V</span>, color: "#00bfae" },
+    { name: "Copy All", icon: <Copy />, color: "#fa573b" }
+  ];
 
-  const regenerateWithInfo = () => {
-    if (images.length > 0) {
-      analyzeImages(isPremium);
-    }
-  };
+  function formatOutput(platform) {
+    if (!result) return "";
+    // You can customize output structure per platform if you want.
+    let out = `Title: ${result.title}\n\n${result.description}\nCondition: ${result.condition}\nStarting Bid: £${result.pricing?.startingBid} | Buy It Now: £${result.pricing?.buyItNow}\n\n${result.platformTips || ''}`;
+    if (platform.name === "Copy All") return out;
+    return out + `\n\n(Listed via SpicyLister for ${platform.name})`;
+  }
 
-  const startNewListing = () => {
-    images.forEach(img => {
-      if (img.preview) URL.revokeObjectURL(img.preview);
-    });
-    setImages([]);
-    setExtraInfo('');
-    setResult(null);
-    setError(null);
-    setCopiedSection('');
-  };
-
-  // Social sharing functions
-  const shareToFacebook = () => {
-    const url = encodeURIComponent('https://spicylister.netlify.app');
-    const text = encodeURIComponent('Check out SpicyLister - AI-powered eBay listings in 60 seconds! Perfect for neurospicy brains 🌶️');
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}"e=${text}`, '_blank');
-  };
-  const shareToTwitter = () => {
-    const url = encodeURIComponent('https://spicylister.netlify.app');
-    const text = encodeURIComponent('Sell Your Clutter without a Stutter! 🎯 SpicyLister makes eBay listings in 60 seconds with AI. Perfect for ADHD/neurospicy brains! 🌶️✨');
-    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
-  };
-  const shareByEmail = () => {
-    const subject = encodeURIComponent('Check out SpicyLister - AI eBay Listings!');
-    const body = encodeURIComponent(`Hey! I found this amazing tool called SpicyLister that creates eBay listings in 60 seconds using AI. Check it out: https://spicylister.netlify.app`);
-    window.open(`mailto:?subject=${subject}&body=${body}`);
-  };
-
-  // Modal Components
-  const ShareModal = () => (
-    showShareModal && (
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.22)", zIndex: 1000 }}>
-        <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 370, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
-          <h2 style={{ marginTop: 0 }}>Share SpicyLister</h2>
-          <button onClick={shareToFacebook}><Facebook /> Facebook</button>
-          <button onClick={shareToTwitter}><Twitter /> Twitter / X</button>
-          <button onClick={shareByEmail}><Mail /> Email</button>
-          <button onClick={() => setShowShareModal(false)}><X /> Close</button>
-        </div>
-      </div>
-    )
-  );
-
+  // UI
   return (
-    <div style={{ maxWidth: 600, margin: "36px auto", padding: 18, borderRadius: 15, background: "#fffefb", boxShadow: "0 7px 34px #f6632c22" }}>
-      <div style={{textAlign:"center", marginBottom: 5}}>
-        <img src={LOGO_URL} alt="SpicyLister Logo" style={{width: 110, margin: "0 auto 5px", borderRadius: 15, boxShadow:"0 2px 16px #fea82a39"}}/>
+    <div style={{ maxWidth: 630, margin: "36px auto", padding: 22, borderRadius: 15, background: "#fffdfa", boxShadow: "0 9px 36px #fe573c20" }}>
+      <div style={{textAlign:"center", marginBottom: 9}}>
+        <img src={LOGO_URL} alt="SpicyLister Logo" style={{width: 120, margin: "0 auto", borderRadius: 16, boxShadow:"0 2px 16px #fea82a42"}}/>
       </div>
-      <h1 style={{ fontSize: 37, marginBottom: 5, color: "#fe632c", fontFamily: "Baloo 2, Arial, sans-serif", letterSpacing:2 }}>
-        <Sparkles /> SpicyLister <Zap style={{ color: "#e84118" }}/>
+      <h1 style={{ fontSize: 38, marginBottom: 7, color: "#fe632c", fontFamily: "Baloo 2, Arial, sans-serif", letterSpacing:2 }}>
+        <Sparkles /> SpicyLister <Zap style={{ color: "#e84118" }}/> 
       </h1>
-      <div style={{ fontSize: 19, color: "#555", marginBottom:6, fontWeight: 600 }}>AI eBay Listing Helper for Neurospicy Sellers <span style={{ fontSize: 23 }}>🌶️</span></div>
-      <div style={{ fontSize: 17, color:"#994", fontWeight: 400, marginBottom: 9 }}>
-        Sell your clutter without a stutter! Listings in sixty seconds for that sweet dopamine buzz.
+      <div style={{ fontSize: 20, color: "#593", marginBottom:8, fontWeight: 700 }}>Dopamine Hits for Decluttering Heroes! 🌶️</div>
+      <div style={{ fontSize: 17, color: "#984", fontWeight: 500, marginBottom: 11 }}>
+        One-click. Three photos max. SpicyBrain gives you a researched price, title, and description—ready for eBay, Facebook, Gumtree, Vinted and more!
       </div>
-
-      <SavePrompt />
-      <BulkUploadBlock />
+      <div style={{ background: "#ffe3b1", color: "#a42b0a", border: "2px solid #fcad43", borderRadius: 10, margin: "17px 0", padding: "16px 21px", fontSize: 17, fontWeight: "bold" }}>
+        ⚠️ <b>Don't lose your work!</b><br />
+        SpicyLister doesn't save it—copy your result before leaving or refreshing.
+      </div>
 
       <input
         type="file"
@@ -310,17 +187,18 @@ const SpicyLister = () => {
         style={{ display: 'none' }}
         onChange={handleImageUpload}
       />
-      <button style={{ margin: "21px 0", background: "#fa9547", color: "#222", fontWeight: 900, fontSize: 23, border: 0, borderRadius: 9, padding: "13px 25px", cursor: "pointer", letterSpacing: 1 }} onClick={() => fileInputRef.current.click()}>
-        <Upload /> Upload Photo{images.length !== 1 ? "s" : ""}
-      </button>
+      <div style={{textAlign:"center"}}>
+        <button style={{ margin: "18px 0", background: "#fa9547", color: "#171527", fontWeight: 900, fontSize: 24, border: 0, borderRadius: 12, padding: "14px 27px", cursor: "pointer", letterSpacing: 1 }} onClick={() => fileInputRef.current.click()}>
+          <Upload /> SpicyLister: Upload Photo{images.length !== 1 ? "s" : ""}
+        </button>
+      </div>
       <div>
         {images.length > 0 && (
           <div style={{ margin: "14px 0" }}>
             {images.map(img => (
               <span key={img.id} style={{ display: "inline-block", marginRight: 8, verticalAlign: "middle", position: "relative" }}>
-                <img src={img.preview} alt="" style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 8, border: "2px solid #f94" }} />
-                <X style={{ position: "absolute", right: 2, top: 2, background: "#fff", borderRadius: "50%", cursor: "pointer", color: "#d11", fontSize: 17 }} onClick={() => removeImage(img.id)} />
-                <div style={{ fontSize: 11, color: "#98999f", textAlign: 'center' }}>{formatFileSize(img.compressedSize || img.originalSize)}</div>
+                <img src={img.preview} alt="" style={{ width: 86, height: 86, objectFit: "cover", borderRadius: 9, border: "2px solid #f94" }} />
+                <X style={{ position: "absolute", right: 2, top: 2, background: "#fff", borderRadius: "50%", cursor: "pointer", color: "#d11", fontSize: 18 }} onClick={() => removeImage(img.id)} />
               </span>
             ))}
           </div>
@@ -329,102 +207,84 @@ const SpicyLister = () => {
       {images.length > 0 && (
         <div>
           <textarea
-            placeholder="Add extra item info (brand, notes, flaws, etc)"
+            placeholder="Add extra notes? (brand, size, flaws...)"
             value={extraInfo}
             onChange={e => setExtraInfo(e.target.value)}
-            style={{ width: "100%", padding: 12, fontSize: 16, borderRadius: 7, border: "1px solid #faa264", marginBottom: 12, marginTop: 7, background:"#fff7f2" }}
+            style={{ width: "100%", padding: 13, fontSize: 17, borderRadius: 7, border: "1px solid #faa264", marginBottom: 11, marginTop: 8, background:"#fff6eb" }}
             rows={2}
           ></textarea>
-          <br />
-          <button style={{ background: "#1479fd", color: "#fff", fontSize: 21, fontWeight: 900, border: 0, borderRadius: 9, padding: "13px 20px", cursor: "pointer", marginBottom: 0 }} disabled={isAnalyzing} onClick={() => analyzeImages(false)}>
-            <Zap /> Analyze Item
-          </button>
-          <span style={{ marginLeft: 14 }}>
-            or <button style={{ color: "#fd1919", fontWeight: 600, border: 0, background: "none", textDecoration: "underline", cursor: "pointer" }} onClick={() => analyzeImages(true)} disabled={isPremium}>Analyze as <Crown /> Premium</button>
-          </span>
+          <div style={{textAlign:"center"}}>
+            <button style={{ background: "#1779fd", color: "#fff", fontSize: 21, fontWeight: 900, border: 0, borderRadius: 11, padding: "13px 27px", cursor: "pointer" }} disabled={isAnalyzing} onClick={analyzeImages}>
+              <Zap /> Analyze
+            </button>
+          </div>
         </div>
       )}
-      {processingImages && <div style={{ color: "#585", margin: "6px 0", fontWeight: 600 }}>Processing Images...</div>}
-      {error && <div style={{ color: "#d11", background: "#fee", padding: 9, borderRadius: 7, marginTop: 10, fontWeight: 700 }}>{error}</div>}
-      {isAnalyzing && <div style={{ color: "#1479fd", margin: "10px 0", fontWeight: 700 }}>Analyzing item... Please wait.</div>}
+      {error && <div style={{ color: "#d11", background: "#fee", padding: 8, borderRadius: 7, marginTop: 10, fontWeight: 700 }}>{error}</div>}
+      {isAnalyzing && <div style={{ color: "#e66300", fontWeight: 800, fontSize: 19, marginTop:14, textAlign:"center" }}>🌶️ SpicyBrain is analyzing your item… Dopamine incoming!</div>}
       {result && (
-        <div style={{ marginTop: 18, padding: 14, background: "#fff9ee", borderRadius: 9 }}>
-          <div style={{ fontWeight: 800, fontSize: 21 }}><Sparkles /> {result.title || "AI Result"}</div>
-          <div style={{ color: "#525", margin: "10px 0 7px 0" }}>{result.description}</div>
-          {result.condition && <div><strong>Condition:</strong> {result.condition}</div>}
+        <div style={{ marginTop: 18, padding: 15, background: "#fff9ee", borderRadius: 10 }}>
+          <div style={{ fontWeight: 800, fontSize: 22, color: "#ec572e"}}><Sparkles /> {result.title || "AI Result"}</div>
+          <div style={{ color: "#444", margin: "11px 0 7px 0", fontSize: 17 }}>{result.description}</div>
+          {result.condition && <div style={{ fontWeight: 600, color: "#653" }}>Condition: <span style={{fontWeight:400}}>{result.condition}</span></div>}
           {result.pricing && (
             <div>
-              <strong>Pricing:</strong> <span style={{ color: "#333" }}>Starting Bid: £{result.pricing.startingBid} | Buy It Now: £{result.pricing.buyItNow}</span>
+              <strong>Pricing:</strong> <span style={{ color: "#2c3" }}>Starting Bid: £{result.pricing.startingBid}</span> | BIN: <span style={{ color:'#0070ae'}}>£{result.pricing.buyItNow}</span>
             </div>
           )}
-          {result.marketInsights && <div><TrendingUp /> <strong>Insights:</strong> {result.marketInsights}</div>}
-          {result.platformTips && <div style={{ fontStyle: "italic", color: "#777" }}><MessageCircle /> {result.platformTips}</div>}
-          <div style={{ marginTop: 10 }}>
-            <button onClick={searchEbayWithTitle}><Search /> eBay Search</button>
-            <button onClick={regenerateWithInfo} style={{ marginLeft: 10 }}><RotateCcw /> Re-Analyze</button>
-            <button onClick={() => copyToClipboard(result.description, 'desc')} style={{ marginLeft: 10 }}>
-              <Copy /> {copiedSection === 'desc' ? "Copied!" : "Copy Description"}
-            </button>
-          </div>
-          <button style={{ marginTop: 15, background: "#fafafa", color: "#333", border: "1px solid #ddd", borderRadius: 6, padding: "10px 19px", cursor: "pointer" }} onClick={startNewListing}><RotateCcw /> New Listing</button>
-        </div>
-      )}
-      <div style={{ marginTop: 14 }}>
-        <button style={{ background: "#ffa755", color: "#282", fontWeight: 600, fontSize: 18, borderRadius: 7, border: 0, padding: "10px 20px", marginTop: 24 }} onClick={() => setShowShareModal(true)}><Share2 /> Share</button>
-        <button style={{ background: "#e0e1e7", color: "#444", fontWeight: 400, fontSize: 15, borderRadius: 7, border: 0, padding: "7px 15px", marginLeft: 16 }} onClick={() => setShowPrivacyModal(true)}>Privacy</button>
-        <button style={{ background: "#e1e0e7", color: "#444", fontWeight: 400, fontSize: 15, borderRadius: 7, border: 0, padding: "7px 15px", marginLeft: 10 }} onClick={() => setShowTermsModal(true)}>T&Cs</button>
-      </div>
-      {ShareModal()}
-      {showPremiumModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.39)", zIndex: 9999 }}>
-          <div style={{ background: "#fff", borderRadius: 17, padding: 35, maxWidth: 470, margin: "80px auto", fontSize: 18, boxShadow: "0 8px 46px #1117" }}>
-            <h2>Unlock Premium</h2>
-            <div style={{ fontSize: 21, color: "#B30", fontWeight: 700, marginBottom: 14 }}>
-              <Crown /> For a one-time payment of <b>£1.99</b> get lifetime access:
+          <div style={{marginTop:7}}>
+            <strong>Copy for:</strong>
+            <div style={{display:"flex", flexWrap:"wrap",gap:8, marginTop: 6}}>
+              {platforms.map((p, idx) => (
+                <button key={p.name} onClick={()=>copyToClipboard(formatOutput(p), p.name)} style={{background:p.color, color:'#fff',border:0,borderRadius:7,padding:"8px 14px",display:'flex',alignItems:'center',fontWeight:700,fontSize:15}}>
+                  {p.icon}&nbsp;{p.name} {copiedSection===p.name?"(Copied!)":""}
+                </button>
+              ))}
             </div>
-            <ul>
-              <li>Premium pricing analysis using eBay sold data</li>
-              <li>Batch listing suggestions</li>
-              <li>Exclusive market insights</li>
-              <li>Supports the Comedy Magic Tour 🚐</li>
-            </ul>
-            <button style={{ background: "#fdc41a", border: 0, borderRadius: 8, padding: "10px 26px", fontWeight: 800, fontSize: 18, marginTop: 10 }} onClick={handlePayPalUpgrade}>
-              <Coffee /> Upgrade for £1.99
-            </button>
-            <button style={{ marginLeft: 14, border: 0, background: "#eee", color: "#222", fontWeight: 500, borderRadius: 8, padding: "10px 17px" }} onClick={() => setShowPremiumModal(false)}><X /> Cancel</button>
-            <div style={{ fontSize: 13, color: "#777", marginTop: 12 }}>30-day money-back guarantee</div>
+          </div>
+          <button style={{ marginTop: 17, background: "#fafafa", color: "#333", border: "1px solid #ddd", borderRadius: 7, padding: "10px 23px", cursor: "pointer" }} onClick={startNewListing}><RotateCcw /> New Listing</button>
+          {result.platformTips &&
+            <div style={{marginTop:13, fontStyle:"italic", color:"#987", fontSize:16}}>
+              <Share2 /> {result.platformTips}
+            </div>
+          }
+          <div style={{marginTop:12, fontWeight:700, color:"#1a8"}}>
+            🎉 Well Done! You’re making it happen. Every photo is a win!
+          </div>
+          <div style={{marginTop:9, fontSize:15}}>
+            If this helped, <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener" style={{color:"#f4840a",fontWeight:700}}>buy me a coffee & get Pro free for a month!</a>
           </div>
         </div>
       )}
-      {showPrivacyModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#111a" }}>
-          <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 540, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
-            <h2>Privacy Policy</h2>
-            <p>We only ever store your email (for upgrade tracking). No uploaded photos or listing data is ever saved.</p>
-            <p>Questions? <a href="mailto:chrisptee@spicylister.com">chrisptee@spicylister.com</a></p>
-            <button onClick={() => setShowPrivacyModal(false)} style={{ background: "#eee", color: "#111", fontSize: 17, borderRadius: 8, marginTop: 15 }}><X /> Close</button>
-          </div>
-        </div>
-      )}
-      {showTermsModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#111a" }}>
-          <div style={{ background: "#fff", borderRadius: 14, padding: 30, maxWidth: 540, margin: "70px auto", boxShadow: "0 6px 42px #2228" }}>
-            <h2>Terms &amp; Conditions</h2>
-            <p>Use this tool at your own risk. We recommend reviewing all AI-generated suggestions and prices before listing.</p>
-            <p>
-              Problems? Email <a href="mailto:chrisptee@spicylister.com">chrisptee@spicylister.com</a>
-            </p>
-            <button onClick={() => setShowTermsModal(false)} style={{ background: "#eee", color: "#111", fontSize: 17, borderRadius: 8, marginTop: 15 }}><X /> Close</button>
-          </div>
-        </div>
-      )}
-      <footer style={{ marginTop: 36, textAlign: "center", color: "#555", fontWeight: 500, fontSize: 17 }}>
-        Made with <Heart style={{ color: "#f55", verticalAlign: "middle" }} /> by Chris P Tee • Van Life + Comedy + Magic + Code
+
+      <div style={{ margin:"27px 0" }}>
+        <button 
+          style={{background:"#f6e29b", border:0, color:"#8a5d07",padding:"13px 20px",borderRadius:8, fontWeight:600, fontSize:17}}
+          onClick={()=>setTipsExpanded(!tipsExpanded)}
+        >
+          {tipsExpanded ? "Hide Selling Tips" : "Need a boost? Show dopamine-friendly selling tips!"}
+        </button>
+        {tipsExpanded && (
+          <ul style={{ background:"#fff5df", borderRadius:6, padding:"17px 18px", marginTop:8, fontSize:16, color:"#652", boxShadow:"0 1px 6px #fe7a0c15"}}>
+            {tips.map((t,i)=><li style={{marginBottom:7}} key={i}>{t}</li>)}
+            <li style={{color:"#26b48f",fontWeight:600}}>Remember: You’re awesome! Your stuff deserves good buyers and you deserve the sale.</li>
+            <li style={{color:"#f55"}}>Give yourself a pat on the back, neurospicy superstar! 🌶️👏</li>
+          </ul>
+        )}
+      </div>
+
+      {/* AdWords or display ads slot */}
+      <div id="adsense-spicy" style={{padding:"8px 0 4px 0", margin:"20px auto 0", textAlign:"center", minHeight:42, borderRadius:10, background:"#f8f8fc"}}>
+        {/* Place your Google AdSense code or leave blank if not using ads */}
+        <span style={{fontSize:12, color:"#bbb"}}>Support keeps SpicyLister free. 💸 Ads help fund the project.</span>
+      </div>
+      <footer style={{ marginTop: 30, textAlign: "center", color: "#555", fontWeight: 500, fontSize: 17 }}>
+        Made with <Heart style={{ color: "#f55", verticalAlign: "middle" }}/> for neurospicy declutterers
         <br />
-        <a href="mailto:chrisptee@spicylister.com" style={{ color: "#229", fontSize: 14 }}>chrisptee@spicylister.com</a>
+        <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener" style={{ color: "#f4840a", fontSize: 15, marginLeft:7, fontWeight:700}}>Buy Me a Coffee</a>
       </footer>
     </div>
   );
-};
+}
 
 export default SpicyLister;
