@@ -282,22 +282,12 @@ const SpicyLister = () => {
         <span style={{fontSize:12, color:"#bbb"}}>Support keeps SpicyLister free. 💸 Ads help fund the project.</span>
       </div>
       <footer style={{ marginTop: 30, textAlign: "center", color: "#555", fontWeight: 500, fontSize: 17 }}>
-  Made with <span style={{ color: "#f55", fontSize: 19, fontWeight: 600, verticalAlign: "middle" }}>❤️</span><br />
-  <span style={{ fontSize: 18, fontWeight: 600 }}>
-    by Chris P Tee &bull; Vanlife 🚐 &bull; Comedy 😂 &bull; Magic 🎩 &bull; Code 💻
-  </span>
-  <br />
-  <span style={{ fontSize: 16 }}>for neurospicy declutterers</span>
-  <br />
-  <a
-    href={BUY_ME_A_COFFEE_URL}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{ color: "#f4840a", fontSize: 15, fontWeight: 700, display: "inline-block", marginTop: 4 }}
-  >Buy Me a Coffee</a>
-</footer>
-
-
+        Made with <Heart style={{ color: "#f55", verticalAlign: "middle" }} /> by <b>Chris P Tee</b> &bull; Vanlife 🚐 &bull; Comedy 😂 &bull; Magic 🎩 &bull; Code 💻
+        <br />
+        <span style={{ fontSize: 16 }}>for neurospicy declutterers</span>
+        <br />
+        <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener noreferrer" style={{ color: "#f4840a", fontSize: 15, fontWeight: 700, display: "inline-block", marginTop: 4 }}>Buy Me a Coffee</a>
+      </footer>
     </div>
   );
 }
