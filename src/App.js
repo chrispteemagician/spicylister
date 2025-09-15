@@ -7,15 +7,15 @@ const SpicyListerPro = () => {
   const [listing, setListing] = useState('');
   const fileInputRef = useRef(null);
 
-  // [CLEAN] Returns a placeholder while AI and advanced analysis are offline/upgrading
   const analyzeImages = async () => {
     setAnalyzing(true);
+    // Stub logic: Replace this with real AI/serverless call in future
     setTimeout(() => {
       setListing(
-        'SpicyLister: Listing generator is live!\n\n- AI-based listing and price analysis is temporarily offline while upgrades are in progress.\n- You can still upload, preview images, and copy this listing for eBay, Vinted, Facebook, or your records.\n\nThanks for using SpicyLister Pro!'
+        "This is a placeholder listing.\n\n- AI listing/price analysis is currently offline while upgrades are in progress.\n- You can still prepare images and copy this listing for eBay or personal reference!\n\nThanks for using SpicyLister Pro."
       );
       setAnalyzing(false);
-    }, 1200);
+    }, 1500);
   };
 
   const handleImageUpload = (event) => {
@@ -94,12 +94,12 @@ const SpicyListerPro = () => {
             {analyzing ? (
               <>
                 <Sparkles className="inline mr-2 animate-spin" />
-                Analyzing Images & Generating Listing...
+                Analyzing Images & Generating Professional Listing...
               </>
             ) : (
               <>
                 <Sparkles className="inline mr-2" />
-                Generate Listing
+                Generate Professional Listing
               </>
             )}
           </button>
@@ -109,7 +109,7 @@ const SpicyListerPro = () => {
           {listing && (
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Listing Output</h3>
+                <h3 className="text-lg font-semibold">Professional eBay Listing</h3>
                 <button
                   onClick={copyToClipboard}
                   className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition flex items-center"
