@@ -7,27 +7,23 @@ const SpicyListerPro = () => {
   const [listing, setListing] = useState('');
   const fileInputRef = useRef(null);
 
+  // Temporary placeholder
   const analyzeImages = async () => {
     setAnalyzing(true);
-    // Stub logic: Replace this with real AI/serverless call in future
     setTimeout(() => {
-      setListing(
-        "This is a placeholder listing.\n\n- AI listing/price analysis is currently offline while upgrades are in progress.\n- You can still prepare images and copy this listing for eBay or personal reference!\n\nThanks for using SpicyLister Pro."
-      );
+      setListing("AI-powered listing temporarily disabled. This UI now passes all builds—add back features once stable!");
       setAnalyzing(false);
-    }, 1500);
+    }, 1000);
   };
 
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    setImages(prev => [...prev, ...imageFiles].slice(0, 10)); // Up to 10 images
+    setImages(prev => [...prev, ...imageFiles].slice(0, 10)); // Max 10 images
   };
-
   const removeImage = (index) => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
-
   const copyToClipboard = () => {
     navigator.clipboard.writeText(listing);
     alert('Listing copied to clipboard!');
@@ -59,7 +55,6 @@ const SpicyListerPro = () => {
             <button
               onClick={() => fileInputRef.current?.click()}
               className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition"
-              type="button"
             >
               Choose Images
             </button>
@@ -77,7 +72,6 @@ const SpicyListerPro = () => {
                   <button
                     onClick={() => removeImage(index)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-                    type="button"
                   >
                     ×
                   </button>
@@ -89,7 +83,6 @@ const SpicyListerPro = () => {
             onClick={analyzeImages}
             disabled={images.length === 0 || analyzing}
             className="w-full bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
-            type="button"
           >
             {analyzing ? (
               <>
@@ -107,24 +100,25 @@ const SpicyListerPro = () => {
         {/* Results Section */}
         <div className="space-y-6">
           {listing && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Professional eBay Listing</h3>
-                <button
-                  onClick={copyToClipboard}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition flex items-center"
-                  type="button"
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy
-                </button>
+            <>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Professional eBay Listing</h3>
+                  <button
+                    onClick={copyToClipboard}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition flex items-center"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </button>
+                </div>
+                <div className="bg-white p-4 rounded border max-h-96 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap text-sm font-mono">
+                    {listing}
+                  </pre>
+                </div>
               </div>
-              <div className="bg-white p-4 rounded border max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm font-mono">
-                  {listing}
-                </pre>
-              </div>
-            </div>
+            </>
           )}
         </div>
       </div>
