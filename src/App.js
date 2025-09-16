@@ -1561,4 +1561,3 @@ Don't miss this classic camera that started the photography revolution!`
 };
 
 export default SpicyLister;
->>>>>>> da8d3a2a8fc51c68b5af3bfee52582f2f9dc4583
