@@ -1,316 +1,136 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { 
-  Upload, Sparkles, Coffee, Heart, CheckCircle, Copy, 
-  MessageCircle, RotateCcw, Search, X, AlertCircle, Crown, 
-  TrendingUp, Zap, Target, TrendingDown, Video, Package,
-  DollarSign, Clock, Gift, Star, Layers, PlayCircle,
-  FileText, Camera, Shield, Rocket
-} from 'lucide-react';
+import React, { useState } from 'react';
 
 const SpicyLister = () => {
-  // Core State
-  const [images, setImages] = useState([]);
-  const [videos, setVideos] = useState([]);
-  const [extraInfo, setExtraInfo] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [results, setResults] = useState([]);
-  const [currentResult, setCurrentResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [copiedSection, setCopiedSection] = useState('');
-  const [processingMedia, setProcessingMedia] = useState(false);
-
-  // Pro/Premium State
+  const [showProModal, setShowProModal] = useState(false);
+  const [showCoffeeConfirm, setShowCoffeeConfirm] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [proExpiryDate, setProExpiryDate] = useState(null);
-  const [showProModal, setShowProModal] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-  const [supporterType, setSupporterType] = useState(null); // 'coffee' or 'premium'
 
-  // Batch State
-  const [batchMode, setBatchMode] = useState(false);
-  const [batchItems, setBatchItems] = useState([]);
-  const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
-
-  // Modal for PayPal confirmation (NEW!)
-  const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
-  const [onPaymentConfirm, setOnPaymentConfirm] = useState(() => () => {});
-
-  // Refs
-  const fileInputRef = useRef(null);
-  const videoInputRef = useRef(null);
-
-  // Load saved state on mount
-  useEffect(() => {
-    const savedPro = localStorage.getItem('spicylister_pro');
-    const savedExpiry = localStorage.getItem('spicylister_pro_expiry');
-    const savedEmail = localStorage.getItem('spicylister_email');
-    const savedSupporter = localStorage.getItem('spicylister_supporter_type');
-    if (savedPro === 'true' && savedExpiry) {
-      const expiryDate = new Date(savedExpiry);
-      if (expiryDate > new Date()) {
-        setIsPro(true);
-        setProExpiryDate(expiryDate);
-      } else {
-        localStorage.removeItem('spicylister_pro');
-        localStorage.removeItem('spicylister_pro_expiry');
-      }
-    }
-    if (savedEmail) setUserEmail(savedEmail);
-    if (savedSupporter) setSupporterType(savedSupporter);
-  }, []);
-
-  const compressImage = useCallback((file, maxDimension = 1024, quality = 0.85) => {
-    return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        const maxSize = Math.max(width, height);
-        if (maxSize > maxDimension) {
-          const scale = maxDimension / maxSize;
-          width *= scale;
-          height *= scale;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to compress image'));
-          }
-        }, 'image/jpeg', quality);
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
-  }, []);
-
-  const handleImageUpload = async (event) => {
-    const files = Array.from(event.target.files);
-    const maxImages = isPro ? 10 : 3;
-    if (images.length + files.length > maxImages) {
-      setError(`Max ${maxImages} photos${isPro ? ' per item' : ''}! ${isPro ? '(Pro allows 10)' : '(Upgrade to Pro for 10)'}`);
-      return;
-    }
-    setProcessingMedia(true);
-    setError(null);
-    try {
-      const imagePromises = files.map(async (file) => {
-        if (!file.type.startsWith('image/')) {
-          throw new Error(`${file.name} isn't an image file`);
-        }
-        if (file.size > 20 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large (max 20MB)`);
-        }
-        const compressedFile = await compressImage(file);
-        const previewUrl = URL.createObjectURL(compressedFile);
-        return { file: compressedFile, originalFile: file, originalName: file.name, originalSize: file.size, compressedSize: compressedFile.size, preview: previewUrl, type: 'image', id: Date.now() + Math.random() };
-      });
-      const newImages = await Promise.all(imagePromises);
-      setImages(prev => [...prev, ...newImages]);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setProcessingMedia(false);
-    }
-  };
-
-  const handleVideoUpload = async (event) => {
-    if (!isPro) {
-      setShowProModal(true);
-      return;
-    }
-    const files = Array.from(event.target.files);
-    if (videos.length + files.length > 2) {
-      setError("Max 2 videos per listing!");
-      return;
-    }
-    setProcessingMedia(true);
-    setError(null);
-    try {
-      const videoPromises = files.map(async (file) => {
-        if (!file.type.startsWith('video/')) {
-          throw new Error(`${file.name} isn't a video file`);
-        }
-        if (file.size > 100 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large (max 100MB)`);
-        }
-        const previewUrl = URL.createObjectURL(file);
-        return { file: file, originalName: file.name, size: file.size, preview: previewUrl, type: 'video', id: Date.now() + Math.random() };
-      });
-      const newVideos = await Promise.all(videoPromises);
-      setVideos(prev => [...prev, ...newVideos]);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setProcessingMedia(false);
-    }
-  };
-
-  const removeMedia = (id, type) => {
-    if (type === 'image') {
-      setImages(prev => {
-        const imageToRemove = prev.find(img => img.id === id);
-        if (imageToRemove?.preview) URL.revokeObjectURL(imageToRemove.preview);
-        return prev.filter(img => img.id !== id);
-      });
-    } else {
-      setVideos(prev => {
-        const videoToRemove = prev.find(vid => vid.id === id);
-        if (videoToRemove?.preview) URL.revokeObjectURL(videoToRemove.preview);
-        return prev.filter(vid => vid.id !== id);
-      });
-    }
-  };
-
-  const analyzeMedia = async (usePro = false) => {
-    if (images.length === 0 && videos.length === 0) {
-      setError("Upload at least one photo or video first!");
-      return;
-    }
-    if (usePro && !isPro) {
-      setShowProModal(true);
-      return;
-    }
-    setIsAnalyzing(true);
-    setError(null);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const mockResult = {
-        title: isPro ? "Premium Vintage Canon AE-1 35mm Film Camera w/ 50mm f/1.8 Lens - Tested Working" : "Vintage Canon Camera with Lens - Film Photography",
-        description: isPro
-          ? `🔥 PROFESSIONAL PHOTOGRAPHER'S VINTAGE TREASURE 🔥 ...` // Truncated for brevity
-          : `Vintage Canon camera for sale. Good condition, includes lens. Perfect for film photography enthusiasts or collectors.`,
-        condition: isPro ? "Excellent - Professionally Assessed" : "Good/Used",
-        pricing: {
-          startingBid: isPro ? "0.99" : "29.99",
-          buyItNow: isPro ? "249.99" : "99.99",
-          marketAverage: isPro ? "235.00" : null,
-          priceConfidence: isPro ? "95%" : null
-        },
-        marketInsights: isPro ? "📈 HOT MARKET: Film cameras up 40% this year! ..." : null,
-        competitorAnalysis: isPro
-          ? [
-              { title: "Canon AE-1 w/ 50mm - MINT", price: "280.00", status: "12 watchers", condition: "Mint" },
-              { title: "Canon AE-1 Body Only", price: "145.00", status: "Sold yesterday", condition: "Good" }
-            ]
-          : null,
-        platformTips: isPro ? "List on Sunday evening for 40% more views. ..." : "Consider adding more photos and detail for better results",
-        keywords: isPro
-          ? ["canon ae-1", "35mm camera", "film camera"]
-          : ["camera", "vintage", "canon"],
-        categoryId: isPro ? "15230" : "625",
-        itemSpecifics: isPro
-          ? { Brand: "Canon", Model: "AE-1", Type: "SLR" }
-          : null,
-        isPro: isPro || usePro
-      };
-      setCurrentResult(mockResult);
-    } catch (err) {
-      setError(`Analysis failed: ${err.message}`);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleCoffeeSupport = async () => {
-    const email = prompt("Enter your email for 1 MONTH FREE PRO + updates:");
-    if (!email || !email.includes('@')) {
-      alert("Please enter a valid email to unlock Pro features");
-      return;
-    }
-    setUserEmail(email);
-    localStorage.setItem('spicylister_email', email);
-    const expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() + 1);
-    setIsPro(true);
-    setProExpiryDate(expiryDate);
-    setSupporterType('coffee');
-    localStorage.setItem('spicylister_pro', 'true');
-    localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
-    localStorage.setItem('spicylister_supporter_type', 'coffee');
+  const handleCoffeeSupport = () => {
     window.open('https://buymeacoffee.com/chrispteemagician', '_blank');
-    setShowProModal(false);
-    setTimeout(() => {
-      alert(`🎉 PRO ACTIVATED! Valid until ${expiryDate.toLocaleDateString()}. Thank you for supporting the van life dream! 🚐`);
-    }, 500);
+    setTimeout(() => setShowCoffeeConfirm(true), 7000);
   };
 
-  // CUSTOM MODAL INSTEAD OF confirm
-  const handlePremiumUpgrade = async () => {
-    const email = prompt("Enter your email for LIFETIME PRO access:");
-    if (!email || !email.includes('@')) {
-      alert("Please enter a valid email");
-      return;
+  const handleCoffeeConfirm = (confirmed) => {
+    setShowCoffeeConfirm(false);
+    if (confirmed) {
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+      setIsPro(true);
+      setProExpiryDate(expiryDate);
+      alert(`🎉 PRO ACTIVATED! Valid until ${expiryDate.toLocaleDateString()}! Thank you for supporting my van life!`);
+      setShowProModal(false);
     }
-    setUserEmail(email);
-    localStorage.setItem('spicylister_email', email);
-    window.open('https://paypal.me/chrisptee/9.99', '_blank');
-    setTimeout(() => {
-      setOnPaymentConfirm(() => (confirmed) => {
-        if (confirmed) {
-          const expiryDate = new Date();
-          expiryDate.setFullYear(expiryDate.getFullYear() + 100);
-          setIsPro(true);
-          setProExpiryDate(expiryDate);
-          setSupporterType('premium');
-          localStorage.setItem('spicylister_pro', 'true');
-          localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
-          localStorage.setItem('spicylister_supporter_type', 'premium');
-          setShowProModal(false);
-          alert("🎉 LIFETIME PRO ACTIVATED! Thank you for your amazing support!");
-        }
-      });
-      setShowPaymentConfirm(true);
-    }, 10000);
   };
 
-  // ...rest of your helper functions...
-
-  // Example UI for the main return (replace with your actual UI)
   return (
-    <div style={{fontFamily: 'sans-serif', margin: 16}}>
-      <h1>SpicyLister v1.2 🌶️🚀</h1>
-      {/* Place your UI/inputs here */}
-      {/* For brevity, UI elements are omitted—add your upload buttons etc. */}
-      {/* Modals */}
+    <div style={{ fontFamily: 'sans-serif', margin: 16, minHeight: '100vh', background: "#fff9ef" }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 10 }}>
+        <img
+          src="/spicylister-logo.png"
+          alt="SpicyLister Logo"
+          style={{ height: 56, width: 56, borderRadius: 14, boxShadow: '0 1px 12px #e87413' }}
+        />
+        <div>
+          <h1 style={{ margin: 0, color: "#e87413", fontFamily: "cursive", letterSpacing: 2 }}>🌶️ SpicyLister 1.2</h1>
+          <div style={{ fontWeight: "bold", color: "#633202" }}>
+            Sell Your Clutter Without a Stutter!
+          </div>
+          <div style={{ color: "#b4561f", fontSize: 15, marginTop: 4 }}>
+            Dopamine hits in 60 seconds – By the NeuroSpicy for anyone who needs a hand listing stuff and making a few bob
+          </div>
+        </div>
+      </div>
+
+      <div style={{ margin: '26px 0' }}>
+        <button
+          style={{
+            fontSize: 20,
+            padding: "14px 34px",
+            background: 'linear-gradient(90deg,#ff9001,#fa3b38,#fcb900,#f74d12)', color:'#fff',
+            border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: "bold", letterSpacing: 1,
+            boxShadow: "0 1px 12px #e87413", display: "flex", alignItems: "center", gap: 10
+          }}
+          onClick={() => setShowProModal(true)}>
+          <img src="/spicylister-logo.png" alt="" style={{height:32, width:32, borderRadius:5, marginRight: 8}}/>
+          Generate!
+        </button>
+      </div>
+      {isPro && proExpiryDate && (
+        <div style={{ color: 'green', marginBottom: 24, fontWeight: 'bold', fontSize: 18 }}>
+          ⭐ PRO is active until {proExpiryDate.toLocaleDateString()}!
+        </div>
+      )}
       {/* PRO MODAL */}
       {showProModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          zIndex: 9999, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div style={{
-            background: '#fff', borderRadius: 12, padding: 32, maxWidth: 370, textAlign: 'center', margin: 'auto'
+            background: '#fff', borderRadius: 14, padding: 32, maxWidth: 400, textAlign: 'center', boxShadow:'0 2px 22px #b95c27'
           }}>
-            <h2 style={{margin: 0}}>Stop leaving money on the table - Get REAL pricing data!</h2>
-            <p style={{margin: 0, marginTop: 16, fontSize: 18, fontWeight: 600}}>Two Options</p>
-            <button onClick={handleCoffeeSupport} style={{margin: 12, padding: 12, borderRadius: 8, background: '#fd0'}}>☕ 1 Month Pro</button>
-            <button onClick={handlePremiumUpgrade} style={{margin: 12, padding: 12, borderRadius: 8, background: '#c0f'}}>⭐ Lifetime Pro</button>
-            <button onClick={()=>setShowProModal(false)} style={{marginTop: 24}}>Cancel</button>
+            <h2 style={{color:"#d85901"}}>Support the Van Life, Unlock PRO!</h2>
+            <p>
+              Buy me a coffee (or use Ko-fi below) at any amount<br/>
+              to get 1 month of Pro features.<br/><br/>
+              After donating, click "Yes" on the next pop-up!
+            </p>
+            <button
+              onClick={handleCoffeeSupport}
+              style={{margin: 18, padding: 18, borderRadius: 8, background: '#fd0', fontSize: 16, fontWeight:"bold"}}>
+              ☕ Buy Me a Coffee (1mo Pro)
+            </button>
+            <br />
+            <a
+              href="https://ko-fi.com/zoom"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-block', margin: 18, color: "#29abe0", fontWeight: 600, textDecoration: "underline", fontSize: 16}}
+            >
+              Or support on Ko-fi (click here)
+            </a>
+            <br /><br />
+            <button
+              onClick={() => setShowProModal(false)}
+              style={{marginTop: 24, fontSize: 16}}>
+              Cancel
+            </button>
           </div>
         </div>
       )}
-      {/* PAYPAL CONFIRM MODAL */}
-      {showPaymentConfirm && (
+      {/* COFFEE CONFIRM MODAL */}
+      {showCoffeeConfirm && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div style={{
-            background: 'white', padding: 24, borderRadius: 8, width: 300, textAlign: 'center', boxShadow: '0 4px 24px #0003',
+            background: 'white', padding: 24, borderRadius: 8, width: 340, textAlign: 'center', boxShadow: '0 6px 28px #fdbd2c'
           }}>
-            <div style={{ marginBottom: 16, fontWeight: 'bold' }}>Did you complete the PayPal payment?</div>
-            <button style={{ margin: '0 8px' }} onClick={() => { setShowPaymentConfirm(false); onPaymentConfirm(true); }}>Yes</button>
-            <button style={{ margin: '0 8px' }} onClick={() => { setShowPaymentConfirm(false); onPaymentConfirm(false); }}>No</button>
+            <div style={{ marginBottom: 18, fontWeight: 'bold', fontSize:18, color: "#b4561f" }}>
+              Did you buy me a coffee or support?
+            </div>
+            <button
+              style={{ margin: '0 18px', fontSize: 16, padding: 10, background: "#fd0", fontWeight:"bold", border:"none", borderRadius:5 }}
+              onClick={() => handleCoffeeConfirm(true)}>
+              Yes
+            </button>
+            <button
+              style={{ margin: '0 18px', fontSize: 16, padding: 10, background: "#fa5027", color:"#fff",border:"none", borderRadius:5 }}
+              onClick={() => handleCoffeeConfirm(false)}>
+              No
+            </button>
           </div>
         </div>
       )}
+      {/* Footer */}
+      <div style={{
+        position: "fixed", width: "100%", left: 0, bottom: 0, background: "#fff1e3", padding: "10px 0",
+        color: "#7b3a0b", fontWeight: 500, textAlign: "center", fontFamily: "monospace", fontSize: 15, borderTop: "1px solid #ffb56b"
+      }}>
+        Made with <span style={{color:"#e74c3c"}}>❤️</span> by Chris P Tee – Vanlife + Comedy + Magic + Code
+      </div>
     </div>
   );
 };
