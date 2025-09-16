@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  Upload, Sparkles, Coffee, CheckCircle, Copy,
+  Sparkles, Coffee, CheckCircle, Copy,
   RotateCcw, Search, AlertCircle, Crown, Video, Camera
 } from 'lucide-react';
 
