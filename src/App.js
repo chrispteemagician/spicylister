@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Sparkles, Coffee, Heart, CheckCircle, Copy, MessageCircle, RotateCcw, Search, X, AlertCircle, Crown, TrendingUp, Zap, Target, TrendingDown, Video, Package, DollarSign, Clock, Gift, Star, Layers, PlayCircle, FileText, Camera, Shield, Rocket } from 'lucide-react';
 
