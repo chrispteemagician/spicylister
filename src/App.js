@@ -1,39 +1,210 @@
+// Complete integration code for your App.js
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+   import { Camera, CheckCircle, Zap, AlertTriangle } from 'lucide-react';
+// Add this to the top of your App component function, right after existing imports:
 
 import ImageCompressor from './ImageCompressor';
-// Replace the import section at the top of your App.js with this complete import list:
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Search,
-  Star,
-  Crown,
-  Rocket,
-  Zap,
-  Coffee,
-  Gift,
-  Shield,
-  DollarSign,
-  TrendingUp,
-  Video,
-  Layers,
-  Camera,
-  FileText,
-  Clock,
-  AlertCircle,
-  Package,
-  PlayCircle,
-  CheckCircle,
-  Copy,
-  RotateCcw,
-  MessageCircle,
-  Heart
-} from 'lucide-react';
+function App() {
+  // Your existing useState declarations...
+  
+  // Add these NEW state variables (the ones that were missing):
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [generatedListing, setGeneratedListing] = useState(null);
+  const [error, setError] = useState('');
 
-// If you don't have lucide-react installed, run this in your terminal:
-// npm install lucide-react
+  // Add the missing functions:
+  const handleImagesProcessed = useCallback((processedImages) => {
+    setSelectedImages(processedImages);
+    console.log('Images processed:', processedImages.length);
+  }, []);
 
-// Alternative: If you can't install lucide-react, you can replace all the icon usage with emoji alternatives
-// For example: <Crown /> becomes <span>👑</span>
+  const analyzeWithGemini = async (images, additionalContext = '') => {
+    setIsProcessingImages(true);
+    
+    try {
+      // Prepare images for Gemini (convert to base64)
+      const imageData = await Promise.all(
+        images.map(async (img) => {
+          // Convert blob to base64
+          const arrayBuffer = await img.compressedBlob.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          
+          return {
+            inlineData: {
+              data: base64,
+              mimeType: 'image/jpeg'
+            }
+          };
+        })
+      );
+
+      const response = await fetch('/.netlify/functions/analyze-images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          images: imageData,
+          additionalContext,
+          imageLabels: images.map(img => img.label)
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+
+    } catch (error) {
+      console.error('Error analyzing images:', error);
+      throw error;
+    } finally {
+      setIsProcessingImages(false);
+    }
+  };
+
+  const generateListing = async () => {
+    if (selectedImages.length === 0) {
+      alert('Please add at least one image first!');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(''); // Clear any previous errors
+    
+    try {
+      const result = await analyzeWithGemini(selectedImages, additionalInfo);
+      
+      setGeneratedListing({
+        title: result.title || 'Generated Listing',
+        description: result.description || '',
+        price: result.estimatedPrice || '',
+        condition: result.condition || '',
+        category: result.category || '',
+        tags: result.tags || []
+      });
+
+    } catch (error) {
+      setError(`Failed to generate listing: ${error.message}`);
+      console.error('Generation error:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Your existing return JSX...
+  return (
+    <div className="App">
+      {/* Your existing JSX content */}
+      
+      {/* Replace your old image upload section with this: */}
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center">
+            <Camera className="w-5 h-5 mr-2" />
+            Add Photos
+          </h2>
+          
+          <ImageCompressor 
+            onImagesProcessed={handleImagesProcessed}
+            maxImages={3}
+          />
+          
+          {selectedImages.length > 0 && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center space-x-2 text-green-800">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} ready for AI analysis
+                </span>
+              </div>
+              <div className="text-xs text-green-700 mt-1">
+                Total size: {selectedImages.reduce((acc, img) => acc + parseFloat(img.compressedSize), 0).toFixed(1)}KB
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Additional info section */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-bold mb-4">Additional Details (Optional)</h2>
+          <textarea
+            value={additionalInfo}
+            onChange={(e) => setAdditionalInfo(e.target.value)}
+            placeholder="Any extra details about condition, history, etc."
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            rows="3"
+          />
+        </div>
+        
+        {/* Generate button */}
+        <button
+          onClick={generateListing}
+          disabled={selectedImages.length === 0 || isProcessingImages || isGenerating}
+          className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
+        >
+          {isGenerating ? (
+            <div className="flex items-center justify-center space-x-2">
+              <Zap className="w-5 h-5 animate-spin" />
+              <span>AI Analyzing Images...</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center space-x-2">
+              <Zap className="w-5 h-5" />
+              <span>Generate Listing with AI</span>
+            </div>
+          )}
+        </button>
+
+        {/* Error display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2 text-red-800">
+              <AlertTriangle className="w-4 h-4" />
+              <span className="text-sm font-medium">Error</span>
+            </div>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        )}
+
+        {/* Generated listing display */}
+        {generatedListing && (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4 text-green-800">✨ Generated Listing</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <p className="text-lg font-semibold text-gray-900">{generatedListing.title}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <p className="text-gray-800 leading-relaxed">{generatedListing.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                  <p className="text-xl font-bold text-green-600">{generatedListing.price}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                  <p className="text-lg text-gray-900">{generatedListing.condition}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Your existing JSX content continues... */}
+    </div>
+  );
+}
 
 const SpicyLister = () => {
   // Core State
