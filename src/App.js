@@ -2,12 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Search, 
-  Plus, 
-  Trash2, 
-  Edit3, 
+  Search,
   Star,
-  AlertTriangle,
   Crown,
   Rocket,
   Zap,
