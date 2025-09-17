@@ -1,8 +1,11 @@
 import React, { useState, useRef } from 'react';
+import axios from 'axios';
 
 const MAX_IMAGES_FREE = 3;
 const MAX_IMAGES_PRO = 10;
 const MAX_VIDEOS_PRO = 2;
+
+const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
 
 const SpicyLister = () => {
   // Media
@@ -22,8 +25,7 @@ const SpicyLister = () => {
   const imgInputRef = useRef();
   const vidInputRef = useRef();
 
-  // Upload handlers
-  const handleImages = async (e) => {
+  const handleImages = (e) => {
     const files = Array.from(e.target.files);
     const max = isPro ? MAX_IMAGES_PRO : MAX_IMAGES_FREE;
     if (images.length + files.length > max) {
@@ -31,7 +33,6 @@ const SpicyLister = () => {
       return;
     }
     setError('');
-    // Show previews
     const newImgs = files.map(file => ({
       file,
       preview: URL.createObjectURL(file),
@@ -40,7 +41,7 @@ const SpicyLister = () => {
     setImages(imgs => [...imgs, ...newImgs]);
   };
 
-  const handleVideos = async (e) => {
+  const handleVideos = (e) => {
     const files = Array.from(e.target.files);
     if ((videos.length + files.length) > MAX_VIDEOS_PRO && isPro) {
       setError('Max 2 videos per listing (PRO)');
@@ -55,28 +56,79 @@ const SpicyLister = () => {
     setVideos(vids => [...vids, ...newVids]);
   };
 
-  // Remove media
   const removeMedia = (id, type) => {
     if (type === 'img') setImages(imgs => imgs.filter(i => i.id !== id));
     else setVideos(vids => vids.filter(v => v.id !== id));
   };
 
-  // AI analyze mock - replace with real Gemini call later!
+  // Gemini AI Listing Generator
   const analyzeMedia = async () => {
+    setError('');
+    setResult(null);
     if (images.length === 0 && videos.length === 0) {
       setError('Upload at least one image or video!');
       return;
-description: isPro
-  ? `🌶️ ...`
-  : "LED string lights, used but working. Plug via USB, changes colour. Fun for mood lighting.",
+    }
+    setProcessing(true);
+    try {
+      // For demo: Analyze *first image only*
+      const img = images[0];
+      const blob = img.file;
+      const reader = new window.FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64img = reader.result.split(',')[1];
 
+          const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              contents: [
+                {
+                  parts: [
+                    { text: `Describe this item for a UK eBay listing. Include title, engaging description, 5-10 keywords and a suggested price. Show results as JSON with keys 'title', 'description', 'keywords', 'price'.` },
+                    { inlineData: { mimeType: blob.type, data: base64img } }
+                  ]
+                }
+              ]
+            }
+          );
 
-  // PRO MODAL unlock
+          // Extract from Gemini
+          const rawText = response.data.candidates[0].content.parts[0].text;
+          const cleanText = rawText.replace(/^``````$/g, '').trim();
+          const listing = JSON.parse(cleanText);
+
+          setResult({
+            title: listing.title,
+            description: listing.description,
+            keywords: Array.isArray(listing.keywords) ? listing.keywords : (listing.keywords ? listing.keywords.split(/, ?/) : []),
+            price: listing.price
+          });
+        } catch (err) {
+          setError('AI failed: ' + err.message);
+          setResult(null);
+        }
+        setProcessing(false);
+      };
+      reader.onerror = () => {
+        setError('Could not read image file');
+        setProcessing(false);
+      };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      setError('Could not prepare file for Gemini: ' + err.message);
+      setProcessing(false);
+      setResult(null);
+    }
+  };
+
+  // PRO MODAL unlock (Buy Me a Coffee / Ko-fi)
   const handleCoffeeSupport = () => {
     setError('');
     window.open('https://buymeacoffee.com/chrispteemagician', '_blank');
     setTimeout(() => setShowCoffeeConfirm(true), 7000);
   };
+
   const handleCoffeeConfirm = (confirmed) => {
     setShowCoffeeConfirm(false);
     if (confirmed) {
@@ -105,7 +157,7 @@ description: isPro
         <h1 style={{margin: 0, color: "#e87413", fontFamily: "cursive", letterSpacing: 2}}>🌶️ SpicyLister 1.2</h1>
         <div style={{fontWeight:"bold", color:"#633202", fontSize:17}}>Sell Clutter Without a Stutter!</div>
         <div style={{color:"#b4561f", fontSize:15, marginTop:3}}>
-          Dopamine hits in 60 seconds – By the NeuroSpicy for Anyne who needs a hand listing stuff and making a few bob.
+          Dopamine hits in 60 seconds – By the NeuroSpicy for Anyone who needs a hand listing stuff and making a few bob.
         </div>
       </div>
     </div>
@@ -165,7 +217,6 @@ description: isPro
       {error && <div style={{ color:'red', fontWeight:'bold', margin:'8px 0 0 0' }}>{error}</div>}
     </div>
 
-    {/* Generate + Unlock Pro */}
     <div style={{margin:'24px 0'}}>
       <button
         style={{
@@ -187,7 +238,6 @@ description: isPro
       ⭐ PRO is active until {proExpiryDate.toLocaleDateString()}!
     </div>}
 
-    {/* Show result */}
     {processing && <div style={{fontWeight:"bold",color:"#fa5027",margin:"28px 0",fontSize:19}}>Analyzing with AI…</div>}
     {result &&
       <div style={{
@@ -198,13 +248,13 @@ description: isPro
         <div style={{whiteSpace:"pre-wrap",margin:"10px 0 18px 0"}}>{result.description}</div>
         <div>
           <span style={{background:"#232",color:"#fff",borderRadius:6,padding:"3px 8px",marginRight:12}}>Keywords:</span>
-          {result.keywords.map(kw=>(
+          {result.keywords && result.keywords.map(kw=>(
             <span key={kw} style={{background:"#faedbe",borderRadius:4,padding:"2px 7px",margin:"0 4px",color:"#884f04"}}>{kw}</span>
           ))}
         </div>
-        <div style={{margin:"14px 0 8px 0",fontWeight:"bold",fontSize:18,background:"#fae7b4",display:"inline-block",padding:"5px 16px",borderRadius:7}}>
+        {result.price && <div style={{margin:"14px 0 8px 0",fontWeight:"bold",fontSize:18,background:"#fae7b4",display:"inline-block",padding:"5px 16px",borderRadius:7}}>
           Suggest Price: {result.price}
-        </div>
+        </div>}
         <br/>
         <button onClick={reset} style={{
           marginTop:'12px',background:'#fa5027',color:'#fff',border:'none',borderRadius:8,padding:"9px 22px",fontWeight:"bold",fontSize:17,cursor:"pointer"
