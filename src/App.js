@@ -1,14 +1,44 @@
-// Complete integration code for your App.js
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-   import { Camera, CheckCircle, Zap, AlertTriangle } from 'lucide-react';
-// Add this to the top of your App component function, right after existing imports:
+// Complete fix for App.js - Add these imports at the very top:
 
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { 
+  Search, 
+  Plus, 
+  Trash2, 
+  Edit3, 
+  Star,
+  AlertTriangle,
+  Crown,
+  Rocket,
+  Zap,
+  Coffee,
+  Gift,
+  Shield,
+  DollarSign,
+  TrendingUp,
+  Video,
+  Layers,
+  Camera,
+  FileText,
+  Clock,
+  AlertCircle,
+  Package,
+  PlayCircle,
+  CheckCircle,
+  Copy,
+  RotateCcw,
+  MessageCircle,
+  Heart
+} from 'lucide-react';
+
+// Import your new component
 import ImageCompressor from './ImageCompressor';
 
 function App() {
-  // Your existing useState declarations...
+  // ALL your existing useState declarations...
+  // (keep whatever you already have)
   
-  // Add these NEW state variables (the ones that were missing):
+  // ADD these missing state variables:
   const [selectedImages, setSelectedImages] = useState([]);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -16,7 +46,7 @@ function App() {
   const [generatedListing, setGeneratedListing] = useState(null);
   const [error, setError] = useState('');
 
-  // Add the missing functions:
+  // ADD these missing functions:
   const handleImagesProcessed = useCallback((processedImages) => {
     setSelectedImages(processedImages);
     console.log('Images processed:', processedImages.length);
@@ -26,10 +56,8 @@ function App() {
     setIsProcessingImages(true);
     
     try {
-      // Prepare images for Gemini (convert to base64)
       const imageData = await Promise.all(
         images.map(async (img) => {
-          // Convert blob to base64
           const arrayBuffer = await img.compressedBlob.arrayBuffer();
           const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
           
@@ -76,7 +104,7 @@ function App() {
     }
 
     setIsGenerating(true);
-    setError(''); // Clear any previous errors
+    setError('');
     
     try {
       const result = await analyzeWithGemini(selectedImages, additionalInfo);
@@ -98,7 +126,8 @@ function App() {
     }
   };
 
-  // Your existing return JSX...
+  // Your existing functions continue...
+  
   return (
     <div className="App">
       {/* Your existing JSX content */}
