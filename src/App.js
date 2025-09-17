@@ -84,6 +84,155 @@ const SpicyLister = () => {
     if (savedSupporter) setSupporterType(savedSupporter);
   }, []);
 
+  // Add this to your existing SpicyLister App.js
+
+// 1. Update your state to handle multiple images
+const [selectedImages, setSelectedImages] = useState([]);
+const [isProcessingImages, setIsProcessingImages] = useState(false);
+
+// 2. Replace your single image upload with this multi-image handler
+const handleImagesProcessed = useCallback((processedImages) => {
+  setSelectedImages(processedImages);
+  console.log('Images processed:', processedImages.length);
+}, []);
+
+// 3. Modified Gemini API call for multiple images
+const analyzeWithGemini = async (images, additionalContext = '') => {
+  setIsProcessingImages(true);
+  
+  try {
+    // Prepare images for Gemini (convert to base64)
+    const imageData = await Promise.all(
+      images.map(async (img) => {
+        // Convert blob to base64
+        const arrayBuffer = await img.compressedBlob.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        
+        return {
+          inlineData: {
+            data: base64,
+            mimeType: 'image/jpeg'
+          }
+        };
+      })
+    );
+
+    const response = await fetch('/.netlify/functions/analyze-images', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        images: imageData,
+        additionalContext,
+        imageLabels: images.map(img => img.label) // Pass image labels to API
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+
+  } catch (error) {
+    console.error('Error analyzing images:', error);
+    throw error;
+  } finally {
+    setIsProcessingImages(false);
+  }
+};
+
+// 4. Updated generate listing function
+const generateListing = async () => {
+  if (selectedImages.length === 0) {
+    alert('Please add at least one image first!');
+    return;
+  }
+
+  setIsGenerating(true);
+  
+  try {
+    const result = await analyzeWithGemini(selectedImages, additionalInfo);
+    
+    setGeneratedListing({
+      title: result.title || 'Generated Listing',
+      description: result.description || '',
+      price: result.estimatedPrice || '',
+      condition: result.condition || '',
+      category: result.category || '',
+      tags: result.tags || []
+    });
+
+  } catch (error) {
+    setError(`Failed to generate listing: ${error.message}`);
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
+// 5. Updated JSX for the image upload section
+// Replace your existing image upload section with:
+<div className="space-y-6">
+  <div className="bg-white rounded-lg shadow-lg p-6">
+    <h2 className="text-xl font-bold mb-4 flex items-center">
+      <Camera className="w-5 h-5 mr-2" />
+      Add Photos
+    </h2>
+    
+    <ImageCompressor 
+      onImagesProcessed={handleImagesProcessed}
+      maxImages={3}
+    />
+    
+    {selectedImages.length > 0 && (
+      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div className="flex items-center space-x-2 text-green-800">
+          <CheckCircle className="w-4 h-4" />
+          <span className="text-sm font-medium">
+            {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} ready for AI analysis
+          </span>
+        </div>
+        <div className="text-xs text-green-700 mt-1">
+          Total size: {selectedImages.reduce((acc, img) => acc + parseFloat(img.compressedSize), 0).toFixed(1)}KB
+        </div>
+      </div>
+    )}
+  </div>
+  
+  {/* Your existing additional info section */}
+  <div className="bg-white rounded-lg shadow-lg p-6">
+    <h2 className="text-xl font-bold mb-4">Additional Details (Optional)</h2>
+    <textarea
+      value={additionalInfo}
+      onChange={(e) => setAdditionalInfo(e.target.value)}
+      placeholder="Any extra details about condition, history, etc."
+      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+      rows="3"
+    />
+  </div>
+  
+  {/* Generate button */}
+  <button
+    onClick={generateListing}
+    disabled={selectedImages.length === 0 || isProcessingImages || isGenerating}
+    className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
+  >
+    {isGenerating ? (
+      <div className="flex items-center justify-center space-x-2">
+        <Zap className="w-5 h-5 animate-spin" />
+        <span>AI Analyzing Images...</span>
+      </div>
+    ) : (
+      <div className="flex items-center justify-center space-x-2">
+        <Zap className="w-5 h-5" />
+        <span>Generate Listing with AI</span>
+      </div>
+    )}
+  </button>
+</div>
+
   // Smart media compression optimized for AI
   const compressImage = useCallback((file, maxDimension = 1024, quality = 0.85) => {
     return new Promise((resolve, reject) => {
