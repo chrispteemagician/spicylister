@@ -403,6 +403,8 @@ setTimeout(() => {
   }, 500);
 }, 2000);
 
+  };
+
   const copyToClipboard = async (text, section = '') => {
     try {
       await navigator.clipboard.writeText(text);
