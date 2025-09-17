@@ -40,7 +40,6 @@ const SpicyLister = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [showProModal, setShowProModal] = useState(false);
   const imgInputRef = useRef();
 
   // IMAGE UPLOAD
