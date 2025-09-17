@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   Upload, Sparkles, Coffee, Heart, CheckCircle, Copy, 
@@ -389,21 +388,24 @@ Don't miss this classic camera that started the photography revolution!`
     
     // For demo, auto-activate after delay
     setTimeout(() => {
-      // Instead of: const confirmed = confirm('Are you sure?');
-// Use this pattern:
-const handleYourAction = (itemData) => {
-  showConfirm({
-    title: 'Confirm Delete', // Customize this
-    message: 'Are you sure you want to delete this item?', // Customize this
-    confirmText: 'Delete',
-    cancelText: 'Cancel',
-    type: 'danger',
-    onConfirm: () => {
-      // Put your original logic here that would have run after confirm() returned true
-      // For example: deleteItem(itemData.id);
-    }
-  });
-};
+      const confirmed = confirm("Did you complete the PayPal payment?");
+      if (confirmed) {
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 100); // "Lifetime"
+        
+        setIsPro(true);
+        setProExpiryDate(expiryDate);
+        setSupporterType('premium');
+        
+        localStorage.setItem('spicylister_pro', 'true');
+        localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
+        localStorage.setItem('spicylister_supporter_type', 'premium');
+        
+        setShowProModal(false);
+        alert("🎉 LIFETIME PRO ACTIVATED! Thank you for your amazing support!");
+      }
+    }, 10000);
+  };
 
   const copyToClipboard = async (text, section = '') => {
     try {
@@ -1121,7 +1123,7 @@ const handleYourAction = (itemData) => {
           </div>
           
           <p className="text-sm text-gray-500 mb-4">
-            Built with love from a 2013 Transit van touring UK and EU 🚐
+            Built with love from a 2013 Transit van touring Devon & Cornwall 🚐
             <br />
             Turning clutter into comedy tour fuel, one listing at a time!
           </p>
