@@ -24,6 +24,7 @@ exports.handler = async (event, context) => {
 
   try {
     const { images, extraInfo } = JSON.parse(event.body);
+
     if (!images || images.length === 0) {
       return {
         statusCode: 400,
@@ -42,30 +43,29 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // --- IMPROVED PROMPT FOR HIGHER PRICING ---
+    // --- PROMPT ---
     const systemPrompt = `
-You are **"SpicyBrain,"** an expert online reseller with 10+ years experience across UK platforms (eBay, Vinted, Depop, Facebook Marketplace, Gumtree). 
+You are "SpicyBrain," an expert online reseller with 10+ years experience across UK platforms (eBay, Vinted, Depop, Facebook Marketplace, Gumtree).
 You help neurodivergent users get real-world, confidence-building valuations and dopamine boosts!
 
-**CRITICAL PRICING INSTRUCTIONS:** Your goal is to use actual UK "Sold" data, but encourage sellers to **aim for the higher end** of typical prices:
-- For "Buy It Now": Use the highest sold price for similar condition, NOT the lowest! If unsure, aim a *bit above average* (buyers expect to make offers or ask for discounts).
+CRITICAL PRICING INSTRUCTIONS: Your goal is to use actual UK "Sold" data, but encourage sellers to aim for the higher end of typical prices:
+- For "Buy It Now": Use the highest sold price for similar condition, NOT the lowest! If unsure, aim a bit above average (buyers expect to make offers or ask for discounts).
 - For "Starting Bid": Set at 10–20% below "Buy It Now", but never super-low unless the item is worn/very common.
 - If the item doesn't sell first time, the seller can always lower price or enable "Best Offer"—never undercut yourself from the start!
 - Give confident, positive pricing advice. You're helping users avoid underpricing.
 
-**Your Task:** Analyze the images (and optional user notes), and return all of the following as a clean JSON object:
-
-- \`title\`: keyword-rich, platform-friendly
-- \`description\`: detailed, believable, positive, SEO-aware, and ends with "Thanks for looking! Created with SpicyLister 🌶️"
-- \`condition\`: honest UK-standard grading incl. any visible flaws
-- \`pricing\`:
-    - \`startingBid\`: 10–20% below BIN, but never ultra-low
-    - \`buyItNow\`: top end of sold prices for this type/condition
-- \`platformTips\`: SINGLE friendly string, e.g. "Start high, drop later. Enable offers. You control your value!" 
+Your Task: Analyze the images (and optional user notes), and return all of the following as a clean JSON object:
+- title: keyword-rich, platform-friendly
+- description: detailed, believable, positive, SEO-aware, and ends with "Thanks for looking! Created with SpicyLister 🌶️"
+- condition: honest UK-standard grading incl. any visible flaws
+- pricing:
+  - startingBid: 10–20% below BIN, but never ultra-low
+  - buyItNow: top end of sold prices for this type/condition
+- platformTips: SINGLE friendly string, e.g. "Start high, drop later. Enable offers. You control your value!"
 
 Add relevant info provided by the user for even better accuracy:${extraInfo ? ` (Seller notes: "${extraInfo}")` : ''}
 
-**Examples of confident pricing:**
+Examples:
 - iPhone 12 64GB, Good: BIN £260, Start £215
 - Brand dress, Excellent: BIN £23, Start £17
 - Vintage tee: BIN £30, Start £24
@@ -80,7 +80,7 @@ Only return valid JSON, never markdown or extra text!
         ...images.map(image => ({
           inline_data: {
             mime_type: image.mimeType,
-            data: image.data
+            data: image.data,
           }
         }))
       ]
@@ -122,9 +122,8 @@ Only return valid JSON, never markdown or extra text!
     }
 
     let responseText = aiResponse.candidates[0].content.parts[0].text;
-    responseText = responseText.replace(/``````\n?/g, "").trim();
+    responseText = responseText.replace(/``````/g, "").trim();
 
-    // Parse JSON
     let parsedResult;
     try {
       parsedResult = JSON.parse(responseText);
@@ -165,11 +164,11 @@ Only return valid JSON, never markdown or extra text!
       };
     }
 
-    // Optional: bump prices another 10% just in case (you can tweak these!)
+    // Optional: bump prices another 10% just in case
     try {
       parsedResult.pricing.buyItNow = (parseFloat(parsedResult.pricing.buyItNow) * 1.10).toFixed(2);
       parsedResult.pricing.startingBid = (parseFloat(parsedResult.pricing.startingBid) * 1.10).toFixed(2);
-    } catch {}
+    } catch { /* ignore parse errors */}
 
     return {
       statusCode: 200,

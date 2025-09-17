@@ -1,6 +1,3 @@
-// Netlify Function: track-supporter.js
-// This replaces expensive n8n automation with FREE Google Sheets
-
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -8,14 +5,19 @@ exports.handler = async (event, context) => {
 
   try {
     const { email, timestamp, type, amount } = JSON.parse(event.body);
-    
-    // Google Sheets API (free!)
+
     const SHEET_ID = process.env.GOOGLE_SHEET_ID;
     const API_KEY = process.env.GOOGLE_SHEETS_API_KEY;
-    
-    // Append to Google Sheet
+    if (!SHEET_ID || !API_KEY) {
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Missing Google Sheets config' }),
+      };
+    }
+
     const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Supporters!A:E:append?valueInputOption=RAW&key=${API_KEY}`;
-    
+
     const response = await fetch(sheetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -38,7 +40,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    throw new Error('Sheet update failed');
+    const errText = await response.text();
+    throw new Error('Sheet update failed: ' + errText);
 
   } catch (error) {
     return {
