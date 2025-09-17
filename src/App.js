@@ -1,3 +1,5 @@
+
+import ImageCompressor from './ImageCompressor';
 // Replace the import section at the top of your App.js with this complete import list:
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
