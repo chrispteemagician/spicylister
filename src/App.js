@@ -1,11 +1,12 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Upload, Sparkles, Coffee, Heart, CheckCircle, Copy, 
-  MessageCircle, RotateCcw, Search, X, AlertCircle, Crown, 
-  TrendingUp, Zap, Target, TrendingDown, Video, Package,
-  DollarSign, Clock, Gift, Star, Layers, PlayCircle,
-  FileText, Camera, Shield, Rocket
+  Search, 
+  Plus, 
+  Trash2, 
+  Edit3, 
+  Star, 
+  AlertTriangle 
+  // Remove: Upload, Sparkles, X, Target, TrendingDown
 } from 'lucide-react';
 
 const SpicyLister = () => {
