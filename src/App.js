@@ -387,23 +387,20 @@ Don't miss this classic camera that started the photography revolution!`
     // Open PayPal
     window.open('https://paypal.me/chrisptee/9.99', '_blank');
     
-    // For demo, auto-activate after delay
-    setTimeout(() => {
-      // Instead of: const confirmed = confirm('Are you sure?');
-// Use this pattern:
-const handleYourAction = (itemData) => {
-  showConfirm({
-    title: 'Confirm Delete', // Customize this
-    message: 'Are you sure you want to delete this item?', // Customize this
-    confirmText: 'Delete',
-    cancelText: 'Cancel',
-    type: 'danger',
-    onConfirm: () => {
-      // Put your original logic here that would have run after confirm() returned true
-      // For example: deleteItem(itemData.id);
-    }
-  });
-};
+// For demo, auto-activate after delay
+setTimeout(() => {
+  // Simulate activation after payment
+  setIsPro(true);
+  setProExpiryDate(null); // Lifetime
+  setSupporterType('premium');
+  localStorage.setItem('spicylister_pro', 'true');
+  localStorage.setItem('spicylister_pro_expiry', 'lifetime');
+  localStorage.setItem('spicylister_supporter_type', 'premium');
+  setShowProModal(false);
+  setTimeout(() => {
+    alert(`🎉 LIFETIME PRO ACTIVATED! Thank you for supporting the van life dream! 🚐`);
+  }, 500);
+}, 2000);
 
   const copyToClipboard = async (text, section = '') => {
     try {
@@ -1150,6 +1147,6 @@ const handleYourAction = (itemData) => {
       <ProModal />
     </div>
   );
-};
+}
 
 export default SpicyLister;
