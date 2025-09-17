@@ -1,13 +1,41 @@
+// Replace the import section at the top of your App.js with this complete import list:
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, 
   Plus, 
   Trash2, 
   Edit3, 
-  Star, 
-  AlertTriangle 
-  // Remove: Upload, Sparkles, X, Target, TrendingDown
+  Star,
+  AlertTriangle,
+  Crown,
+  Rocket,
+  Zap,
+  Coffee,
+  Gift,
+  Shield,
+  DollarSign,
+  TrendingUp,
+  Video,
+  Layers,
+  Camera,
+  FileText,
+  Clock,
+  AlertCircle,
+  Package,
+  PlayCircle,
+  CheckCircle,
+  Copy,
+  RotateCcw,
+  MessageCircle,
+  Heart
 } from 'lucide-react';
+
+// If you don't have lucide-react installed, run this in your terminal:
+// npm install lucide-react
+
+// Alternative: If you can't install lucide-react, you can replace all the icon usage with emoji alternatives
+// For example: <Crown /> becomes <span>👑</span>
 
 const SpicyLister = () => {
   // Core State
