@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  Star,
   AlertTriangle,
   Crown,
   Rocket,
@@ -12,10 +8,7 @@ import {
   Coffee,
   Gift,
   Shield,
-  DollarSign,
-  TrendingUp,
   Video,
-  Layers,
   Camera,
   FileText,
   Clock,
@@ -459,6 +452,29 @@ const SpicyLister = () => {
                 className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-lg text-sm hover:from-yellow-600 hover:to-orange-600 font-semibold flex items-center gap-1"
               >
                 <Coffee className="w-4 h-4" />
+              Buy Me a Coffee = 1 Month Pro!
+            </a>
+          </div>
+          
+          <p className="text-xs text-gray-400 mt-4">
+            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
+            <br />
+            Version 1.2 • Multi-image support • Auto-compression • Real AI analysis
+          </p>
+        </div>
+      </div>
+
+      {/* Pro Modal */}
+      <ProModal />
+    </div>
+  );
+};
+
+function App() {
+  return <SpicyLister />;
+}
+
+export default App;
                 Unlock Pro (£3)
               </button>
             </div>
@@ -691,26 +707,3 @@ const SpicyLister = () => {
               className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
             >
               <Coffee className="w-4 h-4" />
-              Buy Me a Coffee = 1 Month Pro!
-            </a>
-          </div>
-          
-          <p className="text-xs text-gray-400 mt-4">
-            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
-            <br />
-            Version 1.2 • Multi-image support • Auto-compression • Real AI analysis
-          </p>
-        </div>
-      </div>
-
-      {/* Pro Modal */}
-      <ProModal />
-    </div>
-  );
-};
-
-function App() {
-  return <SpicyLister />;
-}
-
-export default App;
