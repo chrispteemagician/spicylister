@@ -6,6 +6,7 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
   const [processing, setProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const compressImage = useCallback((file, targetSizeKB = 500, quality = 0.8) => {
     return new Promise((resolve) => {
@@ -135,7 +136,14 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
     onImagesProcessed([]);
   }, [images, onImagesProcessed]);
 
+  // Separate handlers for camera and file upload
   const handleCameraCapture = useCallback(() => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
+  }, []);
+
+  const handleFileUpload = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -174,7 +182,7 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
               <span>Take Photo</span>
             </button>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handleFileUpload}
               disabled={images.length >= maxImages}
               className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -194,12 +202,22 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
           </p>
         </div>
         
+        {/* Separate inputs for camera and file upload */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        
         <input
           ref={fileInputRef}
           type="file"
           multiple
           accept="image/*"
-          capture="environment"
           onChange={handleFileChange}
           className="hidden"
         />
@@ -283,4 +301,4 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
   );
 };
 
-export default ImageCompressor;
+export default ImageCompressor; 
