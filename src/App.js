@@ -10,10 +10,6 @@ import {
   Shield,
   Video,
   Camera,
-  FileText,
-  Clock,
-  AlertCircle,
-  Package,
   PlayCircle,
   CheckCircle,
   Copy,
@@ -35,13 +31,11 @@ const SpicyLister = () => {
   const [videos, setVideos] = useState([]);
   const [currentResult, setCurrentResult] = useState(null);
   const [copiedSection, setCopiedSection] = useState('');
-  const [processingMedia, setProcessingMedia] = useState(false);
   
   // Pro/Premium State
   const [isPro, setIsPro] = useState(false);
   const [proExpiryDate, setProExpiryDate] = useState(null);
   const [showProModal, setShowProModal] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
   const [supporterType, setSupporterType] = useState(null);
   
   // Refs
@@ -51,7 +45,6 @@ const SpicyLister = () => {
   useEffect(() => {
     const savedPro = localStorage.getItem('spicylister_pro');
     const savedExpiry = localStorage.getItem('spicylister_pro_expiry');
-    const savedEmail = localStorage.getItem('spicylister_email');
     const savedSupporter = localStorage.getItem('spicylister_supporter_type');
     
     if (savedPro === 'true' && savedExpiry) {
@@ -65,7 +58,6 @@ const SpicyLister = () => {
       }
     }
     
-    if (savedEmail) setUserEmail(savedEmail);
     if (savedSupporter) setSupporterType(savedSupporter);
   }, []);
 
@@ -177,9 +169,6 @@ const SpicyLister = () => {
       return;
     }
 
-    setProcessingMedia(true);
-    setError('');
-
     try {
       const videoPromises = files.map(async (file) => {
         if (!file.type.startsWith('video/')) {
@@ -206,8 +195,6 @@ const SpicyLister = () => {
       setVideos(prev => [...prev, ...newVideos]);
     } catch (error) {
       setError(error.message);
-    } finally {
-      setProcessingMedia(false);
     }
   };
 
@@ -228,7 +215,6 @@ const SpicyLister = () => {
       return;
     }
     
-    setUserEmail(email);
     localStorage.setItem('spicylister_email', email);
     
     const expiryDate = new Date();
@@ -258,7 +244,6 @@ const SpicyLister = () => {
       return;
     }
     
-    setUserEmail(email);
     localStorage.setItem('spicylister_email', email);
     
     window.open('https://paypal.me/chrisptee/9.99', '_blank');
