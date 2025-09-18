@@ -33,9 +33,6 @@ const SpicyLister = () => {
   const [error, setError] = useState('');
   
   const [videos, setVideos] = useState([]);
-  const [extraInfo, setExtraInfo] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [results, setResults] = useState([]);
   const [currentResult, setCurrentResult] = useState(null);
   const [copiedSection, setCopiedSection] = useState('');
   const [processingMedia, setProcessingMedia] = useState(false);
@@ -46,11 +43,6 @@ const SpicyLister = () => {
   const [showProModal, setShowProModal] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [supporterType, setSupporterType] = useState(null);
-  
-  // Batch State
-  const [batchMode, setBatchMode] = useState(false);
-  const [batchItems, setBatchItems] = useState([]);
-  const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
   
   // Refs
   const videoInputRef = useRef(null);
@@ -316,20 +308,17 @@ const SpicyLister = () => {
     setSelectedImages([]);
     setVideos([]);
     setAdditionalInfo('');
-    setExtraInfo('');
     setCurrentResult(null);
     setGeneratedListing(null);
-    setResults([]);
     setError('');
     setCopiedSection('');
-    setBatchMode(false);
-    setBatchItems([]);
-    setCurrentBatchIndex(0);
   };
 
   // Pro Modal Component
-  const ProModal = () => (
-    showProModal && (
+  const ProModal = () => {
+    if (!showProModal) return null;
+
+    return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
           <div className="text-center">
@@ -337,6 +326,7 @@ const SpicyLister = () => {
               <Crown className="w-12 h-12 text-yellow-500" />
               <Rocket className="w-10 h-10 text-purple-500" />
               <Zap className="w-8 h-8 text-orange-500" />
+            </div>
             
             <h3 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
               Unlock SpicyLister PRO!
@@ -393,8 +383,8 @@ const SpicyLister = () => {
           </div>
         </div>
       </div>
-    )
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
@@ -409,14 +399,12 @@ const SpicyLister = () => {
               SpicyLister
             </h1>
             {isPro && (
-              <>
-                <div className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full">
-                  <Crown className="w-4 h-4" />
-                  <span className="text-sm font-bold">PRO</span>
-                </div>
-                <span className="text-xs text-gray-500">v1.2</span>
-              </>
+              <div className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full">
+                <Crown className="w-4 h-4" />
+                <span className="text-sm font-bold">PRO</span>
+              </div>
             )}
+            <span className="text-xs text-gray-500">v1.2</span>
           </div>
           
           <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 mb-4 border border-orange-200">
@@ -453,28 +441,6 @@ const SpicyLister = () => {
                 className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-lg text-sm hover:from-yellow-600 hover:to-orange-600 font-semibold flex items-center gap-1"
               >
                 <Coffee className="w-4 h-4" />
-              Buy Me a Coffee = 1 Month Pro!
-            </button>
-          </div>
-          
-          <p className="text-xs text-gray-400 mt-4">
-            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
-            <br />
-            Version 1.2 • Multi-image support • Auto-compression • Real AI analysis
-          </p>
-        </div>
-      </div>
-
-      {/* Pro Modal */}
-      <ProModal />
-    </div>
-  );
-};
-
-function App() {
-}
-
-export default App;
                 Unlock Pro (£3)
               </button>
             </div>
@@ -707,3 +673,26 @@ export default App;
               className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
             >
               <Coffee className="w-4 h-4" />
+              Buy Me a Coffee = 1 Month Pro!
+            </a>
+          </div>
+          
+          <p className="text-xs text-gray-400 mt-4">
+            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
+            <br />
+            Version 1.2 • Multi-image support • Auto-compression • Real AI analysis
+          </p>
+        </div>
+
+        {/* Pro Modal */}
+        <ProModal />
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  return <SpicyLister />;
+}
+
+export default App;
