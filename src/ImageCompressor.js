@@ -1,4 +1,3 @@
-// src/ImageCompressor.js
 import React, { useState, useCallback, useRef } from 'react';
 import { Camera, Upload, X, RotateCcw, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -8,7 +7,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Compress image to target size while maintaining quality for AI recognition
   const compressImage = useCallback((file, targetSizeKB = 500, quality = 0.8) => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
@@ -16,7 +14,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
       const img = new Image();
       
       img.onload = () => {
-        // Calculate optimal dimensions (max 1024px on longest side for Gemini)
         const maxDimension = 1024;
         let { width, height } = img;
         
@@ -31,18 +28,15 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
         canvas.width = width;
         canvas.height = height;
         
-        // High-quality resize with good interpolation
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to blob with progressive quality reduction if needed
         const tryCompress = (currentQuality) => {
           canvas.toBlob((blob) => {
             const sizeKB = blob.size / 1024;
             
             if (sizeKB <= targetSizeKB || currentQuality <= 0.3) {
-              // Create preview URL and return compressed data
               const reader = new FileReader();
               reader.onload = (e) => {
                 resolve({
@@ -56,7 +50,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
               };
               reader.readAsDataURL(blob);
             } else {
-              // Try with lower quality
               tryCompress(currentQuality - 0.1);
             }
           }, 'image/jpeg', currentQuality);
@@ -69,7 +62,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
     });
   }, []);
 
-  // Process multiple files
   const processFiles = useCallback(async (files) => {
     setProcessing(true);
     const fileArray = Array.from(files).slice(0, maxImages - images.length);
@@ -104,7 +96,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
     }
   }, [images, compressImage, onImagesProcessed, maxImages]);
 
-  // Handle file input change
   const handleFileChange = useCallback((e) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -112,7 +103,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
     }
   }, [processFiles]);
 
-  // Handle drag and drop
   const handleDrag = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -133,21 +123,18 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
     }
   }, [processFiles]);
 
-  // Remove image
   const removeImage = useCallback((id) => {
     const newImages = images.filter(img => img.id !== id);
     setImages(newImages);
     onImagesProcessed(newImages);
   }, [images, onImagesProcessed]);
 
-  // Clear all images
   const clearAll = useCallback(() => {
     images.forEach(img => URL.revokeObjectURL(img.previewUrl));
     setImages([]);
     onImagesProcessed([]);
   }, [images, onImagesProcessed]);
 
-  // Camera capture (mobile)
   const handleCameraCapture = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -156,7 +143,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
 
   return (
     <div className="space-y-4">
-      {/* Upload Area */}
       <div
         className={`relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 ${
           dragActive 
@@ -219,7 +205,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
         />
       </div>
 
-      {/* Image Preview Grid */}
       {images.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -278,7 +263,6 @@ const ImageCompressor = ({ onImagesProcessed, maxImages = 3 }) => {
         </div>
       )}
       
-      {/* Instructions */}
       {images.length === 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start space-x-3">

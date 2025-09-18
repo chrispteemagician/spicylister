@@ -1,8 +1,6 @@
-// netlify/functions/analyze-images.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 exports.handler = async (event, context) => {
-  // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -35,7 +33,6 @@ exports.handler = async (event, context) => {
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-    // Create enhanced prompt for multiple images
     const createMultiImagePrompt = (labels, context) => {
       const labelText = labels && labels.length > 0 
         ? labels.map((label, i) => `Image ${i + 1}: ${label}`).join('\n')
@@ -73,7 +70,6 @@ Be specific and accurate. If multiple images show different aspects, incorporate
 
     const prompt = createMultiImagePrompt(imageLabels, additionalContext);
     
-    // Prepare content array with prompt and all images
     const content = [
       { text: prompt },
       ...images
@@ -87,15 +83,12 @@ Be specific and accurate. If multiple images show different aspects, incorporate
     
     console.log('Gemini response received:', text.substring(0, 200) + '...');
     
-    // Parse JSON response
     let parsedResult;
     try {
-      // Clean up the response text (remove markdown code blocks if present)
       const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       parsedResult = JSON.parse(cleanedText);
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
-      // Fallback: return raw text if JSON parsing fails
       parsedResult = {
         title: "AI Analysis Complete",
         description: text,
