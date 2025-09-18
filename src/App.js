@@ -337,7 +337,6 @@ const SpicyLister = () => {
               <Crown className="w-12 h-12 text-yellow-500" />
               <Rocket className="w-10 h-10 text-purple-500" />
               <Zap className="w-8 h-8 text-orange-500" />
-            </div>
             
             <h3 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
               Unlock SpicyLister PRO!
@@ -410,12 +409,14 @@ const SpicyLister = () => {
               SpicyLister
             </h1>
             {isPro && (
-              <div className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full">
-                <Crown className="w-4 h-4" />
-                <span className="text-sm font-bold">PRO</span>
-              </div>
+              <>
+                <div className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full">
+                  <Crown className="w-4 h-4" />
+                  <span className="text-sm font-bold">PRO</span>
+                </div>
+                <span className="text-xs text-gray-500">v1.2</span>
+              </>
             )}
-            <span className="text-xs text-gray-500">v1.2</span>
           </div>
           
           <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 mb-4 border border-orange-200">
@@ -453,7 +454,7 @@ const SpicyLister = () => {
               >
                 <Coffee className="w-4 h-4" />
               Buy Me a Coffee = 1 Month Pro!
-            </a>
+            </button>
           </div>
           
           <p className="text-xs text-gray-400 mt-4">
@@ -471,7 +472,6 @@ const SpicyLister = () => {
 };
 
 function App() {
-  return <SpicyLister />;
 }
 
 export default App;
