@@ -3,12 +3,8 @@
 # This file tells Netlify how to build your site and where to find your serverless functions.
 
 [build]
-  # This is the command Vite uses to build your React app for production.
   command = "npm run build"
-  
-  # This is the directory where Vite places the built files.
-  publish = "dist"
+  publish = "build"  # ← Correct for Create React App
 
 [functions]
-  # This tells Netlify to look for serverless functions in this directory.
   directory = "netlify/functions"
