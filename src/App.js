@@ -698,17 +698,15 @@ const SpicyLister = () => {
                 <p className="text-gray-700 font-medium">{currentResult?.title || generatedListing?.title}</p>
               </div>
 
-            {/* Description */}
-<div className="bg-white rounded-xl shadow-lg p-6">
-  <div className="flex items-center justify-between mb-4">
-    <h3 className="text-lg font-semibold text-gray-800">📋 Description</h3>
-    <button
-      onClick={() => copyToClipboard((currentResult?.description || generatedListing?.description), 'description')}
-      className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-    >
-      {copiedSection === 'description' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-      {copiedSection === 'description' ? 'Copied!' : 'Copy'}
-    </button>
-  </div>
-  <p className="text-gray-700 whitespace-pre-line">{currentResult?.description || generatedListing?.description}</p>
-</div>
+              {/* Description */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">📋 Description</h3>
+                  <button
+                    onClick={() => copyToClipboard((currentResult?.description || generatedListing?.description), 'description')}
+                    className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
+                  >
+                    {copiedSection === 'description' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    {copiedSection === 'description' ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
