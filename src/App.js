@@ -47,7 +47,27 @@ const ProgressTracker = ({ currentStep, totalSteps }) => {
                     : 'bg-gray-100 border-gray-300 text-gray-400'
               }`}>
                 {isComplete ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
-              </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {/* Achievement Celebration */}
+                        <AchievementCelebration achievement={achievement} onClose={() => setAchievement(null)} />
+                        {/* Selling Tips Modal */}
+                        <SellingTipsModal 
+                          tips={currentResult?.sellingTips || generatedListing?.sellingTips}
+                          isOpen={showSellingTips}
+                          onClose={() => setShowSellingTips(false)}
+                        />
+                        {/* Pro Modal */}
+                        <ProModal />
+                      </div>
+                    </div>
+                  </div>
+                );
+              };
+              
+              export default SpicyLister;
               <span className={`ml-2 text-sm font-medium ${
                 isComplete 
                   ? 'text-green-600' 
