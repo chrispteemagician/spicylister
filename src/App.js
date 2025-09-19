@@ -225,30 +225,31 @@ const SpicyLister = () => {
   };
 
   // Coffee support
-  const handleCoffeeSupport = async () => {
-    const email = prompt("Enter your email for 1 MONTH FREE PRO + updates:");
-    if (!email || !email.includes('@')) {
-      alert("Please enter a valid email to unlock Pro features");
-      return;
-    }
-    
-    localStorage.setItem('spicylister_email', email);
-    
-    const expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() + 1);
-    
-    setIsPro(true);
-    setProExpiryDate(expiryDate);
-    
-    localStorage.setItem('spicylister_pro', 'true');
-    localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
-    
+  const handleCoffeeSupport = () => {
+    // Send them to buy coffee first
     window.open('https://buymeacoffee.com/chrispteemagician', '_blank');
     setShowProModal(false);
     
+    // Show follow-up message
     setTimeout(() => {
-      alert(`Pro activated! Valid until ${expiryDate.toLocaleDateString()}. Thank you for supporting the van life dream!`);
-    }, 500);
+      const wantsPro = confirm("Thanks for supporting SpicyLister! Would you like to activate 1 month of Pro features?");
+      if (wantsPro) {
+        const email = prompt("Enter your email to activate Pro:");
+        if (email && email.includes('@')) {
+          const expiryDate = new Date();
+          expiryDate.setMonth(expiryDate.getMonth() + 1);
+          
+          setIsPro(true);
+          setProExpiryDate(expiryDate);
+          
+          localStorage.setItem('spicylister_pro', 'true');
+          localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
+          localStorage.setItem('spicylister_email', email);
+          
+          alert(`Pro activated until ${expiryDate.toLocaleDateString()}! Thank you for supporting the van life dream!`);
+        }
+      }
+    }, 3000); // Give them time to complete coffee purchase
   };
 
   const copyToClipboard = async (text, section = '') => {
