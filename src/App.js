@@ -19,6 +19,53 @@ import {
 } from 'lucide-react';
 import ImageCompressor from './ImageCompressor';
 
+// Selling Tips Modal Component
+const SellingTipsModal = ({ tips, isOpen, onClose }) => {
+  if (!isOpen || !tips) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">Want More? Platform Tips</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-xl"
+          >
+            ✕
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="border-l-4 border-blue-500 pl-4 bg-blue-50 p-3 rounded-r">
+            <h4 className="font-semibold text-blue-900">📦 eBay</h4>
+            <p className="text-sm text-blue-800">{tips.ebay}</p>
+          </div>
+          
+          <div className="border-l-4 border-pink-500 pl-4 bg-pink-50 p-3 rounded-r">
+            <h4 className="font-semibold text-pink-900">👗 Vinted</h4>
+            <p className="text-sm text-pink-800">{tips.vinted}</p>
+          </div>
+          
+          <div className="border-l-4 border-green-500 pl-4 bg-green-50 p-3 rounded-r">
+            <h4 className="font-semibold text-green-900">🏪 Facebook Marketplace</h4>
+            <p className="text-sm text-green-800">{tips.facebook}</p>
+          </div>
+        </div>
+        
+        <div className="mt-6 text-center bg-orange-50 p-3 rounded">
+          <p className="text-sm text-orange-800 font-medium">
+            Sell your clutter without a stutter
+          </p>
+          <p className="text-xs text-orange-600">
+            Neurospicy selling for when your brain says no
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SpicyLister = () => {
   // Core State
   const [selectedImages, setSelectedImages] = useState([]);
@@ -31,6 +78,7 @@ const SpicyLister = () => {
   const [videos, setVideos] = useState([]);
   const [currentResult, setCurrentResult] = useState(null);
   const [copiedSection, setCopiedSection] = useState('');
+  const [showSellingTips, setShowSellingTips] = useState(false);
   
   // Pro/Premium State
   const [isPro, setIsPro] = useState(false);
@@ -132,7 +180,9 @@ const SpicyLister = () => {
         price: result.estimatedPrice || '',
         condition: result.condition || '',
         category: result.category || '',
-        tags: result.tags || []
+        tags: result.tags || [],
+        sellingTips: result.sellingTips || null,
+        isValuableFind: result.isValuableFind || false
       });
 
       // Also set as current result for existing UI
@@ -297,6 +347,7 @@ const SpicyLister = () => {
     setGeneratedListing(null);
     setError('');
     setCopiedSection('');
+    setShowSellingTips(false);
   };
 
   // Pro Modal Component
@@ -556,6 +607,21 @@ const SpicyLister = () => {
           {/* Results Display */}
           {(currentResult || generatedListing) && (
             <div className="space-y-6">
+              {/* Treasure Alert */}
+              {(currentResult?.isValuableFind || generatedListing?.isValuableFind) && (
+                <div className="bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-400 rounded-xl p-6">
+                  <div className="text-center">
+                    <div className="text-4xl mb-3">🏆✨</div>
+                    <h3 className="text-2xl font-bold text-amber-800 mb-2">
+                      Did you know this could be worth a lot?
+                    </h3>
+                    <p className="text-amber-700 text-lg">
+                      You've found a gem! This could be a valuable item worth researching further.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Title */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -637,6 +703,17 @@ const SpicyLister = () => {
                   <MessageCircle className="w-4 h-4" />
                   New Listing
                 </button>
+
+                {/* Want More? Tips Button */}
+                {(currentResult?.sellingTips || generatedListing?.sellingTips) && (
+                  <button
+                    onClick={() => setShowSellingTips(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  >
+                    <Gift className="w-4 h-4" />
+                    Want More? Tips
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -666,8 +743,17 @@ const SpicyLister = () => {
             Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
             <br />
             Version 1.2 • Multi-image support • Auto-compression • Real AI analysis
+            <br />
+            <span className="text-orange-600 font-medium">Neurospicy selling for when your brain says no</span>
           </p>
         </div>
+
+        {/* Selling Tips Modal */}
+        <SellingTipsModal 
+          tips={currentResult?.sellingTips || generatedListing?.sellingTips}
+          isOpen={showSellingTips}
+          onClose={() => setShowSellingTips(false)}
+        />
 
         {/* Pro Modal */}
         <ProModal />
