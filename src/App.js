@@ -15,9 +15,81 @@ import {
   Copy,
   RotateCcw,
   MessageCircle,
-  Heart
+  Heart,
+  TrendingUp,
+  Award
 } from 'lucide-react';
 import ImageCompressor from './ImageCompressor';
+
+// Progress Tracker Component - Healthy Dopamine
+const ProgressTracker = ({ currentStep, totalSteps }) => {
+  const steps = [
+    { id: 1, name: 'Add Photos', icon: Camera },
+    { id: 2, name: 'AI Analysis', icon: Zap },
+    { id: 3, name: 'Ready to List', icon: Award }
+  ];
+
+  return (
+    <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
+      <div className="flex items-center justify-between">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          const isComplete = currentStep > step.id;
+          const isCurrent = currentStep === step.id;
+          
+          return (
+            <div key={step.id} className="flex items-center">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
+                isComplete 
+                  ? 'bg-green-500 border-green-500 text-white' 
+                  : isCurrent 
+                    ? 'bg-orange-500 border-orange-500 text-white animate-pulse' 
+                    : 'bg-gray-100 border-gray-300 text-gray-400'
+              }`}>
+                {isComplete ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+              </div>
+              <span className={`ml-2 text-sm font-medium ${
+                isComplete 
+                  ? 'text-green-600' 
+                  : isCurrent 
+                    ? 'text-orange-600' 
+                    : 'text-gray-400'
+              }`}>
+                {step.name}
+              </span>
+              {index < steps.length - 1 && (
+                <div className={`w-8 h-0.5 mx-4 transition-all duration-300 ${
+                  isComplete ? 'bg-green-500' : 'bg-gray-300'
+                }`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Achievement Celebration Component
+const AchievementCelebration = ({ achievement, onClose }) => {
+  if (!achievement) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-md w-full p-6 text-center">
+        <div className="text-6xl mb-4">{achievement.icon}</div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">{achievement.title}</h3>
+        <p className="text-gray-600 mb-4">{achievement.message}</p>
+        <button
+          onClick={onClose}
+          className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600"
+        >
+          Keep Going!
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // Selling Tips Modal Component
 const SellingTipsModal = ({ tips, isOpen, onClose }) => {
@@ -27,7 +99,7 @@ const SellingTipsModal = ({ tips, isOpen, onClose }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900">Want More? Platform Tips</h3>
+          <h3 className="text-lg font-bold text-gray-900">Platform Tips</h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-xl"
@@ -38,28 +110,19 @@ const SellingTipsModal = ({ tips, isOpen, onClose }) => {
         
         <div className="space-y-4">
           <div className="border-l-4 border-blue-500 pl-4 bg-blue-50 p-3 rounded-r">
-            <h4 className="font-semibold text-blue-900">📦 eBay</h4>
+            <h4 className="font-semibold text-blue-900">eBay</h4>
             <p className="text-sm text-blue-800">{tips.ebay}</p>
           </div>
           
           <div className="border-l-4 border-pink-500 pl-4 bg-pink-50 p-3 rounded-r">
-            <h4 className="font-semibold text-pink-900">👗 Vinted</h4>
+            <h4 className="font-semibold text-pink-900">Vinted</h4>
             <p className="text-sm text-pink-800">{tips.vinted}</p>
           </div>
           
           <div className="border-l-4 border-green-500 pl-4 bg-green-50 p-3 rounded-r">
-            <h4 className="font-semibold text-green-900">🏪 Facebook Marketplace</h4>
+            <h4 className="font-semibold text-green-900">Facebook Marketplace</h4>
             <p className="text-sm text-green-800">{tips.facebook}</p>
           </div>
-        </div>
-        
-        <div className="mt-6 text-center bg-orange-50 p-3 rounded">
-          <p className="text-sm text-orange-800 font-medium">
-            Sell your clutter without a stutter
-          </p>
-          <p className="text-xs text-orange-600">
-            Neurospicy selling for when your brain says no
-          </p>
         </div>
       </div>
     </div>
@@ -75,6 +138,11 @@ const SpicyLister = () => {
   const [generatedListing, setGeneratedListing] = useState(null);
   const [error, setError] = useState('');
   
+  // Progress & Achievement State
+  const [currentStep, setCurrentStep] = useState(1);
+  const [achievement, setAchievement] = useState(null);
+  const [totalListingsCreated, setTotalListingsCreated] = useState(0);
+  
   const [videos, setVideos] = useState([]);
   const [currentResult, setCurrentResult] = useState(null);
   const [copiedSection, setCopiedSection] = useState('');
@@ -84,7 +152,6 @@ const SpicyLister = () => {
   const [isPro, setIsPro] = useState(false);
   const [proExpiryDate, setProExpiryDate] = useState(null);
   const [showProModal, setShowProModal] = useState(false);
-  const [supporterType, setSupporterType] = useState(null);
   
   // Refs
   const videoInputRef = useRef(null);
@@ -93,7 +160,7 @@ const SpicyLister = () => {
   useEffect(() => {
     const savedPro = localStorage.getItem('spicylister_pro');
     const savedExpiry = localStorage.getItem('spicylister_pro_expiry');
-    const savedSupporter = localStorage.getItem('spicylister_supporter_type');
+    const savedListings = localStorage.getItem('spicylister_total_listings');
     
     if (savedPro === 'true' && savedExpiry) {
       const expiryDate = new Date(savedExpiry);
@@ -106,14 +173,29 @@ const SpicyLister = () => {
       }
     }
     
-    if (savedSupporter) setSupporterType(savedSupporter);
+    if (savedListings) {
+      setTotalListingsCreated(parseInt(savedListings));
+    }
   }, []);
 
-  // Multi-image handler
+  // Multi-image handler with progress tracking
   const handleImagesProcessed = useCallback((processedImages) => {
     setSelectedImages(processedImages);
-    console.log('Images processed:', processedImages.length);
-  }, []);
+    
+    if (processedImages.length > 0) {
+      setCurrentStep(2);
+      // Achievement for first image
+      if (processedImages.length === 1 && totalListingsCreated === 0) {
+        setAchievement({
+          icon: '📸',
+          title: 'First Photo Added!',
+          message: 'Great start! AI can now analyze your item.'
+        });
+      }
+    } else {
+      setCurrentStep(1);
+    }
+  }, [totalListingsCreated]);
 
   // Analyze images with Gemini
   const analyzeWithGemini = async (images, additionalContext = '') => {
@@ -161,7 +243,7 @@ const SpicyLister = () => {
     }
   };
 
-  // Generate listing with AI
+  // Generate listing with AI and progress tracking
   const generateListing = async () => {
     if (selectedImages.length === 0) {
       setError('Please add at least one image first!');
@@ -170,6 +252,7 @@ const SpicyLister = () => {
 
     setIsGenerating(true);
     setError('');
+    setCurrentStep(2);
     
     try {
       const result = await analyzeWithGemini(selectedImages, additionalInfo);
@@ -196,6 +279,33 @@ const SpicyLister = () => {
           priceConfidence: null
         }
       });
+
+      // Progress to step 3 and achievement
+      setCurrentStep(3);
+      const newTotal = totalListingsCreated + 1;
+      setTotalListingsCreated(newTotal);
+      localStorage.setItem('spicylister_total_listings', newTotal.toString());
+
+      // Achievement celebrations
+      if (newTotal === 1) {
+        setAchievement({
+          icon: '🎉',
+          title: 'First Listing Created!',
+          message: 'You\'ve turned clutter into potential cash!'
+        });
+      } else if (newTotal === 5) {
+        setAchievement({
+          icon: '🔥',
+          title: 'Serial Seller!',
+          message: 'Five listings created! You\'re on fire!'
+        });
+      } else if (newTotal % 10 === 0) {
+        setAchievement({
+          icon: '🏆',
+          title: 'Listing Legend!',
+          message: `${newTotal} listings created! You're unstoppable!`
+        });
+      }
 
     } catch (error) {
       setError(`Failed to generate listing: ${error.message}`);
@@ -257,7 +367,7 @@ const SpicyLister = () => {
     });
   };
 
-  // Handle Coffee Supporter (1 month Pro)
+  // Simplified Coffee Support
   const handleCoffeeSupport = async () => {
     const email = prompt("Enter your email for 1 MONTH FREE PRO + updates:");
     if (!email || !email.includes('@')) {
@@ -272,11 +382,9 @@ const SpicyLister = () => {
     
     setIsPro(true);
     setProExpiryDate(expiryDate);
-    setSupporterType('coffee');
     
     localStorage.setItem('spicylister_pro', 'true');
     localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
-    localStorage.setItem('spicylister_supporter_type', 'coffee');
     
     window.open('https://buymeacoffee.com/chrispteemagician', '_blank');
     setShowProModal(false);
@@ -284,32 +392,6 @@ const SpicyLister = () => {
     setTimeout(() => {
       alert(`Pro activated! Valid until ${expiryDate.toLocaleDateString()}. Thank you for supporting the van life dream!`);
     }, 500);
-  };
-
-  // Handle Premium Upgrade (Lifetime)
-  const handlePremiumUpgrade = async () => {
-    const email = prompt("Enter your email for LIFETIME PRO access:");
-    if (!email || !email.includes('@')) {
-      alert("Please enter a valid email");
-      return;
-    }
-    
-    localStorage.setItem('spicylister_email', email);
-    
-    window.open('https://paypal.me/chrisptee/9.99', '_blank');
-    
-    setTimeout(() => {
-      setIsPro(true);
-      setProExpiryDate(null);
-      setSupporterType('premium');
-      localStorage.setItem('spicylister_pro', 'true');
-      localStorage.setItem('spicylister_pro_expiry', 'lifetime');
-      localStorage.setItem('spicylister_supporter_type', 'premium');
-      setShowProModal(false);
-      setTimeout(() => {
-        alert(`Lifetime Pro activated! Thank you for supporting the van life dream!`);
-      }, 500);
-    }, 2000);
   };
 
   const copyToClipboard = async (text, section = '') => {
@@ -348,66 +430,45 @@ const SpicyLister = () => {
     setError('');
     setCopiedSection('');
     setShowSellingTips(false);
+    setCurrentStep(1);
   };
 
-  // Pro Modal Component
+  // Simplified Pro Modal - Just Coffee Support
   const ProModal = () => {
     if (!showProModal) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-xl max-w-lg w-full p-6">
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <Crown className="w-12 h-12 text-yellow-500" />
-              <Rocket className="w-10 h-10 text-purple-500" />
-              <Zap className="w-8 h-8 text-orange-500" />
+              <Coffee className="w-12 h-12 text-orange-500" />
+              <Heart className="w-8 h-8 text-red-500" />
             </div>
             
-            <h3 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-              Unlock SpicyLister PRO!
+            <h3 className="text-3xl font-bold text-gray-900 mb-3">
+              Love SpicyLister?
             </h3>
             
-            <p className="text-xl text-gray-700 font-semibold mb-6">
-              Stop leaving money on the table - Get REAL pricing data!
+            <p className="text-lg text-gray-700 mb-6">
+              Buy Chris a coffee and get 1 month Pro as a thank you!
             </p>
 
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div className="border-2 border-yellow-400 rounded-xl p-4 bg-yellow-50">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Coffee className="w-8 h-8 text-yellow-600" />
-                  <Gift className="w-6 h-6 text-red-500" />
-                </div>
-                <h4 className="text-2xl font-bold text-yellow-700 mb-2">Buy Me a Coffee</h4>
-                <div className="text-3xl font-bold text-gray-800 mb-2">£3</div>
-                <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold mb-3">
-                  1 MONTH FREE PRO!
-                </div>
-                <button
-                  onClick={handleCoffeeSupport}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-yellow-600 hover:to-yellow-700"
-                >
-                  Buy Coffee = 1 Month Pro
-                </button>
+            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-6 mb-6">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <Coffee className="w-8 h-8 text-orange-600" />
+                <Gift className="w-6 h-6 text-red-500" />
               </div>
-
-              <div className="border-2 border-purple-400 rounded-xl p-4 bg-purple-50">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Crown className="w-8 h-8 text-purple-600" />
-                  <Shield className="w-6 h-6 text-blue-500" />
-                </div>
-                <h4 className="text-2xl font-bold text-purple-700 mb-2">Lifetime Pro</h4>
-                <div className="text-3xl font-bold text-gray-800 mb-2">£9.99</div>
-                <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold mb-3">
-                  ONE TIME - FOREVER!
-                </div>
-                <button
-                  onClick={handlePremiumUpgrade}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700"
-                >
-                  Get Lifetime Pro
-                </button>
+              <div className="text-3xl font-bold text-gray-800 mb-2">£3</div>
+              <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold mb-3">
+                1 MONTH PRO INCLUDED!
               </div>
+              <button
+                onClick={handleCoffeeSupport}
+                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-yellow-600"
+              >
+                Buy Chris a Coffee ☕
+              </button>
             </div>
 
             <button
@@ -440,7 +501,6 @@ const SpicyLister = () => {
                 <span className="text-sm font-bold">PRO</span>
               </div>
             )}
-            <span className="text-xs text-gray-500">v1.2</span>
           </div>
           
           <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 mb-4 border border-orange-200">
@@ -448,10 +508,21 @@ const SpicyLister = () => {
               🎯 Sell Your Clutter without a Stutter!
             </p>
             <p className="text-lg text-gray-700">
-              Turn overwhelming piles into profit in 60 seconds flat! ⚡
+              Turn overwhelming piles into profit in 60 seconds flat!
             </p>
+            {totalListingsCreated > 0 && (
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700">
+                  {totalListingsCreated} listing{totalListingsCreated !== 1 ? 's' : ''} created!
+                </span>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Progress Tracker */}
+        <ProgressTracker currentStep={currentStep} totalSteps={3} />
 
         {/* Pro Status Banner */}
         {isPro ? (
@@ -460,7 +531,7 @@ const SpicyLister = () => {
               <div className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-purple-600" />
                 <span className="font-semibold text-purple-800">
-                  PRO ACTIVE {supporterType === 'premium' ? '(Lifetime!)' : `until ${proExpiryDate?.toLocaleDateString()}`}
+                  PRO ACTIVE until {proExpiryDate?.toLocaleDateString()}
                 </span>
               </div>
             </div>
@@ -470,45 +541,35 @@ const SpicyLister = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Gift className="w-5 h-5 text-orange-500" />
-                <span className="font-semibold text-gray-800">Get 1 MONTH FREE PRO!</span>
+                <span className="font-semibold text-gray-800">Love SpicyLister? Buy Chris a coffee!</span>
               </div>
               <button
                 onClick={() => setShowProModal(true)}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-lg text-sm hover:from-yellow-600 hover:to-orange-600 font-semibold flex items-center gap-1"
+                className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:from-orange-600 hover:to-yellow-600 font-semibold flex items-center gap-1"
               >
                 <Coffee className="w-4 h-4" />
-                Unlock Pro (£3)
+                Get 1 Month Pro (£3)
               </button>
             </div>
           </div>
         )}
 
-        {/* Image Upload Section */}
+        {/* Main Content */}
         <div className="space-y-6">
+          {/* Image Upload Section */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-bold mb-4 flex items-center">
               <Camera className="w-5 h-5 mr-2" />
               Add Photos
+              {selectedImages.length > 0 && (
+                <CheckCircle className="w-5 h-5 ml-2 text-green-500" />
+              )}
             </h2>
             
             <ImageCompressor 
               onImagesProcessed={handleImagesProcessed}
               maxImages={isPro ? 10 : 3}
             />
-            
-            {selectedImages.length > 0 && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center space-x-2 text-green-800">
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} ready for AI analysis
-                  </span>
-                </div>
-                <div className="text-xs text-green-700 mt-1">
-                  Total size: {selectedImages.reduce((acc, img) => acc + parseFloat(img.compressedSize), 0).toFixed(1)}KB
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Video Upload (Pro) */}
@@ -613,10 +674,10 @@ const SpicyLister = () => {
                   <div className="text-center">
                     <div className="text-4xl mb-3">🏆✨</div>
                     <h3 className="text-2xl font-bold text-amber-800 mb-2">
-                      Did you know this could be worth a lot?
+                      Treasure Found!
                     </h3>
                     <p className="text-amber-700 text-lg">
-                      You've found a gem! This could be a valuable item worth researching further.
+                      This could be worth serious money! Research it further before listing.
                     </p>
                   </div>
                 </div>
@@ -649,121 +710,3 @@ const SpicyLister = () => {
                     {copiedSection === 'description' ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                <p className="text-gray-700 whitespace-pre-line">{currentResult?.description || generatedListing?.description}</p>
-              </div>
-
-              {/* Pricing & Condition */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">💰 Pricing & Condition</h3>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Condition</div>
-                    <div className="font-semibold">{currentResult?.condition || generatedListing?.condition}</div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Estimated Price</div>
-                    <div className="font-semibold text-green-700">
-                      {currentResult?.pricing?.buyItNow ? `£${currentResult.pricing.buyItNow}` : generatedListing?.price}
-                    </div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Category</div>
-                    <div className="font-semibold text-blue-700">
-                      {currentResult?.category || generatedListing?.category}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button
-                  onClick={searchEbayWithTitle}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Search className="w-4 h-4" />
-                  Search eBay
-                </button>
-                
-                <button
-                  onClick={generateListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Regenerate
-                </button>
-                
-                <button
-                  onClick={startNewListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  New Listing
-                </button>
-
-                {/* Want More? Tips Button */}
-                {(currentResult?.sellingTips || generatedListing?.sellingTips) && (
-                  <button
-                    onClick={() => setShowSellingTips(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                  >
-                    <Gift className="w-4 h-4" />
-                    Want More? Tips
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-12 py-8 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Heart className="w-5 h-5 text-red-500" />
-            <span className="text-gray-600">SpicyLister - Free forever, Pro perks available!</span>
-            <Heart className="w-5 h-5 text-red-500" />
-          </div>
-          
-          <div className="flex items-center justify-center gap-4">
-            <a 
-              href="https://buymeacoffee.com/chrispteemagician"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
-            >
-              <Coffee className="w-4 h-4" />
-              Buy Me a Coffee = 1 Month Pro!
-            </a>
-          </div>
-          
-          <p className="text-xs text-gray-400 mt-4">
-            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
-            <br />
-            Version 1.2 • Multi-image support • Auto-compression • Real AI analysis
-            <br />
-            <span className="text-orange-600 font-medium">Neurospicy selling for when your brain says no</span>
-          </p>
-        </div>
-
-        {/* Selling Tips Modal */}
-        <SellingTipsModal 
-          tips={currentResult?.sellingTips || generatedListing?.sellingTips}
-          isOpen={showSellingTips}
-          onClose={() => setShowSellingTips(false)}
-        />
-
-        {/* Pro Modal */}
-        <ProModal />
-      </div>
-    </div>
-  );
-};
-
-function App() {
-  return <SpicyLister />;
-}
-
-export default App;
