@@ -103,6 +103,7 @@ const SpicyLister = () => {
   const [totalListingsCreated, setTotalListingsCreated] = useState(0);
   
   const [copiedSection, setCopiedSection] = useState('');
+  const [showProActivation, setShowProActivation] = useState(false);
   
   // Pro State
   const [isPro, setIsPro] = useState(false);
@@ -230,26 +231,29 @@ const SpicyLister = () => {
     window.open('https://buymeacoffee.com/chrispteemagician', '_blank');
     setShowProModal(false);
     
-    // Show follow-up message
+    // Show Pro activation option after coffee purchase
     setTimeout(() => {
-      const wantsPro = confirm("Thanks for supporting SpicyLister! Would you like to activate 1 month of Pro features?");
-      if (wantsPro) {
-        const email = prompt("Enter your email to activate Pro:");
-        if (email && email.includes('@')) {
-          const expiryDate = new Date();
-          expiryDate.setMonth(expiryDate.getMonth() + 1);
-          
-          setIsPro(true);
-          setProExpiryDate(expiryDate);
-          
-          localStorage.setItem('spicylister_pro', 'true');
-          localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
-          localStorage.setItem('spicylister_email', email);
-          
-          alert(`Pro activated until ${expiryDate.toLocaleDateString()}! Thank you for supporting the van life dream!`);
-        }
-      }
-    }, 3000); // Give them time to complete coffee purchase
+      setShowProActivation(true);
+    }, 3000);
+  };
+
+  // Handle Pro activation after coffee
+  const handleProActivation = () => {
+    const email = prompt("Enter your email to activate Pro:");
+    if (email && email.includes('@')) {
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+      
+      setIsPro(true);
+      setProExpiryDate(expiryDate);
+      
+      localStorage.setItem('spicylister_pro', 'true');
+      localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
+      localStorage.setItem('spicylister_email', email);
+      
+      alert(`Pro activated until ${expiryDate.toLocaleDateString()}! Thank you for supporting the van life dream!`);
+    }
+    setShowProActivation(false);
   };
 
   const copyToClipboard = async (text, section = '') => {
@@ -278,7 +282,36 @@ const SpicyLister = () => {
     setCurrentStep(1);
   };
 
-  // Pro Modal
+  // Pro Activation Modal (after coffee purchase)
+  const ProActivationModal = () => {
+    if (!showProActivation) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl max-w-md w-full p-6 text-center">
+          <div className="text-4xl mb-4">☕</div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">Thanks for the coffee!</h3>
+          <p className="text-gray-700 mb-6">
+            Would you like to activate 1 month of Pro features as a thank you?
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowProActivation(false)}
+              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+            >
+              Maybe Later
+            </button>
+            <button
+              onClick={handleProActivation}
+              className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            >
+              Activate Pro
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
   const ProModal = () => {
     if (!showProModal) return null;
 
@@ -586,6 +619,7 @@ const SpicyLister = () => {
         </div>
 
         <ProModal />
+        <ProActivationModal />
         <AchievementCelebration 
           achievement={achievement}
           onClose={() => setAchievement(null)}
