@@ -1,6 +1,11 @@
+// netlify/functions/analyze-images.js - Updated with stack overflow prevention
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 exports.handler = async (event, context) => {
+  // Set a reasonable timeout
+  context.callbackWaitsForEmptyEventLoop = false;
+  
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -30,70 +35,112 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    // Validate image data size to prevent stack overflow
+    const totalSize = images.reduce((acc, img) => {
+      if (img.inlineData && img.inlineData.data) {
+        return acc + img.inlineData.data.length;
+      }
+      return acc;
+    }, 0);
 
-    const createMultiImagePrompt = (labels, context) => {
+    // Limit total base64 data to ~2MB to prevent stack overflow
+    if (totalSize > 2000000) {
+      return {
+        statusCode: 413,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Images too large for processing. Please use smaller images.',
+          totalSize: Math.round(totalSize / 1000) + 'KB'
+        })
+      };
+    }
+
+    if (!process.env.GOOGLE_API_KEY) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Google API key not configured' })
+      };
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash", // Use flash model for better performance
+      generationConfig: {
+        maxOutputTokens: 2048, // Limit response size
+        temperature: 0.7,
+      }
+    });
+
+    const createPrompt = (labels, context) => {
       const labelText = labels && labels.length > 0 
         ? labels.map((label, i) => `Image ${i + 1}: ${label}`).join('\n')
         : '';
       
-      return `Analyze these ${images.length} images of an item for sale and create a detailed marketplace listing.
+      return `Analyze these ${images.length} images of an item for sale and create a marketplace listing.
 
 ${labelText ? `Image Context:\n${labelText}\n` : ''}
 ${context ? `Additional Context: ${context}\n` : ''}
 
-Please provide a comprehensive analysis in JSON format:
+Provide analysis in JSON format:
 
 {
-  "title": "Clear, specific product title with brand/model if visible",
-  "description": "Detailed description incorporating details from all images",
-  "estimatedPrice": "Realistic market price range (e.g., '$25-35')",
-  "condition": "Condition assessment based on all images (Mint/Excellent/Good/Fair/Poor)",
-  "category": "Product category (Electronics/Vinyl/Collectibles/etc.)",
-  "tags": ["relevant", "searchable", "keywords"],
-  "keyFeatures": ["notable features visible in the images"],
-  "flaws": ["any damage or wear visible"],
-  "authenticity": "Assessment of authenticity if applicable",
-  "marketInsights": "Brief market context or demand info"
+  "title": "Specific product title with brand/model",
+  "description": "Detailed description from all images",
+  "estimatedPrice": "Price range (e.g., '$25-35')",
+  "condition": "Condition (Mint/Excellent/Good/Fair/Poor)",
+  "category": "Product category",
+  "tags": ["relevant", "keywords"],
+  "keyFeatures": ["notable features"],
+  "flaws": ["any damage visible"]
 }
 
-Focus on:
-- Brand/model identification from any visible text or labels
-- Condition assessment from all angles shown
-- Unique features or selling points
-- Any visible damage or wear
-- Market value estimation based on condition and rarity
-
-Be specific and accurate. If multiple images show different aspects, incorporate all visible details.`;
+Focus on brand/model identification, condition assessment, and market value.`;
     };
 
-    const prompt = createMultiImagePrompt(imageLabels, additionalContext);
+    const prompt = createPrompt(imageLabels, additionalContext);
     
+    // Prepare content with size limits
     const content = [
       { text: prompt },
-      ...images
+      ...images.slice(0, 5) // Limit to max 5 images to prevent stack overflow
     ];
 
-    console.log(`Processing ${images.length} images with Gemini Vision API`);
+    console.log(`Processing ${images.length} images (${Math.round(totalSize/1000)}KB total)`);
     
-    const result = await model.generateContent(content);
+    // Add timeout wrapper
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), 25000) // 25 second timeout
+    );
+
+    const generatePromise = model.generateContent(content);
+    
+    const result = await Promise.race([generatePromise, timeoutPromise]);
     const response = await result.response;
     const text = response.text();
     
-    console.log('Gemini response received:', text.substring(0, 200) + '...');
+    console.log('Gemini response received:', text.substring(0, 100) + '...');
     
     let parsedResult;
     try {
-      const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      // Clean response and parse JSON
+      const cleanedText = text
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .replace(/^\s*[\r\n]/gm, '')
+        .trim();
+      
       parsedResult = JSON.parse(cleanedText);
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
+      console.log('Raw response:', text);
+      
+      // Fallback response
       parsedResult = {
         title: "AI Analysis Complete",
-        description: text,
-        estimatedPrice: "Price analysis included in description",
-        condition: "See description for condition details",
+        description: text.substring(0, 500) + "...",
+        estimatedPrice: "See description for pricing details",
+        condition: "See description for condition",
         category: "General",
         tags: ["ai-analyzed"]
       };
@@ -113,13 +160,24 @@ Be specific and accurate. If multiple images show different aspects, incorporate
   } catch (error) {
     console.error('Error in analyze-images function:', error);
     
+    // Handle specific error types
+    let errorMessage = 'Internal server error';
+    let statusCode = 500;
+    
+    if (error.message.includes('timeout')) {
+      errorMessage = 'Request timeout - please try with smaller images';
+      statusCode = 408;
+    } else if (error.message.includes('stack')) {
+      errorMessage = 'Images too complex - please try simpler images';
+      statusCode = 413;
+    }
+    
     return {
-      statusCode: 500,
+      statusCode,
       headers,
       body: JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message,
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        error: errorMessage,
+        message: error.message
       })
     };
   }
