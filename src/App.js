@@ -1,3 +1,4 @@
+// src/App.js - SpicyLister Clean Rebuild
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, 
@@ -21,7 +22,7 @@ import {
 } from 'lucide-react';
 import ImageCompressor from './ImageCompressor';
 
-// Progress Tracker Component - Healthy Dopamine
+// Progress Tracker Component
 const ProgressTracker = ({ currentStep, totalSteps }) => {
   const steps = [
     { id: 1, name: 'Add Photos', icon: Camera },
@@ -70,7 +71,7 @@ const ProgressTracker = ({ currentStep, totalSteps }) => {
   );
 };
 
-// Achievement Celebration Component
+// Achievement Component
 const AchievementCelebration = ({ achievement, onClose }) => {
   if (!achievement) return null;
 
@@ -91,48 +92,10 @@ const AchievementCelebration = ({ achievement, onClose }) => {
   );
 };
 
-// Selling Tips Modal Component
-const SellingTipsModal = ({ tips, isOpen, onClose }) => {
-  if (!isOpen || !tips) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900">Platform Tips</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl"
-          >
-            ✕
-          </button>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="border-l-4 border-blue-500 pl-4 bg-blue-50 p-3 rounded-r">
-            <h4 className="font-semibold text-blue-900">eBay</h4>
-            <p className="text-sm text-blue-800">{tips.ebay}</p>
-          </div>
-          
-          <div className="border-l-4 border-pink-500 pl-4 bg-pink-50 p-3 rounded-r">
-            <h4 className="font-semibold text-pink-900">Vinted</h4>
-            <p className="text-sm text-pink-800">{tips.vinted}</p>
-          </div>
-          
-          <div className="border-l-4 border-green-500 pl-4 bg-green-50 p-3 rounded-r">
-            <h4 className="font-semibold text-green-900">Facebook Marketplace</h4>
-            <p className="text-sm text-green-800">{tips.facebook}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
+// Main SpicyLister Component
 const SpicyLister = () => {
   // Core State
   const [selectedImages, setSelectedImages] = useState([]);
-  const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [generatedListing, setGeneratedListing] = useState(null);
@@ -143,20 +106,14 @@ const SpicyLister = () => {
   const [achievement, setAchievement] = useState(null);
   const [totalListingsCreated, setTotalListingsCreated] = useState(0);
   
-  const [videos, setVideos] = useState([]);
-  const [currentResult, setCurrentResult] = useState(null);
   const [copiedSection, setCopiedSection] = useState('');
-  const [showSellingTips, setShowSellingTips] = useState(false);
   
-  // Pro/Premium State
+  // Pro State
   const [isPro, setIsPro] = useState(false);
   const [proExpiryDate, setProExpiryDate] = useState(null);
   const [showProModal, setShowProModal] = useState(false);
-  
-  // Refs
-  const videoInputRef = useRef(null);
 
-  // Load saved state on mount
+  // Load saved state
   useEffect(() => {
     const savedPro = localStorage.getItem('spicylister_pro');
     const savedExpiry = localStorage.getItem('spicylister_pro_expiry');
@@ -178,13 +135,12 @@ const SpicyLister = () => {
     }
   }, []);
 
-  // Multi-image handler with progress tracking
+  // Handle images processed
   const handleImagesProcessed = useCallback((processedImages) => {
     setSelectedImages(processedImages);
     
     if (processedImages.length > 0) {
       setCurrentStep(2);
-      // Achievement for first image
       if (processedImages.length === 1 && totalListingsCreated === 0) {
         setAchievement({
           icon: '📸',
@@ -197,13 +153,20 @@ const SpicyLister = () => {
     }
   }, [totalListingsCreated]);
 
-  // Analyze images with Gemini
-  const analyzeWithGemini = async (images, additionalContext = '') => {
-    setIsProcessingImages(true);
+  // Generate listing
+  const generateListing = async () => {
+    if (selectedImages.length === 0) {
+      setError('Please add at least one image first!');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError('');
+    setCurrentStep(2);
     
     try {
       const imageData = await Promise.all(
-        images.map(async (img) => {
+        selectedImages.map(async (img) => {
           const arrayBuffer = await img.compressedBlob.arrayBuffer();
           const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
           
@@ -223,8 +186,8 @@ const SpicyLister = () => {
         },
         body: JSON.stringify({
           images: imageData,
-          additionalContext,
-          imageLabels: images.map(img => img.label)
+          additionalContext: additionalInfo,
+          imageLabels: selectedImages.map(img => img.label)
         })
       });
 
@@ -233,29 +196,6 @@ const SpicyLister = () => {
       }
 
       const result = await response.json();
-      return result;
-
-    } catch (error) {
-      console.error('Error analyzing images:', error);
-      throw error;
-    } finally {
-      setIsProcessingImages(false);
-    }
-  };
-
-  // Generate listing with AI and progress tracking
-  const generateListing = async () => {
-    if (selectedImages.length === 0) {
-      setError('Please add at least one image first!');
-      return;
-    }
-
-    setIsGenerating(true);
-    setError('');
-    setCurrentStep(2);
-    
-    try {
-      const result = await analyzeWithGemini(selectedImages, additionalInfo);
       
       setGeneratedListing({
         title: result.title || 'Generated Listing',
@@ -263,111 +203,32 @@ const SpicyLister = () => {
         price: result.estimatedPrice || '',
         condition: result.condition || '',
         category: result.category || '',
-        tags: result.tags || [],
-        sellingTips: result.sellingTips || null,
-        isValuableFind: result.isValuableFind || false
+        isValuableFind: result.isValuableItem || false
       });
 
-      // Also set as current result for existing UI
-      setCurrentResult({
-        ...result,
-        isPro: isPro,
-        pricing: {
-          startingBid: "0.99",
-          buyItNow: result.estimatedPrice?.replace(/[£$]/g, '') || "99.99",
-          marketAverage: null,
-          priceConfidence: null
-        }
-      });
-
-      // Progress to step 3 and achievement
+      // Progress to step 3
       setCurrentStep(3);
       const newTotal = totalListingsCreated + 1;
       setTotalListingsCreated(newTotal);
       localStorage.setItem('spicylister_total_listings', newTotal.toString());
 
-      // Achievement celebrations
+      // Achievement
       if (newTotal === 1) {
         setAchievement({
           icon: '🎉',
           title: 'First Listing Created!',
           message: 'You\'ve turned clutter into potential cash!'
         });
-      } else if (newTotal === 5) {
-        setAchievement({
-          icon: '🔥',
-          title: 'Serial Seller!',
-          message: 'Five listings created! You\'re on fire!'
-        });
-      } else if (newTotal % 10 === 0) {
-        setAchievement({
-          icon: '🏆',
-          title: 'Listing Legend!',
-          message: `${newTotal} listings created! You're unstoppable!`
-        });
       }
 
     } catch (error) {
       setError(`Failed to generate listing: ${error.message}`);
-      console.error('Generation error:', error);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Handle video upload (Pro only)
-  const handleVideoUpload = async (event) => {
-    if (!isPro) {
-      setShowProModal(true);
-      return;
-    }
-
-    const files = Array.from(event.target.files);
-    
-    if (videos.length + files.length > 2) {
-      setError("Max 2 videos per listing!");
-      return;
-    }
-
-    try {
-      const videoPromises = files.map(async (file) => {
-        if (!file.type.startsWith('video/')) {
-          throw new Error(`${file.name} isn't a video file`);
-        }
-
-        if (file.size > 100 * 1024 * 1024) {
-          throw new Error(`${file.name} is too large (max 100MB)`);
-        }
-
-        const previewUrl = URL.createObjectURL(file);
-
-        return {
-          file: file,
-          originalName: file.name,
-          size: file.size,
-          preview: previewUrl,
-          type: 'video',
-          id: Date.now() + Math.random()
-        };
-      });
-
-      const newVideos = await Promise.all(videoPromises);
-      setVideos(prev => [...prev, ...newVideos]);
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
-  // Remove video
-  const removeVideo = (id) => {
-    setVideos(prev => {
-      const videoToRemove = prev.find(vid => vid.id === id);
-      if (videoToRemove?.preview) URL.revokeObjectURL(videoToRemove.preview);
-      return prev.filter(vid => vid.id !== id);
-    });
-  };
-
-  // Simplified Coffee Support
+  // Coffee support
   const handleCoffeeSupport = async () => {
     const email = prompt("Enter your email for 1 MONTH FREE PRO + updates:");
     if (!email || !email.includes('@')) {
@@ -404,36 +265,23 @@ const SpicyLister = () => {
     }
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
-    return Math.round(bytes / (1024 * 1024)) + ' MB';
-  };
-
   const searchEbayWithTitle = () => {
-    if (currentResult?.title) {
-      const searchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(currentResult.title)}`;
+    if (generatedListing?.title) {
+      const searchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(generatedListing.title)}`;
       window.open(searchUrl, '_blank');
     }
   };
 
   const startNewListing = () => {
-    videos.forEach(vid => {
-      if (vid.preview) URL.revokeObjectURL(vid.preview);
-    });
-    
     setSelectedImages([]);
-    setVideos([]);
     setAdditionalInfo('');
-    setCurrentResult(null);
     setGeneratedListing(null);
     setError('');
     setCopiedSection('');
-    setShowSellingTips(false);
     setCurrentStep(1);
   };
 
-  // Simplified Pro Modal - Just Coffee Support
+  // Pro Modal
   const ProModal = () => {
     if (!showProModal) return null;
 
@@ -455,10 +303,6 @@ const SpicyLister = () => {
             </p>
 
             <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-6 mb-6">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <Coffee className="w-8 h-8 text-orange-600" />
-                <Gift className="w-6 h-6 text-red-500" />
-              </div>
               <div className="text-3xl font-bold text-gray-800 mb-2">£3</div>
               <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold mb-3">
                 1 MONTH PRO INCLUDED!
@@ -467,7 +311,7 @@ const SpicyLister = () => {
                 onClick={handleCoffeeSupport}
                 className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-yellow-600"
               >
-                Buy Chris a Coffee ☕
+                Buy Chris a Coffee
               </button>
             </div>
 
@@ -571,57 +415,6 @@ const SpicyLister = () => {
               maxImages={isPro ? 10 : 3}
             />
           </div>
-
-          {/* Video Upload (Pro) */}
-          {isPro && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center">
-                <Video className="w-5 h-5 mr-2" />
-                Add Videos (Pro Feature)
-              </h2>
-              
-              <div className="border-2 border-dashed border-purple-200 hover:border-purple-300 rounded-lg p-6">
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  multiple
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  className="hidden"
-                />
-                
-                <div 
-                  onClick={() => videoInputRef.current?.click()}
-                  className="cursor-pointer text-center"
-                >
-                  <Video className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <h3 className="font-semibold text-gray-700 mb-1">Upload Videos</h3>
-                  <p className="text-sm text-gray-500">Show it working! (Max 2 videos, 100MB each)</p>
-                </div>
-              </div>
-
-              {videos.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  {videos.map((video) => (
-                    <div key={video.id} className="relative bg-purple-50 rounded-lg p-2">
-                      <div className="w-full h-24 bg-purple-100 rounded flex items-center justify-center">
-                        <PlayCircle className="w-8 h-8 text-purple-500" />
-                      </div>
-                      <button
-                        onClick={() => removeVideo(video.id)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-                      >
-                        ×
-                      </button>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formatFileSize(video.size)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
           
           {/* Additional Details */}
           <div className="bg-white rounded-lg shadow-lg p-6">
@@ -638,7 +431,7 @@ const SpicyLister = () => {
           {/* Generate Button */}
           <button
             onClick={generateListing}
-            disabled={selectedImages.length === 0 || isProcessingImages || isGenerating}
+            disabled={selectedImages.length === 0 || isGenerating}
             className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
           >
             {isGenerating ? (
@@ -666,10 +459,10 @@ const SpicyLister = () => {
           )}
 
           {/* Results Display */}
-          {(currentResult || generatedListing) && (
+          {generatedListing && (
             <div className="space-y-6">
               {/* Treasure Alert */}
-              {(currentResult?.isValuableFind || generatedListing?.isValuableFind) && (
+              {generatedListing.isValuableFind && (
                 <div className="bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-400 rounded-xl p-6">
                   <div className="text-center">
                     <div className="text-4xl mb-3">🏆✨</div>
@@ -688,14 +481,14 @@ const SpicyLister = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">📝 Listing Title</h3>
                   <button
-                    onClick={() => copyToClipboard((currentResult?.title || generatedListing?.title), 'title')}
+                    onClick={() => copyToClipboard(generatedListing.title, 'title')}
                     className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
                   >
                     {copiedSection === 'title' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                     {copiedSection === 'title' ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                <p className="text-gray-700 font-medium">{currentResult?.title || generatedListing?.title}</p>
+                <p className="text-gray-700 font-medium">{generatedListing.title}</p>
               </div>
 
               {/* Description */}
@@ -703,10 +496,110 @@ const SpicyLister = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">📋 Description</h3>
                   <button
-                    onClick={() => copyToClipboard((currentResult?.description || generatedListing?.description), 'description')}
+                    onClick={() => copyToClipboard(generatedListing.description, 'description')}
                     className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
                   >
                     {copiedSection === 'description' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                     {copiedSection === 'description' ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
+                <p className="text-gray-700 whitespace-pre-line">{generatedListing.description}</p>
+              </div>
+
+              {/* Pricing & Condition */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">💰 Pricing & Condition</h3>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-1">Condition</div>
+                    <div className="font-semibold">{generatedListing.condition}</div>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-1">Estimated Price</div>
+                    <div className="font-semibold text-green-700">{generatedListing.price}</div>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-1">Category</div>
+                    <div className="font-semibold text-blue-700">{generatedListing.category}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 justify-center">
+                <button
+                  onClick={searchEbayWithTitle}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Search className="w-4 h-4" />
+                  Search eBay
+                </button>
+                
+                <button
+                  onClick={generateListing}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Regenerate
+                </button>
+                
+                <button
+                  onClick={startNewListing}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  New Listing
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-12 py-8 border-t border-gray-200">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Heart className="w-5 h-5 text-red-500" />
+            <span className="text-gray-600">SpicyLister - Free forever!</span>
+            <Heart className="w-5 h-5 text-red-500" />
+          </div>
+          
+          <div className="flex items-center justify-center gap-4">
+            <a 
+              href="https://buymeacoffee.com/chrispteemagician"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
+            >
+              <Coffee className="w-4 h-4" />
+              Buy Chris a Coffee
+            </a>
+          </div>
+          
+          <p className="text-xs text-gray-400 mt-4">
+            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
+            <br />
+            {totalListingsCreated > 0 && (
+              <>You've created {totalListingsCreated} listing{totalListingsCreated !== 1 ? 's' : ''} so far! • </>
+            )}
+            <span className="text-orange-600 font-medium">Neurospicy selling for when your brain says no</span>
+          </p>
+        </div>
+
+        <ProModal />
+        <AchievementCelebration 
+          achievement={achievement}
+          onClose={() => setAchievement(null)}
+        />
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  return <SpicyLister />;
+}
+
+export default App;
