@@ -1,4 +1,4 @@
-// netlify/functions/analyze-images.js - Complete enhanced version
+// netlify/functions/analyze-images.js - Simplified version to prevent stack overflow
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Validate image data size
+    // Validate image data size (keep this check)
     const totalSize = images.reduce((acc, img) => {
       if (img.inlineData && img.inlineData.data) {
         return acc + img.inlineData.data.length;
@@ -65,74 +65,43 @@ exports.handler = async (event, context) => {
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
       generationConfig: {
-        maxOutputTokens: 3000, // Increased for more detailed responses
+        maxOutputTokens: 1000,  // Reduced from 3000
         temperature: 0.7,
       }
     });
 
-    const createResearchPrompt = (labels, context) => {
-      const labelText = labels && labels.length > 0 
-        ? labels.map((label, i) => `Image ${i + 1}: ${label}`).join('\n')
-        : '';
-      
-      return `You are "SpicyBrain," an expert UK reseller with deep knowledge of specialist markets. You help people identify items accurately and celebrate valuable finds.
+    // Simplified prompt - no complex specialist knowledge
+    const createSimplePrompt = (context) => {
+      return `Analyze this item for online selling. Be concise and practical.
 
-**CRITICAL RESEARCH METHODOLOGY:**
-1. **IDENTIFY PRECISELY**: Read ALL visible text, model numbers, brand names, serial numbers
-2. **RESEARCH THOROUGHLY**: Consider specialist markets, collector values, original retail prices
-3. **WHEN UNCERTAIN**: State "Need clarification on [specific detail]" rather than guess
-4. **SPECIALIST AREAS**: Amateur radio (Xiegu, Yaesu, Icom, Kenwood), vintage electronics, designer goods, collectibles
-5. **HIGH-VALUE DETECTION**: Flag items potentially worth £300+ as treasures
+${context ? `Additional info: ${context}` : ''}
 
-**TREASURE CELEBRATION**: If item worth £300+, start description with: "🎉 TREASURE ALERT! You've found something special! 🎉"
-
-Analyze these ${images.length} images carefully:
-
-${labelText ? `Image Context:\n${labelText}\n` : ''}
-${context ? `Additional Context: ${context}\n` : ''}
-
-**SPECIFIC IDENTIFICATION FOCUS:**
-- Read exact model numbers (e.g., X5105 vs VX-5R)
-- Check frequency displays for radio equipment  
-- Look for serial numbers, manufacturing dates
-- Identify condition issues accurately
-- Research current UK market values
-
-**OUTPUT FORMAT (JSON only):**
+Provide a JSON response with:
 {
-  "title": "Precise brand, model, key features - 80+ characters for searchability",
-  "description": "Start with treasure alert if valuable. Include accurate specs, honest condition, end with: 'This listing created with SpicyLister - the AI tool that turns your clutter into cash! 🌶️ IMPORTANT: This is AI guidance only. You control all listing decisions. SpicyLister collects no personal data.'",
-  "estimatedPrice": "Research-based UK market price range",
-  "condition": "Honest assessment with specific flaws noted",
-  "category": "Specific category",
-  "tags": ["accurate", "searchable", "keywords"],
-  "confidenceLevel": "High/Medium/Low - certainty of identification",
-  "researchNotes": "Any uncertainties or clarification needed",
-  "valueCategory": "Standard/Valuable/Treasure/Uncertain",
-  "specialistNotes": "Market context for this item type"
+  "title": "Clear, searchable title with brand and item type",
+  "description": "Honest description including visible condition details. End with: 'Listed with SpicyLister - AI that turns clutter into cash!'",
+  "estimatedPrice": "UK market price range (£X-Y)",
+  "condition": "Honest condition assessment",
+  "category": "Item category",
+  "tags": ["relevant", "keywords"],
+  "isValuableItem": false
 }
 
-**EXAMPLES OF CAREFUL IDENTIFICATION:**
-- Amateur Radio: Xiegu X5105 (£350-450) vs Yaesu VX-5R (£80-120) - completely different
-- Vintage Audio: Exact model crucial for pricing
-- Designer Items: Authentication details matter
-
-**PRICING PHILOSOPHY:** "You can always list again for less, you can't go up in price" - err on higher side when confident.
-
-REMEMBER: Accuracy over speed. Ask questions when uncertain. Celebrate valuable discoveries!`;
+Focus on what you can clearly see. Be honest about condition. Price competitively for UK market.`;
     };
 
-    const prompt = createResearchPrompt(imageLabels, additionalContext);
+    const prompt = createSimplePrompt(additionalContext);
     
     const content = [
       { text: prompt },
-      ...images.slice(0, 5)
+      ...images.slice(0, 3)  // Limit to 3 images max to prevent overflow
     ];
 
     console.log(`Processing ${images.length} images (${Math.round(totalSize/1000)}KB total)`);
     
+    // Shorter timeout to prevent stack overflow
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), 30000) // Extended timeout
+      setTimeout(() => reject(new Error('Request timeout')), 15000)
     );
 
     const generatePromise = model.generateContent(content);
@@ -145,6 +114,7 @@ REMEMBER: Accuracy over speed. Ask questions when uncertain. Celebrate valuable 
     
     let parsedResult;
     try {
+      // Clean up the response
       const cleanedText = text
         .replace(/```json\s*/g, '')
         .replace(/```\s*/g, '')
@@ -153,30 +123,29 @@ REMEMBER: Accuracy over speed. Ask questions when uncertain. Celebrate valuable 
       
       parsedResult = JSON.parse(cleanedText);
       
-      // Process for value detection
-      const priceMatch = parsedResult.estimatedPrice?.match(/£(\d+)/);
-      const estimatedValue = priceMatch ? parseInt(priceMatch[1]) : 0;
-      
-      if (estimatedValue >= 300) {
-        parsedResult.isValuableItem = true;
-        parsedResult.valueAlert = "🎉 HIGH-VALUE ITEM DETECTED! Consider specialist selling platforms or expert appraisal before listing.";
+      // Simple value detection (no complex parsing)
+      if (parsedResult.estimatedPrice && parsedResult.estimatedPrice.includes('£')) {
+        const numbers = parsedResult.estimatedPrice.match(/\d+/g);
+        if (numbers && numbers.length > 0) {
+          const maxPrice = Math.max(...numbers.map(n => parseInt(n)));
+          if (maxPrice >= 300) {
+            parsedResult.isValuableItem = true;
+          }
+        }
       }
       
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
-      console.log('Raw response:', text);
       
-      // Enhanced fallback with uncertainty handling
+      // Simple fallback - no complex processing
       parsedResult = {
-        title: "Item Requiring Manual Identification - Please Check Model Numbers",
-        description: `AI analysis uncertain. Visible details: ${text.substring(0, 300)}...\n\nIMPORTANT: Please verify exact model numbers and research current market values before listing.\n\nThis listing created with SpicyLister - the AI tool that turns your clutter into cash! 🌶️\n\nIMPORTANT: This is AI guidance only. You control all listing decisions. SpicyLister collects no personal data.`,
-        estimatedPrice: "£25-50 (uncertain - please research)",
-        condition: "Condition assessment needed - see photos",
-        category: "Requires Classification",
-        tags: ["manual-identification-needed"],
-        confidenceLevel: "Low",
-        researchNotes: "AI unable to identify precisely - manual research recommended",
-        valueCategory: "Uncertain"
+        title: "Item for Sale - Please Add Details",
+        description: "AI analysis incomplete. Please add manual description.\n\nListed with SpicyLister - AI that turns clutter into cash!",
+        estimatedPrice: "£10-50 (please research current prices)",
+        condition: "See photos for condition",
+        category: "General",
+        tags: ["item", "for", "sale"],
+        isValuableItem: false
       };
     }
     
@@ -187,32 +156,19 @@ REMEMBER: Accuracy over speed. Ask questions when uncertain. Celebrate valuable 
         success: true,
         ...parsedResult,
         imagesAnalyzed: images.length,
-        processingTime: new Date().toISOString(),
-        privacyNote: "No personal data collected or stored by SpicyLister"
+        processingTime: new Date().toISOString()
       })
     };
 
   } catch (error) {
     console.error('Error in analyze-images function:', error);
     
-    let errorMessage = 'Analysis failed';
-    let statusCode = 500;
-    
-    if (error.message.includes('timeout')) {
-      errorMessage = 'Analysis timeout - please try with simpler images or add manual details';
-      statusCode = 408;
-    } else if (error.message.includes('stack')) {
-      errorMessage = 'Images too complex for processing - consider manual listing';
-      statusCode = 413;
-    }
-    
     return {
-      statusCode,
+      statusCode: 500,
       headers,
       body: JSON.stringify({ 
-        error: errorMessage,
-        message: error.message,
-        suggestion: "For specialist items, consider adding manual details or consulting expert forums"
+        error: 'Analysis failed - please try again',
+        suggestion: "Try with fewer images or simpler photos"
       })
     };
   }
