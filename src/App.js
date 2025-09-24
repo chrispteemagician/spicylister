@@ -1,4 +1,4 @@
-// src/App.js - SpicyLister Clean Rebuild
+// src/App.js - SpicyLister Complete Fixed Version
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, 
@@ -132,25 +132,24 @@ const SpicyLister = () => {
     }
   }, []);
 
-  // Handle images processed
+  // Handle images processed - FIXED
   const handleImagesProcessed = useCallback((processedImages) => {
-  const handleImagesProcessed = useCallback((processedImages) => {
-  setSelectedImages(processedImages);
-  
-  if (processedImages.length > 0) {
-    setCurrentStep(2);
-    // Remove the dependency on totalListingsCreated here
-    if (processedImages.length === 1) {
-      setAchievement({
-        icon: '📸',
-        title: 'First Photo Added!',
-        message: 'Great start! AI can now analyze your item.'
-      });
+    setSelectedImages(processedImages);
+    
+    if (processedImages.length > 0) {
+      setCurrentStep(2);
+      if (processedImages.length === 1) {
+        setAchievement({
+          icon: '📸',
+          title: 'First Photo Added!',
+          message: 'Great start! AI can now analyze your item.'
+        });
+      }
+    } else {
+      setCurrentStep(1);
     }
-  } else {
-    setCurrentStep(1);
-  }
-}, []); // ← Empty dependency array prevents recursion
+  }, []); // Empty dependency array prevents recursion
+
   // Generate listing
   const generateListing = async () => {
     if (selectedImages.length === 0) {
@@ -228,11 +227,9 @@ const SpicyLister = () => {
 
   // Coffee support
   const handleCoffeeSupport = () => {
-    // Send them to buy coffee first
     window.open('https://buymeacoffee.com/chrispteemagician', '_blank');
     setShowProModal(false);
     
-    // Show Pro activation option after coffee purchase
     setTimeout(() => {
       setShowProActivation(true);
     }, 3000);
@@ -283,7 +280,7 @@ const SpicyLister = () => {
     setCurrentStep(1);
   };
 
-  // Pro Activation Modal (after coffee purchase)
+  // Pro Activation Modal
   const ProActivationModal = () => {
     if (!showProActivation) return null;
 
@@ -313,6 +310,8 @@ const SpicyLister = () => {
       </div>
     );
   };
+
+  // Pro Modal
   const ProModal = () => {
     if (!showProModal) return null;
 
@@ -396,10 +395,8 @@ const SpicyLister = () => {
           </div>
         </div>
 
-        {/* Progress Tracker */}
         <ProgressTracker currentStep={currentStep} totalSteps={3} />
 
-        {/* Pro Status Banner */}
         {isPro ? (
           <div className="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between">
@@ -429,9 +426,7 @@ const SpicyLister = () => {
           </div>
         )}
 
-        {/* Main Content */}
         <div className="space-y-6">
-          {/* Image Upload Section */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-bold mb-4 flex items-center">
               <Camera className="w-5 h-5 mr-2" />
@@ -447,7 +442,6 @@ const SpicyLister = () => {
             />
           </div>
           
-          {/* Additional Details */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-bold mb-4">Additional Details (Optional)</h2>
             <textarea
@@ -459,7 +453,6 @@ const SpicyLister = () => {
             />
           </div>
           
-          {/* Generate Button */}
           <button
             onClick={generateListing}
             disabled={selectedImages.length === 0 || isGenerating}
@@ -478,7 +471,6 @@ const SpicyLister = () => {
             )}
           </button>
 
-          {/* Error Display */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center space-x-2 text-red-800">
@@ -489,10 +481,8 @@ const SpicyLister = () => {
             </div>
           )}
 
-          {/* Results Display */}
           {generatedListing && (
             <div className="space-y-6">
-              {/* Treasure Alert */}
               {generatedListing.isValuableFind && (
                 <div className="bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-400 rounded-xl p-6">
                   <div className="text-center">
@@ -507,7 +497,6 @@ const SpicyLister = () => {
                 </div>
               )}
 
-              {/* Title */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">📝 Listing Title</h3>
@@ -522,7 +511,6 @@ const SpicyLister = () => {
                 <p className="text-gray-700 font-medium">{generatedListing.title}</p>
               </div>
 
-              {/* Description */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">📋 Description</h3>
@@ -537,7 +525,6 @@ const SpicyLister = () => {
                 <p className="text-gray-700 whitespace-pre-line">{generatedListing.description}</p>
               </div>
 
-              {/* Pricing & Condition */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">💰 Pricing & Condition</h3>
                 
@@ -559,7 +546,6 @@ const SpicyLister = () => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 justify-center">
                 <button
                   onClick={searchEbayWithTitle}
@@ -589,7 +575,6 @@ const SpicyLister = () => {
           )}
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-12 py-8 border-t border-gray-200">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Heart className="w-5 h-5 text-red-500" />
@@ -628,7 +613,7 @@ const SpicyLister = () => {
       </div>
     </div>
   );
-};, 
+};
 
 function App() {
   return <SpicyLister />;
