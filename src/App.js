@@ -628,7 +628,7 @@ const SpicyLister = () => {
       </div>
     </div>
   );
-};
+};, 
 
 function App() {
   return <SpicyLister />;
