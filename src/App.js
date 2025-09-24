@@ -134,22 +134,23 @@ const SpicyLister = () => {
 
   // Handle images processed
   const handleImagesProcessed = useCallback((processedImages) => {
-    setSelectedImages(processedImages);
-    
-    if (processedImages.length > 0) {
-      setCurrentStep(2);
-      if (processedImages.length === 1 && totalListingsCreated === 0) {
-        setAchievement({
-          icon: '📸',
-          title: 'First Photo Added!',
-          message: 'Great start! AI can now analyze your item.'
-        });
-      }
-    } else {
-      setCurrentStep(1);
+  const handleImagesProcessed = useCallback((processedImages) => {
+  setSelectedImages(processedImages);
+  
+  if (processedImages.length > 0) {
+    setCurrentStep(2);
+    // Remove the dependency on totalListingsCreated here
+    if (processedImages.length === 1) {
+      setAchievement({
+        icon: '📸',
+        title: 'First Photo Added!',
+        message: 'Great start! AI can now analyze your item.'
+      });
     }
-  }, [totalListingsCreated]);
-
+  } else {
+    setCurrentStep(1);
+  }
+}, []); // ← Empty dependency array prevents recursion
   // Generate listing
   const generateListing = async () => {
     if (selectedImages.length === 0) {
