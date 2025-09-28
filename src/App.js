@@ -590,7 +590,7 @@ const SpicyLister = () => {
               className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
             >
               <Coffee className="w-4 h-4" />
-              Buy Chris a Coffee
+             Please Buy Chris a Coffee
             </a>
           </div>
           
