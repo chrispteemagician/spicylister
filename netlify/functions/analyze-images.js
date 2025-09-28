@@ -1,10 +1,7 @@
-// netlify/functions/analyze-images.js - Simplified version to prevent stack overflow
-
+// netlify/functions/analyze-images.js - Working version for evening listing
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
-  
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -15,41 +12,14 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
-  }
-
   try {
-    const { images, additionalContext, imageLabels } = JSON.parse(event.body);
+    const { images, additionalContext } = JSON.parse(event.body);
     
-    if (!images || !Array.isArray(images) || images.length === 0) {
+    if (!images || images.length === 0) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'At least one image is required' })
-      };
-    }
-
-    // Validate image data size (keep this check)
-    const totalSize = images.reduce((acc, img) => {
-      if (img.inlineData && img.inlineData.data) {
-        return acc + img.inlineData.data.length;
-      }
-      return acc;
-    }, 0);
-
-    if (totalSize > 2000000) {
-      return {
-        statusCode: 413,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Images too large for processing. Please use smaller images.',
-          totalSize: Math.round(totalSize / 1000) + 'KB'
-        })
+        body: JSON.stringify({ error: 'No images provided' })
       };
     }
 
@@ -57,7 +27,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Google API key not configured' })
+        body: JSON.stringify({ error: 'API key not configured' })
       };
     }
 
@@ -65,86 +35,57 @@ exports.handler = async (event, context) => {
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
       generationConfig: {
-        maxOutputTokens: 1000,  // Reduced from 3000
+        maxOutputTokens: 800,
         temperature: 0.7,
       }
     });
 
-    // Simplified prompt - no complex specialist knowledge
-    const createSimplePrompt = (context) => {
-      return `Analyze this item for online selling. Be concise and practical.
+    // Simple, reliable prompt
+    const prompt = `Analyze this item for online selling. Provide JSON response:
 
-${context ? `Additional info: ${context}` : ''}
+${additionalContext ? `Context: ${additionalContext}` : ''}
 
-Provide a JSON response with:
 {
-  "title": "Clear, searchable title with brand and item type",
-  "description": "Honest description including visible condition details. End with: 'Listed with SpicyLister - AI that turns clutter into cash!'",
-  "estimatedPrice": "UK market price range (£X-Y)",
-  "condition": "Honest condition assessment",
+  "title": "Clear selling title with brand/type",
+  "description": "Honest description of condition and features. End with: 'Listed with SpicyLister!'",
+  "estimatedPrice": "UK price range (£X-Y)", 
+  "condition": "Condition assessment",
   "category": "Item category",
-  "tags": ["relevant", "keywords"],
   "isValuableItem": false
 }
 
-Focus on what you can clearly see. Be honest about condition. Price competitively for UK market.`;
-    };
-
-    const prompt = createSimplePrompt(additionalContext);
+Be concise and practical.`;
     
     const content = [
       { text: prompt },
-      ...images.slice(0, 3)  // Limit to 3 images max to prevent overflow
+      images[0] // Use only first image to prevent overload
     ];
 
-    console.log(`Processing ${images.length} images (${Math.round(totalSize/1000)}KB total)`);
-    
-    // Shorter timeout to prevent stack overflow
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), 15000)
-    );
-
-    const generatePromise = model.generateContent(content);
-    
-    const result = await Promise.race([generatePromise, timeoutPromise]);
+    const result = await model.generateContent(content);
     const response = await result.response;
     const text = response.text();
     
-    console.log('Gemini response received:', text.substring(0, 200) + '...');
-    
     let parsedResult;
     try {
-      // Clean up the response
-      const cleanedText = text
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
-        .replace(/^\s*[\r\n]/gm, '')
-        .trim();
-      
+      const cleanedText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
       parsedResult = JSON.parse(cleanedText);
       
-      // Simple value detection (no complex parsing)
+      // Simple value check
       if (parsedResult.estimatedPrice && parsedResult.estimatedPrice.includes('£')) {
         const numbers = parsedResult.estimatedPrice.match(/\d+/g);
-        if (numbers && numbers.length > 0) {
-          const maxPrice = Math.max(...numbers.map(n => parseInt(n)));
-          if (maxPrice >= 300) {
-            parsedResult.isValuableItem = true;
-          }
+        if (numbers && Math.max(...numbers.map(n => parseInt(n))) >= 300) {
+          parsedResult.isValuableItem = true;
         }
       }
       
     } catch (parseError) {
-      console.error('JSON parsing error:', parseError);
-      
-      // Simple fallback - no complex processing
+      // Fallback response
       parsedResult = {
-        title: "Item for Sale - Please Add Details",
-        description: "AI analysis incomplete. Please add manual description.\n\nListed with SpicyLister - AI that turns clutter into cash!",
-        estimatedPrice: "£10-50 (please research current prices)",
-        condition: "See photos for condition",
+        title: "Item for Sale - Check Details",
+        description: "Please add manual description for best results.\n\nListed with SpicyLister!",
+        estimatedPrice: "£10-30",
+        condition: "See photos",
         category: "General",
-        tags: ["item", "for", "sale"],
         isValuableItem: false
       };
     }
@@ -154,21 +95,18 @@ Focus on what you can clearly see. Be honest about condition. Price competitivel
       headers,
       body: JSON.stringify({
         success: true,
-        ...parsedResult,
-        imagesAnalyzed: images.length,
-        processingTime: new Date().toISOString()
+        ...parsedResult
       })
     };
 
   } catch (error) {
-    console.error('Error in analyze-images function:', error);
-    
+    console.error('Function error:', error);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
-        error: 'Analysis failed - please try again',
-        suggestion: "Try with fewer images or simpler photos"
+        error: 'Analysis failed',
+        message: error.message
       })
     };
   }
