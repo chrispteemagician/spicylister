@@ -13,3 +13,7 @@
 [functions]
   # This tells Netlify to look for serverless functions in this directory.
   directory = "netlify/functions"
+  
+[functions."analyze-images"]
+  timeout = 30
+  memory = 1024
