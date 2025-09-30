@@ -1,12 +1,10 @@
 {
   "name": "spicylister",
   "version": "0.1.5",
-
-"engines": {
-  "node": ">=18.x"
-},
-  
-  ": true,
+  "engines": {
+    "node": ">=18.x"
+  },
+  "private": true,
   "dependencies": {
     "@google/generative-ai": "^0.19.0",
     "lucide-react": "^0.539.0",
@@ -43,8 +41,5 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.12"
-  },
-  "engines": {
-    "node": "18.x"
   }
 }
