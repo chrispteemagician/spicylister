@@ -9,60 +9,76 @@ const processImage = async (imageData, retryCount = 0) => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
-    // Compress image if too large
-    if (imageData.length > 500000) { // 500KB limit
+    // Compress image if too large (prevent memory issues)
+    if (imageData.length > 500000) {
       imageData = await compressImage(imageData);
     }
     
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [
-          {
-            text: 'Analyze this item for eBay listing. Provide: title, description, category, condition, estimated price range.'
-          },
-          {
-            inlineData: {
-              mimeType: 'image/jpeg',
-              data: imageData
-            }
-          }
-        ]
-      }]
-    });
+    const result = await model.generateContent([
+      'Analyze this item for eBay listing. Provide: title, description, category, condition, estimated price range.',
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: imageData.replace(/^data:image/[a-z]+;base64,/, '')
+        }
+      }
+    ]);
     
-    return result.response.text();
+    const response = await result.response;
+    return response.text();
     
   } catch (error) {
-    if (error.message.includes('quota') || error.message.includes('rate limit')) {
-      if (retryCount < MAX_RETRIES) {
-        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
-        return processImage(imageData, retryCount + 1);
-      }
+    console.error('Processing error:', error);
+    
+    // Only retry on specific errors, with limited attempts
+    if ((error.message.includes('quota') || error.message.includes('rate limit')) && retryCount < MAX_RETRIES) {
+      await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
+      return processImage(imageData, retryCount + 1);
     }
-    throw error;
+    
+    // Don't retry on other errors - throw immediately
+    throw new Error(`Analysis failed: ${error.message}`);
   }
 };
 
 const compressImage = async (base64Data) => {
   try {
-    const buffer = Buffer.from(base64Data, 'base64');
-    if (buffer.length <= 500000) return base64Data;
+    // Remove data URL prefix if present
+    const cleanBase64 = base64Data.replace(/^data:image/[a-z]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
     
-    // Return first 400KB as emergency fallback
+    if (buffer.length <= 500000) return cleanBase64;
+    
+    // Simple compression by truncating to 400KB
     return buffer.subarray(0, 400000).toString('base64');
   } catch (error) {
-    return base64Data;
+    console.error('Compression error:', error);
+    return base64Data.replace(/^data:image/[a-z]+;base64,/, '');
   }
 };
 
 exports.handler = async (event, context) => {
+  // Set strict timeout to prevent hanging
   const timeoutId = setTimeout(() => {
-    throw new Error('Function timeout');
+    throw new Error('Function timeout after 25 seconds');
   }, 25000);
   
   try {
+    console.log('Function started');
+    
+    // Validate request method
+    if (event.httpMethod !== 'POST') {
+      clearTimeout(timeoutId);
+      return {
+        statusCode: 405,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Method not allowed' })
+      };
+    }
+    
+    // Validate request body
     if (!event.body) {
+      clearTimeout(timeoutId);
       return {
         statusCode: 400,
         headers: { 'Access-Control-Allow-Origin': '*' },
@@ -70,9 +86,22 @@ exports.handler = async (event, context) => {
       };
     }
     
-    const { images } = JSON.parse(event.body);
+    let requestData;
+    try {
+      requestData = JSON.parse(event.body);
+    } catch (parseError) {
+      clearTimeout(timeoutId);
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Invalid JSON in request' })
+      };
+    }
+    
+    const { images } = requestData;
     
     if (!Array.isArray(images) || images.length === 0) {
+      clearTimeout(timeoutId);
       return {
         statusCode: 400,
         headers: { 'Access-Control-Allow-Origin': '*' },
@@ -80,38 +109,64 @@ exports.handler = async (event, context) => {
       };
     }
     
-    if (images.length > 5) {
+    // Limit to prevent overload
+    if (images.length > 3) {
+      clearTimeout(timeoutId);
       return {
         statusCode: 400,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'Maximum 5 images per request' })
+        body: JSON.stringify({ error: 'Maximum 3 images per request' })
       };
     }
     
+    console.log(`Processing ${images.length} images`);
     const results = [];
     
-    // Process images sequentially to prevent memory issues
+    // Process images ONE AT A TIME to prevent stack overflow
     for (let i = 0; i < images.length; i++) {
       try {
+        console.log(`Processing image ${i + 1}`);
         const result = await processImage(images[i]);
-        results.push({ success: true, data: result });
+        results.push({ 
+          success: true, 
+          data: result,
+          index: i 
+        });
+        console.log(`Image ${i + 1} processed successfully`);
       } catch (error) {
-        results.push({ success: false, error: error.message });
+        console.error(`Image ${i + 1} failed:`, error);
+        results.push({ 
+          success: false, 
+          error: error.message,
+          index: i 
+        });
       }
       
-      // Clear processed image from memory
+      // Clear memory after each image
       images[i] = null;
+      
+      // Small delay between images
+      if (i < images.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
     
     clearTimeout(timeoutId);
+    console.log('Function completed successfully');
     
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
-      body: JSON.stringify({ results })
+      body: JSON.stringify({ 
+        success: true,
+        results: results,
+        processed: results.length 
+      })
     };
     
   } catch (error) {
@@ -120,8 +175,15 @@ exports.handler = async (event, context) => {
     
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Internal server error' })
+      headers: { 
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Internal server error',
+        message: error.message
+      })
     };
   }
 };
