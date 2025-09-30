@@ -1,7 +1,12 @@
 {
   "name": "spicylister",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.5",
+
+"engines": {
+  "node": ">=18.x"
+}
+  
+  ": true,
   "dependencies": {
     "@google/generative-ai": "^0.19.0",
     "lucide-react": "^0.539.0",
