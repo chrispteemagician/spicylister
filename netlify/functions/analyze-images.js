@@ -1,113 +1,127 @@
-// netlify/functions/analyze-images.js - Working version for evening listing
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const processImage = async (imageData, retryCount = 0) => {
+  const MAX_RETRIES = 2;
+  
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    // Compress image if too large
+    if (imageData.length > 500000) { // 500KB limit
+      imageData = await compressImage(imageData);
+    }
+    
+    const result = await model.generateContent({
+      contents: [{
+        role: 'user',
+        parts: [
+          {
+            text: 'Analyze this item for eBay listing. Provide: title, description, category, condition, estimated price range.'
+          },
+          {
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: imageData
+            }
+          }
+        ]
+      }]
+    });
+    
+    return result.response.text();
+    
+  } catch (error) {
+    if (error.message.includes('quota') || error.message.includes('rate limit')) {
+      if (retryCount < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
+        return processImage(imageData, retryCount + 1);
+      }
+    }
+    throw error;
+  }
+};
+
+const compressImage = async (base64Data) => {
+  try {
+    const buffer = Buffer.from(base64Data, 'base64');
+    if (buffer.length <= 500000) return base64Data;
+    
+    // Return first 400KB as emergency fallback
+    return buffer.subarray(0, 400000).toString('base64');
+  } catch (error) {
+    return base64Data;
+  }
+};
 
 exports.handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-  };
-
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
-
+  const timeoutId = setTimeout(() => {
+    throw new Error('Function timeout');
+  }, 25000);
+  
   try {
-    const { images, additionalContext } = JSON.parse(event.body);
-    
-    if (!images || images.length === 0) {
+    if (!event.body) {
       return {
         statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'No images provided' })
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Missing request body' })
       };
     }
-
-    if (!process.env.GOOGLE_API_KEY) {
+    
+    const { images } = JSON.parse(event.body);
+    
+    if (!Array.isArray(images) || images.length === 0) {
       return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'API key not configured' })
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Images must be a non-empty array' })
       };
     }
-
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        maxOutputTokens: 800,
-        temperature: 0.7,
-      }
-    });
-
-    // Simple, reliable prompt
-    const prompt = `Analyze this item for online selling. Provide JSON response:
-
-${additionalContext ? `Context: ${additionalContext}` : ''}
-
-{
-  "title": "Clear selling title with brand/type",
-  "description": "Honest description of condition and features. End with: 'Listed with SpicyLister!'",
-  "estimatedPrice": "UK price range (£X-Y)", 
-  "condition": "Condition assessment",
-  "category": "Item category",
-  "isValuableItem": false
-}
-
-Be concise and practical.`;
     
-    const content = [
-      { text: prompt },
-      images[0] // Use only first image to prevent overload
-    ];
-
-    const result = await model.generateContent(content);
-    const response = await result.response;
-    const text = response.text();
-    
-    let parsedResult;
-    try {
-      const cleanedText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-      parsedResult = JSON.parse(cleanedText);
-      
-      // Simple value check
-      if (parsedResult.estimatedPrice && parsedResult.estimatedPrice.includes('£')) {
-        const numbers = parsedResult.estimatedPrice.match(/\d+/g);
-        if (numbers && Math.max(...numbers.map(n => parseInt(n))) >= 300) {
-          parsedResult.isValuableItem = true;
-        }
-      }
-      
-    } catch (parseError) {
-      // Fallback response
-      parsedResult = {
-        title: "Item for Sale - Check Details",
-        description: "Please add manual description for best results.\n\nListed with SpicyLister!",
-        estimatedPrice: "£10-30",
-        condition: "See photos",
-        category: "General",
-        isValuableItem: false
+    if (images.length > 5) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Maximum 5 images per request' })
       };
     }
+    
+    const results = [];
+    
+    // Process images sequentially to prevent memory issues
+    for (let i = 0; i < images.length; i++) {
+      try {
+        const result = await processImage(images[i]);
+        results.push({ success: true, data: result });
+      } catch (error) {
+        results.push({ success: false, error: error.message });
+      }
+      
+      // Clear processed image from memory
+      images[i] = null;
+    }
+    
+    clearTimeout(timeoutId);
     
     return {
       statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        ...parsedResult
-      })
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ results })
     };
-
+    
   } catch (error) {
+    clearTimeout(timeoutId);
     console.error('Function error:', error);
+    
     return {
       statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Analysis failed',
-        message: error.message
-      })
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Internal server error' })
     };
   }
 };
