@@ -1,8 +1,8 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-exports.handler = async (event, context) => {
+export async function handler(event, context) {
   console.log('Function started');
-  
+
   // Set CORS headers for all responses
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -10,7 +10,7 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
   };
-  
+
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -19,7 +19,7 @@ exports.handler = async (event, context) => {
       body: ''
     };
   }
-  
+
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -27,7 +27,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
-  
+
   try {
     // Validate API key exists
     if (!process.env.GEMINI_API_KEY) {
@@ -37,7 +37,7 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'API key not configured' })
       };
     }
-    
+
     // Parse request body
     let requestData;
     try {
@@ -49,9 +49,9 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Invalid JSON' })
       };
     }
-    
+
     const { images } = requestData;
-    
+
     if (!images || !Array.isArray(images) || images.length === 0) {
       return {
         statusCode: 400,
@@ -59,20 +59,20 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'No images provided' })
       };
     }
-    
+
     // Limit to 1 image to prevent timeout/memory issues
     const image = images[0];
-    
+
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    
+
     // Clean base64 data
-    const cleanBase64 = image.replace(/^data:image/[a-z]+;base64,/, '');
-    
+    const cleanBase64 = image.replace(/^data:image\/[a-z]+;base64,/, '');
+
     // Simple prompt to avoid complexity
     const prompt = 'Analyze this item and suggest a title and brief description for selling online.';
-    
+
     const result = await model.generateContent([
       prompt,
       {
@@ -82,12 +82,12 @@ exports.handler = async (event, context) => {
         }
       }
     ]);
-    
+
     const response = await result.response;
     const text = response.text();
-    
+
     console.log('Analysis completed successfully');
-    
+
     return {
       statusCode: 200,
       headers,
@@ -97,10 +97,10 @@ exports.handler = async (event, context) => {
         message: 'Analysis completed'
       })
     };
-    
+
   } catch (error) {
     console.error('Function error:', error);
-    
+
     return {
       statusCode: 500,
       headers,
@@ -111,4 +111,4 @@ exports.handler = async (event, context) => {
       })
     };
   }
-};
+}
