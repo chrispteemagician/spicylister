@@ -387,66 +387,23 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
             <span className="font-bold text-purple-600">🎭 Community Comedy Magic Tour 🎩</span> around the UK!
           </p>
           
-          <div className="flex flex-wrap justify-center gap-3 mb-5">
-            
-              href="https://buymeacoffee.com/chrispteemagician"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transition-all shadow-lg text-lg"
-            >
-              <Coffee className="w-5 h-5" />
-              Buy Me a Coffee
-            </a>
-            
-              href="https://www.tiktok.com/@chrispteemagician"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg text-lg"
-              style={{ backgroundColor: '#F28B82' }}
-            >
-              📱 @chrispteemagician
-            </a>
-          </div>
-
-          
-            href="https://comedymagic.co.uk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-600 hover:text-gray-800 font-medium mb-4 block transition-colors"
-          >
-            🌐 comedymagic.co.uk
-          </a>
-
-          <div className="border-t-2 pt-4 mt-4" style={{ borderColor: '#F28B82' }}>
-            <p className="text-sm font-semibold text-gray-700 mb-2">
-              Chris P Tee = Comedy + Magic + Vanlife + Code
-            </p>
-            <p className="text-xs text-gray-600 mb-3 italic max-w-2xl mx-auto">
-              ⚠️ This tool provides AI-generated suggestions. Your listing decisions are final - always review before posting!
-            </p>
-            <div className="flex justify-center gap-3 mb-3">
-              
-                href="mailto:chris@comedymagic.co.uk?subject=SpicyLister Feedback"
-                className="text-sm px-4 py-2 rounded-full font-semibold transition-all shadow-md"
-                style={{ backgroundColor: '#F28B82', color: 'white' }}
-              >
-                💬 Send Feedback
-              </a>
-              
-                href="https://www.tiktok.com/share?url=https://spicylister.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm bg-purple-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-purple-600 transition-all shadow-md"
-              >
-                📤 Share SpicyLister
-              </a>
-            </div>
-            <p className="text-xs text-gray-500">
-              © 2025 Chris P Tee Entertainments. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+         <div className="flex flex-wrap justify-center gap-3 mb-5">
+  
+    href="https://buymeacoffee.com/chrispteemagician"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transition-all shadow-lg text-lg"
+  >
+    <Coffee className="w-5 h-5" />
+    Buy Me a Coffee
+  </a>
+  
+    href="https://www.tiktok.com/@chrispteemagician"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg text-lg"
+    style={{ backgroundColor: '#F28B82' }}
+  >
+    📱 @chrispteemagician
+  </a>
+</div>
