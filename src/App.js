@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Upload, Copy, Check, Coffee, Sparkles } from 'lucide-react';
-
+import { Camera, Copy, Check, Coffee, Sparkles } from 'lucide-react';
 export default function SpicylisterMVP() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
