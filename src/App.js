@@ -1,580 +1,421 @@
-// src/App.js - SpicyLister Complete Fixed Version
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Search, 
-  AlertTriangle,
-  Crown,
-  Zap,
-  Coffee,
-  Gift,
-  Camera,
-  CheckCircle,
-  Copy,
-  RotateCcw,
-  MessageCircle,
-  Heart,
-  TrendingUp,
-  Award
-} from 'lucide-react';
-import ImageCompressor from './ImageCompressor';
+import React, { useState } from 'react';
+import { Camera, Upload, Copy, Check, Coffee, Sparkles } from 'lucide-react';
 
-// Progress Tracker Component
-const ProgressTracker = ({ currentStep, totalSteps }) => {
-  const steps = [
-    { id: 1, name: 'Add Photos', icon: Camera },
-    { id: 2, name: 'AI Analysis', icon: Zap },
-    { id: 3, name: 'Ready to List', icon: Award }
-  ];
+export default function SpicylisterMVP() {
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [copiedSection, setCopiedSection] = useState(null);
 
-  return (
-    <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
-      <div className="flex items-center justify-between">
-        {steps.map((step, index) => {
-          const Icon = step.icon;
-          const isComplete = currentStep > step.id;
-          const isCurrent = currentStep === step.id;
-          
-          return (
-            <div key={step.id} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-                isComplete 
-                  ? 'bg-green-500 border-green-500 text-white' 
-                  : isCurrent 
-                    ? 'bg-orange-500 border-orange-500 text-white animate-pulse' 
-                    : 'bg-gray-100 border-gray-300 text-gray-400'
-              }`}>
-                {isComplete ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
-              </div>
-              <span className={`ml-2 text-sm font-medium ${
-                isComplete 
-                  ? 'text-green-600' 
-                  : isCurrent 
-                    ? 'text-orange-600' 
-                    : 'text-gray-400'
-              }`}>
-                {step.name}
-              </span>
-              {index < steps.length - 1 && (
-                <div className={`w-8 h-0.5 mx-4 transition-all duration-300 ${
-                  isComplete ? 'bg-green-500' : 'bg-gray-300'
-                }`} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      setResults(null);
+    }
+  };
 
-// Main SpicyLister Component
-const SpicyLister = () => {
-  // Core State
-  const [selectedImages, setSelectedImages] = useState([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [additionalInfo, setAdditionalInfo] = useState('');
-  const [generatedListing, setGeneratedListing] = useState(null);
-  const [error, setError] = useState('');
-  
-  // Progress State
-  const [currentStep, setCurrentStep] = useState(1);
-  const [totalListingsCreated, setTotalListingsCreated] = useState(0);
-  
-  const [copiedSection, setCopiedSection] = useState('');
-  const [showProActivation, setShowProActivation] = useState(false);
-  
-  // Pro State
-  const [isPro, setIsPro] = useState(false);
-  const [proExpiryDate, setProExpiryDate] = useState(null);
-  const [showProModal, setShowProModal] = useState(false);
+  const analyzeItem = async () => {
+    if (!image) return;
 
-  // Load saved state
-  useEffect(() => {
-    const savedPro = localStorage.getItem('spicylister_pro');
-    const savedExpiry = localStorage.getItem('spicylister_pro_expiry');
-    const savedListings = localStorage.getItem('spicylister_total_listings');
+    setLoading(true);
     
-    if (savedPro === 'true' && savedExpiry) {
-      const expiryDate = new Date(savedExpiry);
-      if (expiryDate > new Date()) {
-        setIsPro(true);
-        setProExpiryDate(expiryDate);
-      } else {
-        localStorage.removeItem('spicylister_pro');
-        localStorage.removeItem('spicylister_pro_expiry');
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Image = reader.result.split(',')[1];
+      
+      try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 2000,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: image.type,
+                      data: base64Image,
+                    }
+                  },
+                  {
+                    type: "text",
+                    text: `You are an expert in selling on ebay.co.uk and Vinted. 
+
+Analyze this image and create a listing with:
+
+1. A keyword-rich title (80 characters max)
+2. An honest, compelling description
+3. Best UK eBay category
+4. Estimated price range based on typical eBay UK sold prices for similar items (give low/average/high)
+5. Recommended starting price (auction) OR Buy It Now price
+
+Assume item is in good working order and condition.
+
+CRITICAL: Format your response EXACTLY as valid JSON with no markdown, no backticks, no extra text:
+
+{
+  "title": "your 80 char title here",
+  "category": "eBay category path",
+  "description": "compelling honest description",
+  "priceRange": {
+    "low": 10.00,
+    "average": 25.00,
+    "high": 45.00
+  },
+  "recommendation": {
+    "format": "Auction" or "Buy It Now",
+    "startPrice": 15.00,
+    "buyItNowPrice": 29.99
+  },
+  "notes": "any additional pricing guidance"
+}
+
+RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`
+                  }
+                ]
+              }
+            ]
+          })
+        });
+
+        const data = await response.json();
+        let responseText = data.content[0].text;
+        responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        const listingData = JSON.parse(responseText);
+        setResults(listingData);
+        
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error analyzing image. Please try again.");
       }
-    }
-    
-    if (savedListings) {
-      setTotalListingsCreated(parseInt(savedListings));
-    }
-  }, []);
-
-  // Handle images processed
-  const handleImagesProcessed = useCallback((processedImages) => {
-    setSelectedImages(processedImages);
-    
-    if (processedImages.length > 0) {
-      setCurrentStep(2);
-    } else {
-      setCurrentStep(1);
-    }
-  }, []);
-
-  // Generate listing
-  const generateListing = async () => {
-    if (selectedImages.length === 0) {
-      setError('Please add at least one image first!');
-      return;
-    }
-
-    setIsGenerating(true);
-    setError('');
-    setCurrentStep(2);
-    
-    try {
-      const imageData = await Promise.all(
-        selectedImages.map(async (img) => {
-          const arrayBuffer = await img.compressedBlob.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-          
-          return {
-            inlineData: {
-              data: base64,
-              mimeType: 'image/jpeg'
-            }
-          };
-        })
-      );
-
-      const response = await fetch('/.netlify/functions/analyze-images', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          images: imageData,
-          additionalContext: additionalInfo,
-          imageLabels: selectedImages.map(img => img.label)
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const result = await response.json();
       
-      setGeneratedListing({
-        title: result.title || 'Generated Listing',
-        description: result.description || '',
-        price: result.estimatedPrice || '',
-        condition: result.condition || '',
-        category: result.category || '',
-        isValuableFind: result.isValuableItem || false
-      });
-
-      // Progress to step 3
-      setCurrentStep(3);
-      const newTotal = totalListingsCreated + 1;
-      setTotalListingsCreated(newTotal);
-      localStorage.setItem('spicylister_total_listings', newTotal.toString());
-
-    } catch (error) {
-      setError(`Failed to generate listing: ${error.message}`);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Coffee support
-  const handleCoffeeSupport = () => {
-    window.open('https://buymeacoffee.com/chrispteemagician', '_blank');
-    setShowProModal(false);
+      setLoading(false);
+    };
     
-    setTimeout(() => {
-      setShowProActivation(true);
-    }, 3000);
+    reader.readAsDataURL(image);
   };
 
-  // Handle Pro activation after coffee
-  const handleProActivation = () => {
-    const email = prompt("Enter your email to activate Pro:");
-    if (email && email.includes('@')) {
-      const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 1);
-      
-      setIsPro(true);
-      setProExpiryDate(expiryDate);
-      
-      localStorage.setItem('spicylister_pro', 'true');
-      localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
-      localStorage.setItem('spicylister_email', email);
-      
-      alert(`Pro activated until ${expiryDate.toLocaleDateString()}! Thank you for supporting the van life dream!`);
-    }
-    setShowProActivation(false);
-  };
-
-  const copyToClipboard = async (text, section = '') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedSection(section);
-      setTimeout(() => setCopiedSection(''), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
-
-  const searchEbayWithTitle = () => {
-    if (generatedListing?.title) {
-      const searchUrl = `https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(generatedListing.title)}`;
-      window.open(searchUrl, '_blank');
-    }
-  };
-
-  const startNewListing = () => {
-    setSelectedImages([]);
-    setAdditionalInfo('');
-    setGeneratedListing(null);
-    setError('');
-    setCopiedSection('');
-    setCurrentStep(1);
-  };
-
-  // Pro Activation Modal
-  const ProActivationModal = () => {
-    if (!showProActivation) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-md w-full p-6 text-center">
-          <div className="text-4xl mb-4">☕</div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">Thanks for the coffee!</h3>
-          <p className="text-gray-700 mb-6">
-            Would you like to activate 1 month of Pro features as a thank you?
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowProActivation(false)}
-              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-            >
-              Maybe Later
-            </button>
-            <button
-              onClick={handleProActivation}
-              className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-            >
-              Activate Pro
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Pro Modal
-  const ProModal = () => {
-    if (!showProModal) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-lg w-full p-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Coffee className="w-12 h-12 text-orange-500" />
-              <Heart className="w-8 h-8 text-red-500" />
-            </div>
-            
-            <h3 className="text-3xl font-bold text-gray-900 mb-3">
-              Love SpicyLister?
-            </h3>
-            
-            <p className="text-lg text-gray-700 mb-6">
-              Buy Chris a coffee and get 1 month Pro as a thank you!
-            </p>
-
-            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-6 mb-6">
-              <div className="text-3xl font-bold text-gray-800 mb-2">£3</div>
-              <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold mb-3">
-                1 MONTH PRO INCLUDED!
-              </div>
-              <button
-                onClick={handleCoffeeSupport}
-                className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-yellow-600"
-              >
-                Buy Chris a Coffee
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowProModal(false)}
-              className="text-gray-500 hover:text-gray-700 text-sm"
-            >
-              Maybe later
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  const copySection = (section, text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSection(section);
+    setTimeout(() => setCopiedSection(null), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 p-4">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
-              <span className="text-2xl">🌶️</span>
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-              SpicyLister
-            </h1>
-            {isPro && (
-              <div className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full">
-                <Crown className="w-4 h-4" />
-                <span className="text-sm font-bold">PRO</span>
-              </div>
-            )}
+        <div className="text-center mb-6 pt-4">
+          <div className="inline-block mb-4">
+            <div className="text-8xl">🌶️📸</div>
           </div>
-          
-          <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 mb-4 border border-orange-200">
-            <p className="text-xl font-bold text-gray-800 mb-2">
-              🎯 Sell Your Clutter without a Stutter!
-            </p>
-            <p className="text-lg text-gray-700">
-              Turn overwhelming piles into profit in 60 seconds flat!
-            </p>
-            {totalListingsCreated > 0 && (
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-700">
-                  {totalListingsCreated} listing{totalListingsCreated !== 1 ? 's' : ''} created!
-                </span>
-              </div>
-            )}
-          </div>
+          <h1 className="text-6xl font-bold mb-3" style={{ color: '#F28B82' }}>
+            SpicyLister
+          </h1>
+          <p className="text-2xl font-bold text-gray-800 mb-2">
+            Sell your clutter without a stutter
+          </p>
+          <p className="text-lg text-gray-700 font-medium mb-1">
+            List in 60 seconds
+          </p>
+          <p className="text-gray-600 text-sm">
+            For when your spicy brain says NO. eBay • Vinted • More
+          </p>
         </div>
 
-        <ProgressTracker currentStep={currentStep} totalSteps={3} />
-
-        {isPro ? (
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-purple-600" />
-                <span className="font-semibold text-purple-800">
-                  PRO ACTIVE until {proExpiryDate?.toLocaleDateString()}
-                </span>
-              </div>
-            </div>
+        {/* Upload Section */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
+          <div className="mb-6">
+            <label className="flex flex-col items-center justify-center w-full h-72 border-4 border-dashed rounded-2xl cursor-pointer transition-all" style={{ borderColor: '#F28B82', backgroundColor: '#FFF5F3' }}>
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="max-h-64 object-contain rounded-lg" />
+              ) : (
+                <div className="flex flex-col items-center">
+                  <Camera className="w-20 h-20 mb-4" style={{ color: '#F28B82' }} />
+                  <p className="font-bold text-xl mb-2" style={{ color: '#F28B82' }}>
+                    📸 Snap or Upload Your Item
+                  </p>
+                  <p className="text-gray-500">One picture. That's it.</p>
+                </div>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+            </label>
           </div>
-        ) : (
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-orange-500" />
-                <span className="font-semibold text-gray-800">Love SpicyLister? Buy Chris a coffee!</span>
-              </div>
-              <button
-                onClick={() => setShowProModal(true)}
-                className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:from-orange-600 hover:to-yellow-600 font-semibold flex items-center gap-1"
-              >
-                <Coffee className="w-4 h-4" />
-                Get 1 Month Pro (£3)
-              </button>
+
+          {image && !results && (
+            <button
+              onClick={analyzeItem}
+              disabled={loading}
+              className="w-full text-white py-5 rounded-2xl font-bold text-xl transition-all shadow-xl flex items-center justify-center gap-3"
+              style={{ 
+                background: loading ? '#9CA3AF' : 'linear-gradient(135deg, #FFA07A 0%, #F28B82 50%, #FFD700 100%)',
+              }}
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-7 w-7 border-b-3 border-white"></div>
+                  Spicing it up...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-7 h-7" />
+                  Generate My Listing
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Results Section */}
+        {results && (
+          <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-2">💰✨</div>
+              <h2 className="text-3xl font-bold text-gray-800">
+                Your Listing is Ready!
+              </h2>
             </div>
+
+            <div className="space-y-5">
+              {/* Title */}
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF5F3', borderColor: '#F28B82' }}>
+                <div className="flex justify-between items-start mb-3">
+                  <label className="text-sm font-bold uppercase" style={{ color: '#F28B82' }}>
+                    📝 Title
+                  </label>
+                  <button
+                    onClick={() => copySection('title', results.title)}
+                    className="flex items-center gap-2 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm"
+                    style={{ backgroundColor: '#F28B82' }}
+                  >
+                    {copiedSection === 'title' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-lg font-semibold text-gray-800 mb-1">{results.title}</p>
+                <p className="text-xs text-gray-500">{results.title.length}/80 characters</p>
+              </div>
+
+              {/* Category */}
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF9E6', borderColor: '#FFD700' }}>
+                <div className="flex justify-between items-start mb-3">
+                  <label className="text-sm font-bold uppercase text-yellow-700">
+                    📁 Category
+                  </label>
+                  <button
+                    onClick={() => copySection('category', results.category)}
+                    className="flex items-center gap-2 bg-yellow-500 text-gray-900 px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-yellow-600"
+                  >
+                    {copiedSection === 'category' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-gray-800 font-medium">{results.category}</p>
+              </div>
+
+              {/* Description */}
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#F0FFF4', borderColor: '#48BB78' }}>
+                <div className="flex justify-between items-start mb-3">
+                  <label className="text-sm font-bold text-green-700 uppercase">
+                    📄 Description
+                  </label>
+                  <button
+                    onClick={() => copySection('description', results.description)}
+                    className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-green-600"
+                  >
+                    {copiedSection === 'description' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{results.description}</p>
+              </div>
+
+              {/* Pricing */}
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FAF5FF', borderColor: '#9F7AEA' }}>
+                <div className="flex justify-between items-start mb-4">
+                  <label className="text-sm font-bold text-purple-700 uppercase">
+                    💷 Pricing Guide
+                  </label>
+                  <button
+                    onClick={() => copySection('pricing', `Low: £${results.priceRange.low}\nAverage: £${results.priceRange.average}\nHigh: £${results.priceRange.high}\n\n${results.recommendation.format}\n${results.recommendation.startPrice ? `Start: £${results.recommendation.startPrice}` : ''}\n${results.recommendation.buyItNowPrice ? `Buy It Now: £${results.recommendation.buyItNowPrice}` : ''}\n\n${results.notes}`)}
+                    className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-purple-600"
+                  >
+                    {copiedSection === 'pricing' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
+                    <p className="text-xs text-gray-600 mb-1 font-semibold">Low</p>
+                    <p className="text-2xl font-bold text-purple-600">£{results.priceRange.low}</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
+                    <p className="text-xs text-gray-600 mb-1 font-semibold">Average</p>
+                    <p className="text-2xl font-bold text-purple-600">£{results.priceRange.average}</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
+                    <p className="text-xs text-gray-600 mb-1 font-semibold">High</p>
+                    <p className="text-2xl font-bold text-purple-600">£{results.priceRange.high}</p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border-2 border-purple-200">
+                  <p className="font-bold text-purple-700 mb-2 text-lg">💡 {results.recommendation.format}</p>
+                  {results.recommendation.startPrice && (
+                    <p className="text-gray-700">Start: <span className="font-semibold">£{results.recommendation.startPrice}</span></p>
+                  )}
+                  {results.recommendation.buyItNowPrice && (
+                    <p className="text-gray-700">Buy It Now: <span className="font-semibold">£{results.recommendation.buyItNowPrice}</span></p>
+                  )}
+                  {results.notes && (
+                    <p className="text-sm text-gray-600 mt-3 italic border-t pt-3 border-purple-100">{results.notes}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setImage(null);
+                setImagePreview(null);
+                setResults(null);
+              }}
+              className="w-full mt-6 bg-gray-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-all shadow-lg"
+            >
+              🌶️ List Another Item
+            </button>
           </div>
         )}
 
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <Camera className="w-5 h-5 mr-2" />
-              Add Photos
-              {selectedImages.length > 0 && (
-                <CheckCircle className="w-5 h-5 ml-2 text-green-500" />
-              )}
-            </h2>
-            
-            <ImageCompressor 
-              onImagesProcessed={handleImagesProcessed}
-              maxImages={isPro ? 10 : 3}
-            />
-          </div>
+        {/* Footer - Chris P Tee Info */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8 text-center border-2" style={{ borderColor: '#F28B82' }}>
+          <div className="text-5xl mb-4">☕✨</div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            This is Coffeeware!
+          </h3>
+          <p className="text-gray-700 mb-4 leading-relaxed">
+            Built by <span className="font-bold" style={{ color: '#F28B82' }}>Chris P Tee</span> for AuDHD brains that struggle with listing.<br />
+            Use it as much as you like - completely free!
+          </p>
+          <p className="text-gray-700 mb-5 leading-relaxed">
+            If this helps you turn clutter into cash, consider supporting the<br />
+            <span className="font-bold text-purple-600">🎭 Community Comedy Magic Tour 🎩</span> around the UK!
+          </p>
           
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4">Additional Details (Optional)</h2>
-            <textarea
-              value={additionalInfo}
-              onChange={(e) => setAdditionalInfo(e.target.value)}
-              placeholder="Any extra details about condition, history, etc."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              rows="3"
-            />
-          </div>
-          
-          <button
-            onClick={generateListing}
-            disabled={selectedImages.length === 0 || isGenerating}
-            className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
-          >
-            {isGenerating ? (
-              <div className="flex items-center justify-center space-x-2">
-                <Zap className="w-5 h-5 animate-spin" />
-                <span>AI Analyzing Images...</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center space-x-2">
-                <Zap className="w-5 h-5" />
-                <span>Generate Listing with AI</span>
-              </div>
-            )}
-          </button>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 text-red-800">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm font-medium">Error</span>
-              </div>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
-            </div>
-          )}
-
-          {generatedListing && (
-            <div className="space-y-6">
-              {generatedListing.isValuableFind && (
-                <div className="bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-400 rounded-xl p-6">
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">🏆✨</div>
-                    <h3 className="text-2xl font-bold text-amber-800 mb-2">
-                      Treasure Found!
-                    </h3>
-                    <p className="text-amber-700 text-lg">
-                      This could be worth serious money! Research it further before listing.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">📝 Listing Title</h3>
-                  <button
-                    onClick={() => copyToClipboard(generatedListing.title, 'title')}
-                    className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                  >
-                    {copiedSection === 'title' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                    {copiedSection === 'title' ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-                <p className="text-gray-700 font-medium">{generatedListing.title}</p>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">📋 Description</h3>
-                  <button
-                    onClick={() => copyToClipboard(generatedListing.description, 'description')}
-                    className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                  >
-                    {copiedSection === 'description' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                    {copiedSection === 'description' ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-                <p className="text-gray-700 whitespace-pre-line">{generatedListing.description}</p>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">💰 Pricing & Condition</h3>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Condition</div>
-                    <div className="font-semibold">{generatedListing.condition}</div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Estimated Price</div>
-                    <div className="font-semibold text-green-700">{generatedListing.price}</div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Category</div>
-                    <div className="font-semibold text-blue-700">{generatedListing.category}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button
-                  onClick={searchEbayWithTitle}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Search className="w-4 h-4" />
-                  Search eBay
-                </button>
-                
-                <button
-                  onClick={generateListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Regenerate
-                </button>
-                
-                <button
-                  onClick={startNewListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  New Listing
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="text-center mt-12 py-8 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Heart className="w-5 h-5 text-red-500" />
-            <span className="text-gray-600">SpicyLister - Free forever!</span>
-            <Heart className="w-5 h-5 text-red-500" />
-          </div>
-          
-          <div className="flex items-center justify-center gap-4">
-            <a 
+          <div className="flex flex-wrap justify-center gap-3 mb-5">
+            <a
               href="https://buymeacoffee.com/chrispteemagician"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
+              className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transition-all shadow-lg text-lg"
             >
-              <Coffee className="w-4 h-4" />
-              Please Buy Chris a Coffee
+              <Coffee className="w-5 h-5" />
+              Buy Me a Coffee
+            </a>
+            <a
+              href="https://www.tiktok.com/@chrispteemagician"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg text-lg"
+              style={{ backgroundColor: '#F28B82' }}
+            >
+              📱 @chrispteemagician
             </a>
           </div>
-          
-          <p className="text-xs text-gray-400 mt-4">
-            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
-            <br />
-            {totalListingsCreated > 0 && (
-              <>You've created {totalListingsCreated} listing{totalListingsCreated !== 1 ? 's' : ''} so far! • </>
-            )}
-            <span className="text-orange-600 font-medium">Neurospicy selling for when your brain says no</span>
-          </p>
-        </div>
 
-        <ProModal />
-        <ProActivationModal />
+          <a
+            href="https://comedymagic.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-600 hover:text-gray-800 font-medium mb-4 block transition-colors"
+          >
+            🌐 comedymagic.co.uk
+          </a>
+
+          <div className="border-t-2 pt-4 mt-4" style={{ borderColor: '#F28B82' }}>
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              Chris P Tee = Comedy + Magic + Vanlife + Code
+            </p>
+            <p className="text-xs text-gray-600 mb-3 italic max-w-2xl mx-auto">
+              ⚠️ This tool provides AI-generated suggestions. Your listing decisions are final - always review before posting!
+            </p>
+            <div className="flex justify-center gap-3 mb-3">
+              <a
+                href="mailto:chris@comedymagic.co.uk?subject=SpicyLister Feedback"
+                className="text-sm px-4 py-2 rounded-full font-semibold transition-all shadow-md"
+                style={{ backgroundColor: '#F28B82', color: 'white' }}
+              >
+                💬 Send Feedback
+              </a>
+              <a
+                href="https://www.tiktok.com/share?url=https://spicylister.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm bg-purple-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-purple-600 transition-all shadow-md"
+              >
+                📤 Share SpicyLister
+              </a>
+            </div>
+            <p className="text-xs text-gray-500">
+              © 2025 Chris P Tee Entertainments. All rights reserved.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-function App() {
-  return <SpicyLister />;
 }
-
-export default App;
