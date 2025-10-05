@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function handler(event, context) {
   console.log('Function started');
-
+  
   // Set CORS headers for all responses
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -51,7 +51,7 @@ export async function handler(event, context) {
     }
 
     const { images } = requestData;
-
+    
     if (!images || !Array.isArray(images) || images.length === 0) {
       return {
         statusCode: 400,
@@ -62,6 +62,19 @@ export async function handler(event, context) {
 
     // Limit to 1 image to prevent timeout/memory issues
     const image = images[0];
+
+    // Validate image is a string before processing
+    if (typeof image !== 'string') {
+      console.error('Image is not a string. Type:', typeof image);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Invalid image format',
+          message: 'Image data must be a base64 string'
+        })
+      };
+    }
 
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -100,7 +113,6 @@ export async function handler(event, context) {
 
   } catch (error) {
     console.error('Function error:', error);
-
     return {
       statusCode: 500,
       headers,
