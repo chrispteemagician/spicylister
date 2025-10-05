@@ -67,27 +67,6 @@ const ProgressTracker = ({ currentStep, totalSteps }) => {
   );
 };
 
-// Achievement Component
-const AchievementCelebration = ({ achievement, onClose }) => {
-  if (!achievement) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full p-6 text-center">
-        <div className="text-6xl mb-4">{achievement.icon}</div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">{achievement.title}</h3>
-        <p className="text-gray-600 mb-4">{achievement.message}</p>
-        <button
-          onClick={onClose}
-          className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600"
-        >
-          Keep Going!
-        </button>
-      </div>
-    </div>
-  );
-};
-
 // Main SpicyLister Component
 const SpicyLister = () => {
   // Core State
@@ -97,9 +76,8 @@ const SpicyLister = () => {
   const [generatedListing, setGeneratedListing] = useState(null);
   const [error, setError] = useState('');
   
-  // Progress & Achievement State
+  // Progress State
   const [currentStep, setCurrentStep] = useState(1);
-  const [achievement, setAchievement] = useState(null);
   const [totalListingsCreated, setTotalListingsCreated] = useState(0);
   
   const [copiedSection, setCopiedSection] = useState('');
@@ -132,23 +110,16 @@ const SpicyLister = () => {
     }
   }, []);
 
-  // Handle images processed - FIXED
+  // Handle images processed
   const handleImagesProcessed = useCallback((processedImages) => {
     setSelectedImages(processedImages);
     
     if (processedImages.length > 0) {
       setCurrentStep(2);
-      if (processedImages.length === 1) {
-        setAchievement({
-          icon: '📸',
-          title: 'First Photo Added!',
-          message: 'Great start! AI can now analyze your item.'
-        });
-      }
     } else {
       setCurrentStep(1);
     }
-  }, []); // Empty dependency array prevents recursion
+  }, []);
 
   // Generate listing
   const generateListing = async () => {
@@ -208,15 +179,6 @@ const SpicyLister = () => {
       const newTotal = totalListingsCreated + 1;
       setTotalListingsCreated(newTotal);
       localStorage.setItem('spicylister_total_listings', newTotal.toString());
-
-      // Achievement
-      if (newTotal === 1) {
-        setAchievement({
-          icon: '🎉',
-          title: 'First Listing Created!',
-          message: 'You\'ve turned clutter into potential cash!'
-        });
-      }
 
     } catch (error) {
       setError(`Failed to generate listing: ${error.message}`);
@@ -363,260 +325,4 @@ const SpicyLister = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
-              <span className="text-2xl">🌶️</span>
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-              SpicyLister
-            </h1>
-            {isPro && (
-              <div className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full">
-                <Crown className="w-4 h-4" />
-                <span className="text-sm font-bold">PRO</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 mb-4 border border-orange-200">
-            <p className="text-xl font-bold text-gray-800 mb-2">
-              🎯 Sell Your Clutter without a Stutter!
-            </p>
-            <p className="text-lg text-gray-700">
-              Turn overwhelming piles into profit in 60 seconds flat!
-            </p>
-            {totalListingsCreated > 0 && (
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-700">
-                  {totalListingsCreated} listing{totalListingsCreated !== 1 ? 's' : ''} created!
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <ProgressTracker currentStep={currentStep} totalSteps={3} />
-
-        {isPro ? (
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-300 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-purple-600" />
-                <span className="font-semibold text-purple-800">
-                  PRO ACTIVE until {proExpiryDate?.toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-orange-500" />
-                <span className="font-semibold text-gray-800">Love SpicyLister? Buy Chris a coffee!</span>
-              </div>
-              <button
-                onClick={() => setShowProModal(true)}
-                className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:from-orange-600 hover:to-yellow-600 font-semibold flex items-center gap-1"
-              >
-                <Coffee className="w-4 h-4" />
-                Get 1 Month Pro (£3)
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <Camera className="w-5 h-5 mr-2" />
-              Add Photos
-              {selectedImages.length > 0 && (
-                <CheckCircle className="w-5 h-5 ml-2 text-green-500" />
-              )}
-            </h2>
-            
-            <ImageCompressor 
-              onImagesProcessed={handleImagesProcessed}
-              maxImages={isPro ? 10 : 3}
-            />
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4">Additional Details (Optional)</h2>
-            <textarea
-              value={additionalInfo}
-              onChange={(e) => setAdditionalInfo(e.target.value)}
-              placeholder="Any extra details about condition, history, etc."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              rows="3"
-            />
-          </div>
-          
-          <button
-            onClick={generateListing}
-            disabled={selectedImages.length === 0 || isGenerating}
-            className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
-          >
-            {isGenerating ? (
-              <div className="flex items-center justify-center space-x-2">
-                <Zap className="w-5 h-5 animate-spin" />
-                <span>AI Analyzing Images...</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center space-x-2">
-                <Zap className="w-5 h-5" />
-                <span>Generate Listing with AI</span>
-              </div>
-            )}
-          </button>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 text-red-800">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm font-medium">Error</span>
-              </div>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
-            </div>
-          )}
-
-          {generatedListing && (
-            <div className="space-y-6">
-              {generatedListing.isValuableFind && (
-                <div className="bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-400 rounded-xl p-6">
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">🏆✨</div>
-                    <h3 className="text-2xl font-bold text-amber-800 mb-2">
-                      Treasure Found!
-                    </h3>
-                    <p className="text-amber-700 text-lg">
-                      This could be worth serious money! Research it further before listing.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">📝 Listing Title</h3>
-                  <button
-                    onClick={() => copyToClipboard(generatedListing.title, 'title')}
-                    className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                  >
-                    {copiedSection === 'title' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                    {copiedSection === 'title' ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-                <p className="text-gray-700 font-medium">{generatedListing.title}</p>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">📋 Description</h3>
-                  <button
-                    onClick={() => copyToClipboard(generatedListing.description, 'description')}
-                    className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                  >
-                    {copiedSection === 'description' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                    {copiedSection === 'description' ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-                <p className="text-gray-700 whitespace-pre-line">{generatedListing.description}</p>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">💰 Pricing & Condition</h3>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Condition</div>
-                    <div className="font-semibold">{generatedListing.condition}</div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Estimated Price</div>
-                    <div className="font-semibold text-green-700">{generatedListing.price}</div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">Category</div>
-                    <div className="font-semibold text-blue-700">{generatedListing.category}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button
-                  onClick={searchEbayWithTitle}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Search className="w-4 h-4" />
-                  Search eBay
-                </button>
-                
-                <button
-                  onClick={generateListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Regenerate
-                </button>
-                
-                <button
-                  onClick={startNewListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  New Listing
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="text-center mt-12 py-8 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Heart className="w-5 h-5 text-red-500" />
-            <span className="text-gray-600">SpicyLister - Free forever!</span>
-            <Heart className="w-5 h-5 text-red-500" />
-          </div>
-          
-          <div className="flex items-center justify-center gap-4">
-            <a 
-              href="https://buymeacoffee.com/chrispteemagician"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
-            >
-              <Coffee className="w-4 h-4" />
-             Please Buy Chris a Coffee
-            </a>
-          </div>
-          
-          <p className="text-xs text-gray-400 mt-4">
-            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
-            <br />
-            {totalListingsCreated > 0 && (
-              <>You've created {totalListingsCreated} listing{totalListingsCreated !== 1 ? 's' : ''} so far! • </>
-            )}
-            <span className="text-orange-600 font-medium">Neurospicy selling for when your brain says no</span>
-          </p>
-        </div>
-
-        <ProModal />
-        <ProActivationModal />
-        <AchievementCelebration 
-          achievement={achievement}
-          onClose={() => setAchievement(null)}
-        />
-      </div>
-    </div>
-  );
-};
-
-function App() {
-  return <SpicyLister />;
-}
-
-export default App;
+            <div className="w-12 h-12 rounded-full bg-g
