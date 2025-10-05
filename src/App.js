@@ -9,7 +9,6 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [copiedSection, setCopiedSection] = useState(null);
 
-  // Compress image before uploading
   const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -23,7 +22,6 @@ export default function App() {
           let width = img.width;
           let height = img.height;
           
-          // Calculate new dimensions
           if (width > height) {
             if (width > MAX_WIDTH) {
               height *= MAX_WIDTH / width;
@@ -42,7 +40,6 @@ export default function App() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Convert to base64 with compression
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
           resolve(compressedBase64);
         };
@@ -79,7 +76,6 @@ export default function App() {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      // Use the already compressed image preview
       const base64Data = imagePreview.split(',')[1];
       
       const imagePart = {
@@ -126,7 +122,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
       const response = await result.response;
       let text = response.text();
       
-      // Clean up the response
       text = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       
       const listingData = JSON.parse(text);
@@ -149,7 +144,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-6 pt-4">
           <div className="inline-block mb-4">
             <div className="text-8xl">🌶️📸</div>
@@ -168,7 +162,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
           </p>
         </div>
 
-        {/* Upload Section */}
         <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
           <div className="mb-6">
             <label className="flex flex-col items-center justify-center w-full h-72 border-4 border-dashed rounded-2xl cursor-pointer transition-all" style={{ borderColor: '#F28B82', backgroundColor: '#FFF5F3' }}>
@@ -216,7 +209,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
           )}
         </div>
 
-        {/* Results Section */}
         {results && (
           <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
             <div className="text-center mb-6">
@@ -227,7 +219,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
             </div>
 
             <div className="space-y-5">
-              {/* Title */}
               <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF5F3', borderColor: '#F28B82' }}>
                 <div className="flex justify-between items-start mb-3">
                   <label className="text-sm font-bold uppercase" style={{ color: '#F28B82' }}>
@@ -255,7 +246,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
                 <p className="text-xs text-gray-500">{results.title.length}/80 characters</p>
               </div>
 
-              {/* Category */}
               <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF9E6', borderColor: '#FFD700' }}>
                 <div className="flex justify-between items-start mb-3">
                   <label className="text-sm font-bold uppercase text-yellow-700">
@@ -281,7 +271,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
                 <p className="text-gray-800 font-medium">{results.category}</p>
               </div>
 
-              {/* Description */}
               <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#F0FFF4', borderColor: '#48BB78' }}>
                 <div className="flex justify-between items-start mb-3">
                   <label className="text-sm font-bold text-green-700 uppercase">
@@ -307,7 +296,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
                 <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{results.description}</p>
               </div>
 
-              {/* Pricing */}
               <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FAF5FF', borderColor: '#9F7AEA' }}>
                 <div className="flex justify-between items-start mb-4">
                   <label className="text-sm font-bold text-purple-700 uppercase">
@@ -372,7 +360,6 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
           </div>
         )}
 
-        {/* Footer - Chris P Tee Info */}
         <div className="bg-white rounded-3xl shadow-2xl p-8 text-center border-2" style={{ borderColor: '#F28B82' }}>
           <div className="text-5xl mb-4">☕✨</div>
           <h3 className="text-2xl font-bold text-gray-800 mb-3">
@@ -387,23 +374,66 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
             <span className="font-bold text-purple-600">🎭 Community Comedy Magic Tour 🎩</span> around the UK!
           </p>
           
-         <div className="flex flex-wrap justify-center gap-3 mb-5">
-  
-    href="https://buymeacoffee.com/chrispteemagician"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transition-all shadow-lg text-lg"
-  >
-    <Coffee className="w-5 h-5" />
-    Buy Me a Coffee
-  </a>
-  
-    href="https://www.tiktok.com/@chrispteemagician"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg text-lg"
-    style={{ backgroundColor: '#F28B82' }}
-  >
-    📱 @chrispteemagician
-  </a>
-</div>
+          <div className="flex flex-wrap justify-center gap-3 mb-5">
+            <a
+              href="https://buymeacoffee.com/chrispteemagician"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transition-all shadow-lg text-lg"
+            >
+              <Coffee className="w-5 h-5" />
+              Buy Me a Coffee
+            </a>
+            <a
+              href="https://www.tiktok.com/@chrispteemagician"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg text-lg"
+              style={{ backgroundColor: '#F28B82' }}
+            >
+              📱 @chrispteemagician
+            </a>
+          </div>
+
+          <a
+            href="https://comedymagic.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-600 hover:text-gray-800 font-medium mb-4 block transition-colors"
+          >
+            🌐 comedymagic.co.uk
+          </a>
+
+          <div className="border-t-2 pt-4 mt-4" style={{ borderColor: '#F28B82' }}>
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              Chris P Tee = Comedy + Magic + Vanlife + Code
+            </p>
+            <p className="text-xs text-gray-600 mb-3 italic max-w-2xl mx-auto">
+              ⚠️ This tool provides AI-generated suggestions. Your listing decisions are final - always review before posting!
+            </p>
+            <div className="flex justify-center gap-3 mb-3">
+              <a
+                href="mailto:chris@comedymagic.co.uk?subject=SpicyLister Feedback"
+                className="text-sm px-4 py-2 rounded-full font-semibold transition-all shadow-md"
+                style={{ backgroundColor: '#F28B82', color: 'white' }}
+              >
+                💬 Send Feedback
+              </a>
+              <a
+                href="https://www.tiktok.com/share?url=https://spicylister.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm bg-purple-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-purple-600 transition-all shadow-md"
+              >
+                📤 Share SpicyLister
+              </a>
+            </div>
+            <p className="text-xs text-gray-500">
+              © 2025 Chris P Tee Entertainments. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
