@@ -1,21 +1,63 @@
 import React, { useState } from 'react';
 import { Camera, Copy, Check, Coffee, Sparkles } from 'lucide-react';
-export default function SpicylisterMVP() {
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+export default function App() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [copiedSection, setCopiedSection] = useState(null);
 
-  const handleImageUpload = (e) => {
+  // Compress image before uploading
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+          
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to base64 with compression
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(compressedBase64);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      const compressed = await compressImage(file);
+      setImagePreview(compressed);
       setResults(null);
     }
   };
@@ -25,34 +67,29 @@ export default function SpicylisterMVP() {
 
     setLoading(true);
     
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Image = reader.result.split(',')[1];
+    try {
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       
-      try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 2000,
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "image",
-                    source: {
-                      type: "base64",
-                      media_type: image.type,
-                      data: base64Image,
-                    }
-                  },
-                  {
-                    type: "text",
-                    text: `You are an expert in selling on ebay.co.uk and Vinted. 
+      if (!apiKey) {
+        alert('API configuration error. Please contact support.');
+        setLoading(false);
+        return;
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      // Use the already compressed image preview
+      const base64Data = imagePreview.split(',')[1];
+      
+      const imagePart = {
+        inlineData: {
+          data: base64Data,
+          mimeType: 'image/jpeg'
+        }
+      };
+
+      const prompt = `You are an expert in selling on ebay.co.uk and Vinted. 
 
 Analyze this image and create a listing with:
 
@@ -83,29 +120,24 @@ CRITICAL: Format your response EXACTLY as valid JSON with no markdown, no backti
   "notes": "any additional pricing guidance"
 }
 
-RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`
-                  }
-                ]
-              }
-            ]
-          })
-        });
+RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
 
-        const data = await response.json();
-        let responseText = data.content[0].text;
-        responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-        const listingData = JSON.parse(responseText);
-        setResults(listingData);
-        
-      } catch (error) {
-        console.error("Error:", error);
-        alert("Error analyzing image. Please try again.");
-      }
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      let text = response.text();
       
+      // Clean up the response
+      text = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      
+      const listingData = JSON.parse(text);
+      setResults(listingData);
+      
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error analyzing image. The image might be too large or the API limit reached. Try a smaller image or wait a moment.");
+    } finally {
       setLoading(false);
-    };
-    
-    reader.readAsDataURL(image);
+    }
   };
 
   const copySection = (section, text) => {
@@ -356,7 +388,7 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`
           </p>
           
           <div className="flex flex-wrap justify-center gap-3 mb-5">
-            <a
+            
               href="https://buymeacoffee.com/chrispteemagician"
               target="_blank"
               rel="noopener noreferrer"
@@ -365,7 +397,7 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`
               <Coffee className="w-5 h-5" />
               Buy Me a Coffee
             </a>
-            <a
+            
               href="https://www.tiktok.com/@chrispteemagician"
               target="_blank"
               rel="noopener noreferrer"
@@ -376,7 +408,7 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`
             </a>
           </div>
 
-          <a
+          
             href="https://comedymagic.co.uk"
             target="_blank"
             rel="noopener noreferrer"
@@ -393,14 +425,14 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`
               ⚠️ This tool provides AI-generated suggestions. Your listing decisions are final - always review before posting!
             </p>
             <div className="flex justify-center gap-3 mb-3">
-              <a
+              
                 href="mailto:chris@comedymagic.co.uk?subject=SpicyLister Feedback"
                 className="text-sm px-4 py-2 rounded-full font-semibold transition-all shadow-md"
                 style={{ backgroundColor: '#F28B82', color: 'white' }}
               >
                 💬 Send Feedback
               </a>
-              <a
+              
                 href="https://www.tiktok.com/share?url=https://spicylister.com"
                 target="_blank"
                 rel="noopener noreferrer"
