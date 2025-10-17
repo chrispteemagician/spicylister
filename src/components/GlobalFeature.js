@@ -1,7 +1,8 @@
-// Add this to your SpicyLister App.js - Multi-Currency/Multi-Region Feature
+// CLEAN FIXED VERSION - GlobalFeature.js
+// Save this as src/components/GlobalFeature.js
 
 import React, { useState, useEffect } from 'react';
-import { Globe, DollarSign, TrendingUp, MapPin } from 'lucide-react';
+import { Globe, TrendingUp, MapPin } from 'lucide-react';
 
 // eBay regions configuration
 const eBayRegions = {
@@ -11,7 +12,7 @@ const eBayRegions = {
     symbol: '$',
     domain: 'ebay.com',
     flag: '🇺🇸',
-    multiplier: 1.25, // US prices typically 25% higher
+    multiplier: 1.25,
     name: 'United States'
   },
   'UK': { 
@@ -20,7 +21,7 @@ const eBayRegions = {
     symbol: '£',
     domain: 'ebay.co.uk',
     flag: '🇬🇧',
-    multiplier: 1.0, // Base currency
+    multiplier: 1.0,
     name: 'United Kingdom'
   },
   'DE': { 
@@ -79,7 +80,7 @@ const eBayRegions = {
   }
 };
 
-// Exchange rates (in production, fetch from API)
+// Exchange rates
 const exchangeRates = {
   'USD': 1.27,
   'EUR': 1.17,
@@ -88,7 +89,7 @@ const exchangeRates = {
   'GBP': 1.0
 };
 
-// Multi-Currency Component
+// Multi-Currency Selector Component
 const MultiCurrencySelector = ({ selectedRegion, onRegionChange, className = "" }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -146,7 +147,6 @@ const PriceDisplay = ({ basePrice, selectedRegion, showComparison = false }) => 
   const exchangeRate = exchangeRates[region.currency];
   const marketMultiplier = region.multiplier;
   
-  // Calculate final price: base price * exchange rate * market multiplier
   const convertedPrice = (basePrice * exchangeRate * marketMultiplier).toFixed(2);
   
   return (
@@ -221,13 +221,11 @@ const GlobalMarketStats = ({ selectedRegion }) => {
   );
 };
 
-// Main Region Selector Hook
+// Region Selector Hook
 const useRegionSelector = (defaultRegion = 'UK') => {
   const [selectedRegion, setSelectedRegion] = useState(defaultRegion);
 
-  // Detect user's region from browser/IP (in production)
   useEffect(() => {
-    // Auto-detect user region
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
     if (timezone.includes('America/New_York') || timezone.includes('America/Los_Angeles')) {
@@ -245,16 +243,15 @@ const useRegionSelector = (defaultRegion = 'UK') => {
     } else if (timezone.includes('Europe/Madrid')) {
       setSelectedRegion('ES');
     }
-    // Default to UK if no match
   }, []);
 
   return [selectedRegion, setSelectedRegion];
 };
 
-// Example Integration Component (add this to your main app)
+// Main Global Feature Component
 const SpicyListerGlobalFeature = () => {
   const [selectedRegion, setSelectedRegion] = useRegionSelector();
-  const [samplePrice] = useState(25.99); // Example item price in GBP
+  const [samplePrice] = useState(25.99);
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">

@@ -361,8 +361,11 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
           </div>
         )}
         // Add as a new route/page
-<SpicyListerGlobalFeature />
+// CLEAN - only import what you use
+import { SpicyListerGlobalFeature } from './components/GlobalFeature';
 
+// Then use it:
+<SpicyListerGlobalFeature />
         <div className="bg-white rounded-3xl shadow-2xl p-8 text-center border-2" style={{ borderColor: '#F28B82' }}>
           <div className="text-5xl mb-4">☕✨</div>
           <h3 className="text-2xl font-bold text-gray-800 mb-3">
