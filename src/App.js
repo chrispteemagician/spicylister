@@ -1,480 +1,476 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Sparkles, Search, Copy, Check, RotateCcw, MessageCircle, Heart, Coffee } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, Copy, Check, Coffee, Sparkles } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Global eBay regions and currencies (invisible to user)
+// Global currency detection (invisible to user)
 const globalRegions = {
-  'US': { currency: 'USD', symbol: '$', multiplier: 1.27, domain: 'ebay.com' },
-  'UK': { currency: 'GBP', symbol: '£', multiplier: 1.0, domain: 'ebay.co.uk' },
-  'DE': { currency: 'EUR', symbol: '€', multiplier: 1.17, domain: 'ebay.de' },
-  'AU': { currency: 'AUD', symbol: 'A$', multiplier: 1.91, domain: 'ebay.com.au' },
-  'CA': { currency: 'CAD', symbol: 'C$', multiplier: 1.71, domain: 'ebay.ca' },
-  'FR': { currency: 'EUR', symbol: '€', multiplier: 1.17, domain: 'ebay.fr' },
-  'IT': { currency: 'EUR', symbol: '€', multiplier: 1.17, domain: 'ebay.it' },
-  'ES': { currency: 'EUR', symbol: '€', multiplier: 1.17, domain: 'ebay.es' }
+  'US': { currency: 'USD', symbol: '$', multiplier: 1.27 },
+  'UK': { currency: 'GBP', symbol: '£', multiplier: 1.0 },
+  'DE': { currency: 'EUR', symbol: '€', multiplier: 1.17 },
+  'AU': { currency: 'AUD', symbol: 'A$', multiplier: 1.91 },
+  'CA': { currency: 'CAD', symbol: 'C$', multiplier: 1.71 },
+  'FR': { currency: 'EUR', symbol: '€', multiplier: 1.17 },
+  'IT': { currency: 'EUR', symbol: '€', multiplier: 1.17 },
+  'ES': { currency: 'EUR', symbol: '€', multiplier: 1.17 }
 };
 
-// Auto-detect user's region from timezone (invisible)
 const detectUserRegion = () => {
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    if (timezone.includes('America/New_York') || timezone.includes('America/Los_Angeles') || timezone.includes('America/Chicago')) {
-      return 'US';
-    } else if (timezone.includes('Europe/Berlin')) {
-      return 'DE';
-    } else if (timezone.includes('Australia')) {
-      return 'AU';
-    } else if (timezone.includes('America/Toronto')) {
-      return 'CA';
-    } else if (timezone.includes('Europe/Paris')) {
-      return 'FR';
-    } else if (timezone.includes('Europe/Rome')) {
-      return 'IT';
-    } else if (timezone.includes('Europe/Madrid')) {
-      return 'ES';
-    } else {
-      return 'UK'; // Default to UK
-    }
+    if (timezone.includes('America/New_York') || timezone.includes('America/Los_Angeles') || timezone.includes('America/Chicago')) return 'US';
+    if (timezone.includes('Europe/Berlin')) return 'DE';
+    if (timezone.includes('Australia')) return 'AU';
+    if (timezone.includes('America/Toronto')) return 'CA';
+    if (timezone.includes('Europe/Paris')) return 'FR';
+    if (timezone.includes('Europe/Rome')) return 'IT';
+    if (timezone.includes('Europe/Madrid')) return 'ES';
+    return 'UK';
   } catch {
-    return 'UK'; // Fallback
+    return 'UK';
   }
 };
 
-// Convert price to local currency (invisible)
-const convertPrice = (gbpPrice, region) => {
-  if (!gbpPrice || !region || !globalRegions[region]) return gbpPrice;
-  
-  const converted = gbpPrice * globalRegions[region].multiplier;
-  return Math.round(converted * 100) / 100; // Round to 2 decimal places
-};
+export default function App() {
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [copiedSection, setCopiedSection] = useState(null);
 
-// Get eBay search URL for user's region (invisible)
-const getEbaySearchUrl = (title, region) => {
-  const domain = globalRegions[region]?.domain || 'ebay.co.uk';
-  return `https://www.${domain}/sch/i.html?_nkw=${encodeURIComponent(title)}`;
-};
+  // Auto-detect user region (invisible)
+  const userRegion = detectUserRegion();
+  const userCurrency = globalRegions[userRegion];
 
-const SpicyLister = () => {
-  const [selectedImages, setSelectedImages] = useState([]);
-  const [generatedListing, setGeneratedListing] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isImageGenerating, setIsImageGenerating] = useState(false);
-  const [copiedStates, setCopiedStates] = useState({});
-  const [totalListingsCreated, setTotalListingsCreated] = useState(0);
-  const [error, setError] = useState('');
-  const [showProModal, setShowProModal] = useState(false);
-  const [showProActivation, setShowProActivation] = useState(false);
-  const [isProActive, setIsProActive] = useState(false);
-  const [proCode, setProCode] = useState('');
-  const fileInputRef = useRef(null);
-
-  // Auto-detect user's region (invisible - happens in background)
-  const [userRegion] = useState(() => detectUserRegion());
-
-  // Load saved listings count
-  useEffect(() => {
-    const saved = localStorage.getItem('spicylister_total_listings');
-    if (saved) setTotalListingsCreated(parseInt(saved));
-
-    const proStatus = localStorage.getItem('spicylister_pro_active');
-    if (proStatus === 'true') setIsProActive(true);
-  }, []);
-
-  const handleImageUpload = (event) => {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
-
-    setIsImageGenerating(true);
-    setError('');
-
-    Promise.all(
-      files.map(file => {
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.readAsDataURL(file);
-        });
-      })
-    ).then(images => {
-      setSelectedImages(images);
-      setIsImageGenerating(false);
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+          
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(compressedBase64);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     });
   };
 
-  const generateListing = async () => {
-    if (selectedImages.length === 0) {
-      setError('Please select at least one image first!');
-      return;
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      const compressed = await compressImage(file);
+      setImagePreview(compressed);
+      setResults(null);
     }
+  };
 
-    // Check Pro limits (invisible to user experience)
-    if (!isProActive && totalListingsCreated >= 5) {
-      setShowProModal(true);
-      return;
-    }
+  const analyzeItem = async () => {
+    if (!image) return;
 
-    setIsGenerating(true);
-    setError('');
-
+    setLoading(true);
+    
     try {
-      const response = await fetch('/.netlify/functions/generateListing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          images: selectedImages,
-          region: userRegion // Pass user's region invisibly
-        }),
-      });
-
-      const data = await response.json();
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       
-      if (data.error) throw new Error(data.error);
+      if (!apiKey) {
+        alert('API configuration error. Please contact support.');
+        setLoading(false);
+        return;
+      }
 
-      // Convert price to user's local currency (invisible)
-      const localPrice = convertPrice(parseFloat(data.price), userRegion);
-      const currencySymbol = globalRegions[userRegion]?.symbol || '£';
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const base64Data = imagePreview.split(',')[1];
       
-      setGeneratedListing({
-        ...data,
-        price: localPrice,
-        currencySymbol: currencySymbol,
-        region: userRegion
-      });
+      const imagePart = {
+        inlineData: {
+          data: base64Data,
+          mimeType: 'image/jpeg'
+        }
+      };
 
-      const newTotal = totalListingsCreated + 1;
-      setTotalListingsCreated(newTotal);
-      localStorage.setItem('spicylister_total_listings', newTotal.toString());
+      // Enhanced prompt with region awareness
+      const prompt = `You are an expert in selling on eBay globally. The user is in ${userRegion} and uses ${userCurrency.currency}.
 
+Analyze this image and create a listing with:
+
+1. A keyword-rich title (80 characters max)
+2. An honest, compelling description
+3. Best eBay category for ${userRegion}
+4. Estimated price range based on typical eBay ${userRegion} sold prices for similar items (give low/average/high in ${userCurrency.currency})
+5. Recommended starting price (auction) OR Buy It Now price in ${userCurrency.currency}
+
+Assume item is in good working order and condition.
+
+CRITICAL: Format your response EXACTLY as valid JSON with no markdown, no backticks, no extra text:
+
+{
+  "title": "your 80 char title here",
+  "category": "eBay category path",
+  "description": "compelling honest description",
+  "priceRange": {
+    "low": 10.00,
+    "average": 25.00,
+    "high": 45.00
+  },
+  "recommendation": {
+    "format": "Auction" or "Buy It Now",
+    "startPrice": 15.00,
+    "buyItNowPrice": 29.99
+  },
+  "notes": "any additional pricing guidance"
+}
+
+RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
+
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      let text = response.text();
+      
+      text = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      
+      const listingData = JSON.parse(text);
+      setResults(listingData);
+      
     } catch (error) {
-      setError(error.message || 'Something went wrong. Please try again!');
+      console.error("Error:", error);
+      alert("Error analyzing image. The image might be too large or the API limit reached. Try a smaller image or wait a moment.");
     } finally {
-      setIsGenerating(false);
+      setLoading(false);
     }
   };
 
-  const copyToClipboard = async (text, key) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedStates({ ...copiedStates, [key]: true });
-      setTimeout(() => setCopiedStates({ ...copiedStates, [key]: false }), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
+  const copySection = (section, text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSection(section);
+    setTimeout(() => setCopiedSection(null), 2000);
   };
-
-  const searchEbayWithTitle = () => {
-    if (generatedListing?.title) {
-      // Use user's local eBay site automatically
-      const searchUrl = getEbaySearchUrl(generatedListing.title, userRegion);
-      window.open(searchUrl, '_blank');
-    }
-  };
-
-  const startNewListing = () => {
-    setSelectedImages([]);
-    setGeneratedListing(null);
-    setError('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const activatePro = () => {
-    const validCodes = ['SPICY2024', 'NEUROSPICY', 'CPTEE2024'];
-    if (validCodes.includes(proCode.toUpperCase())) {
-      setIsProActive(true);
-      localStorage.setItem('spicylister_pro_active', 'true');
-      setShowProActivation(false);
-      setProCode('');
-    } else {
-      alert('Invalid code. Try: SPICY2024');
-    }
-  };
-
-  const ProModal = () => showProModal && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-8 max-w-md mx-auto">
-        <h3 className="text-2xl font-bold mb-4 text-center">🌶️ Upgrade to Pro!</h3>
-        <p className="text-gray-600 mb-6 text-center">
-          You've used your 5 free listings! Upgrade to Pro for unlimited listings.
-        </p>
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={() => setShowProActivation(true)}
-            className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-          >
-            Activate Pro
-          </button>
-          <button
-            onClick={() => setShowProModal(false)}
-            className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-          >
-            Not Now
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const ProActivationModal = () => showProActivation && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl p-8 max-w-md mx-auto">
-        <h3 className="text-2xl font-bold mb-4 text-center">Enter Pro Code</h3>
-        <input
-          type="text"
-          value={proCode}
-          onChange={(e) => setProCode(e.target.value)}
-          placeholder="Enter your code"
-          className="w-full p-3 border border-gray-300 rounded-lg mb-4"
-        />
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={activatePro}
-            className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-          >
-            Activate
-          </button>
-          <button
-            onClick={() => setShowProActivation(false)}
-            className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-        </div>
-        <p className="text-xs text-gray-500 mt-3 text-center">
-          Hint: Try "SPICY2024" 😉
-        </p>
-      </div>
-    </div>
-  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-orange-600 mb-2">🌶️ SpicyLister</h1>
-          <p className="text-xl text-gray-600 mb-1">Turn your clutter into cash with AI magic</p>
-          <p className="text-sm text-gray-500">Perfect for ADHD brains - no overwhelm, just results! ✨</p>
-          
-          {/* Invisible region indicator (for debugging - remove in production) */}
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-6 pt-4">
+          <div className="inline-block mb-4">
+            <div className="text-8xl">🌶️📸</div>
+          </div>
+          <h1 className="text-6xl font-bold mb-3" style={{ color: '#F28B82' }}>
+            SpicyLister
+          </h1>
+          <p className="text-2xl font-bold text-gray-800 mb-2">
+            Sell your clutter without a stutter
+          </p>
+          <p className="text-lg text-gray-700 font-medium mb-1">
+            List in 60 seconds
+          </p>
+          <p className="text-gray-600 text-sm">
+            For when your spicy brain says NO. eBay • Vinted • More
+          </p>
+          {/* Invisible region indicator - remove in production */}
           <p className="text-xs text-gray-400 mt-2">
-            🌍 Auto-detected: {userRegion} • Prices in {globalRegions[userRegion]?.currency}
+            🌍 {userRegion} • Prices in {userCurrency.currency}
           </p>
         </div>
 
-        {isProActive && (
-          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-lg mb-6 text-center">
-            <span className="font-semibold">🎉 Pro Active - Unlimited Listings!</span>
+        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
+          <div className="mb-6">
+            <label className="flex flex-col items-center justify-center w-full h-72 border-4 border-dashed rounded-2xl cursor-pointer transition-all" style={{ borderColor: '#F28B82', backgroundColor: '#FFF5F3' }}>
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="max-h-64 object-contain rounded-lg" />
+              ) : (
+                <div className="flex flex-col items-center">
+                  <Camera className="w-20 h-20 mb-4" style={{ color: '#F28B82' }} />
+                  <p className="font-bold text-xl mb-2" style={{ color: '#F28B82' }}>
+                    📸 Snap or Upload Your Item
+                  </p>
+                  <p className="text-gray-500">One picture. That's it.</p>
+                </div>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+            </label>
           </div>
-        )}
 
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          {!generatedListing ? (
-            <div className="text-center">
-              <div className="border-4 border-dashed border-gray-300 rounded-2xl p-12 mb-6 transition-colors hover:border-orange-400">
-                <Upload className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Upload Your Items</h2>
-                <p className="text-gray-600 mb-6">Drag and drop images or click to browse</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer inline-flex items-center px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                >
-                  <Upload className="mr-2 h-5 w-5" />
-                  Choose Images
-                </label>
-              </div>
-
-              {selectedImages.length > 0 && (
-                <div className="mb-6">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    {selectedImages.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`Upload ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
-                      />
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={generateListing}
-                    disabled={isGenerating || isImageGenerating}
-                    className="w-full bg-gradient-to-r from-orange-600 to-pink-600 text-white py-4 px-8 rounded-xl text-xl font-semibold hover:from-orange-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
-                  >
-                    {isGenerating ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                        Creating Magic...
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center">
-                        <Sparkles className="mr-3 h-6 w-6" />
-                        Generate My Listing!
-                      </div>
-                    )}
-                  </button>
-                </div>
+          {image && !results && (
+            <button
+              onClick={analyzeItem}
+              disabled={loading}
+              className="w-full text-white py-5 rounded-2xl font-bold text-xl transition-all shadow-xl flex items-center justify-center gap-3"
+              style={{ 
+                background: loading ? '#9CA3AF' : 'linear-gradient(135deg, #FFA07A 0%, #F28B82 50%, #FFD700 100%)',
+              }}
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-7 w-7 border-b-3 border-white"></div>
+                  Spicing it up...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-7 h-7" />
+                  Generate My Listing
+                </>
               )}
-
-              {isImageGenerating && (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600">Processing images...</p>
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <p className="text-red-800">{error}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">✨ Your Listing is Ready!</h2>
-                <p className="text-gray-600">Copy and paste these details into eBay</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-gray-900">Title</h3>
-                    <button
-                      onClick={() => copyToClipboard(generatedListing.title, 'title')}
-                      className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
-                    >
-                      {copiedStates.title ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                      {copiedStates.title ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                  <div className="font-medium text-blue-700">{generatedListing.title}</div>
-                </div>
-
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-gray-900">Description</h3>
-                    <button
-                      onClick={() => copyToClipboard(generatedListing.description, 'description')}
-                      className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
-                    >
-                      {copiedStates.description ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                      {copiedStates.description ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                  <div className="text-gray-700 whitespace-pre-wrap">{generatedListing.description}</div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-gray-900">Suggested Price</h3>
-                      <button
-                        onClick={() => copyToClipboard(`${generatedListing.currencySymbol}${generatedListing.price}`, 'price')}
-                        className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
-                      >
-                        {copiedStates.price ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                        {copiedStates.price ? 'Copied!' : 'Copy'}
-                      </button>
-                    </div>
-                    <div className="text-3xl font-bold text-green-600">
-                      {generatedListing.currencySymbol}{generatedListing.price}
-                    </div>
-                  </div>
-
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-gray-900">Category</h3>
-                      <button
-                        onClick={() => copyToClipboard(generatedListing.category, 'category')}
-                        className="flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
-                      >
-                        {copiedStates.category ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                        {copiedStates.category ? 'Copied!' : 'Copy'}
-                      </button>
-                    </div>
-                    <div className="font-semibold text-blue-700">{generatedListing.category}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button
-                  onClick={searchEbayWithTitle}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Search className="w-4 h-4" />
-                  Search eBay
-                </button>
-                
-                <button
-                  onClick={generateListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Regenerate
-                </button>
-                
-                <button
-                  onClick={startNewListing}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  New Listing
-                </button>
-              </div>
-            </div>
+            </button>
           )}
         </div>
 
-        <div className="text-center mt-12 py-8 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Heart className="w-5 h-5 text-red-500" />
-            <span className="text-gray-600">SpicyLister - Free forever!</span>
-            <Heart className="w-5 h-5 text-red-500" />
+        {results && (
+          <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-2">💰✨</div>
+              <h2 className="text-3xl font-bold text-gray-800">
+                Your Listing is Ready!
+              </h2>
+            </div>
+
+            <div className="space-y-5">
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF5F3', borderColor: '#F28B82' }}>
+                <div className="flex justify-between items-start mb-3">
+                  <label className="text-sm font-bold uppercase" style={{ color: '#F28B82' }}>
+                    📝 Title
+                  </label>
+                  <button
+                    onClick={() => copySection('title', results.title)}
+                    className="flex items-center gap-2 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm"
+                    style={{ backgroundColor: '#F28B82' }}
+                  >
+                    {copiedSection === 'title' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-lg font-semibold text-gray-800 mb-1">{results.title}</p>
+                <p className="text-xs text-gray-500">{results.title.length}/80 characters</p>
+              </div>
+
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF9E6', borderColor: '#FFD700' }}>
+                <div className="flex justify-between items-start mb-3">
+                  <label className="text-sm font-bold uppercase text-yellow-700">
+                    📁 Category
+                  </label>
+                  <button
+                    onClick={() => copySection('category', results.category)}
+                    className="flex items-center gap-2 bg-yellow-500 text-gray-900 px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-yellow-600"
+                  >
+                    {copiedSection === 'category' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-gray-800 font-medium">{results.category}</p>
+              </div>
+
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#F0FFF4', borderColor: '#48BB78' }}>
+                <div className="flex justify-between items-start mb-3">
+                  <label className="text-sm font-bold text-green-700 uppercase">
+                    📄 Description
+                  </label>
+                  <button
+                    onClick={() => copySection('description', results.description)}
+                    className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-green-600"
+                  >
+                    {copiedSection === 'description' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{results.description}</p>
+              </div>
+
+              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FAF5FF', borderColor: '#9F7AEA' }}>
+                <div className="flex justify-between items-start mb-4">
+                  <label className="text-sm font-bold text-purple-700 uppercase">
+                    💷 Pricing Guide
+                  </label>
+                  <button
+                    onClick={() => copySection('pricing', `Low: ${userCurrency.symbol}${results.priceRange.low}\nAverage: ${userCurrency.symbol}${results.priceRange.average}\nHigh: ${userCurrency.symbol}${results.priceRange.high}\n\n${results.recommendation.format}\n${results.recommendation.startPrice ? `Start: ${userCurrency.symbol}${results.recommendation.startPrice}` : ''}\n${results.recommendation.buyItNowPrice ? `Buy It Now: ${userCurrency.symbol}${results.recommendation.buyItNowPrice}` : ''}\n\n${results.notes}`)}
+                    className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-purple-600"
+                  >
+                    {copiedSection === 'pricing' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
+                    <p className="text-xs text-gray-600 mb-1 font-semibold">Low</p>
+                    <p className="text-2xl font-bold text-purple-600">{userCurrency.symbol}{results.priceRange.low}</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
+                    <p className="text-xs text-gray-600 mb-1 font-semibold">Average</p>
+                    <p className="text-2xl font-bold text-purple-600">{userCurrency.symbol}{results.priceRange.average}</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
+                    <p className="text-xs text-gray-600 mb-1 font-semibold">High</p>
+                    <p className="text-2xl font-bold text-purple-600">{userCurrency.symbol}{results.priceRange.high}</p>
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-xl border-2 border-purple-200">
+                  <p className="font-bold text-purple-700 mb-2 text-lg">💡 {results.recommendation.format}</p>
+                  {results.recommendation.startPrice && (
+                    <p className="text-gray-700">Start: <span className="font-semibold">{userCurrency.symbol}{results.recommendation.startPrice}</span></p>
+                  )}
+                  {results.recommendation.buyItNowPrice && (
+                    <p className="text-gray-700">Buy It Now: <span className="font-semibold">{userCurrency.symbol}{results.recommendation.buyItNowPrice}</span></p>
+                  )}
+                  {results.notes && (
+                    <p className="text-sm text-gray-600 mt-3 italic border-t pt-3 border-purple-100">{results.notes}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setImage(null);
+                setImagePreview(null);
+                setResults(null);
+              }}
+              className="w-full mt-6 bg-gray-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-all shadow-lg"
+            >
+              🌶️ List Another Item
+            </button>
           </div>
+        )}
+
+        <div className="bg-white rounded-3xl shadow-2xl p-8 text-center border-2" style={{ borderColor: '#F28B82' }}>
+          <div className="text-5xl mb-4">☕✨</div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            This is Coffeeware!
+          </h3>
+          <p className="text-gray-700 mb-4 leading-relaxed">
+            Built by <span className="font-bold" style={{ color: '#F28B82' }}>Chris P Tee</span> for AuDHD brains that struggle with listing.<br />
+            Use it as much as you like - completely free!
+          </p>
+          <p className="text-gray-700 mb-5 leading-relaxed">
+            If this helps you turn clutter into cash, consider supporting the<br />
+            <span className="font-bold text-purple-600">🎭 Community Comedy Magic Tour 🎩</span> around the UK!
+          </p>
           
-          <div className="flex items-center justify-center gap-4">
-            <a 
+          <div className="flex flex-wrap justify-center gap-3 mb-5">
+            <a
               href="https://buymeacoffee.com/chrispteemagician"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
+              className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transition-all shadow-lg text-lg"
             >
-              <Coffee className="w-4 h-4" />
-             Please Buy Chris a Coffee
+              <Coffee className="w-5 h-5" />
+              Buy Me a Coffee
+            </a>
+            <a
+              href="https://www.tiktok.com/@chrispteemagician"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg text-lg"
+              style={{ backgroundColor: '#F28B82' }}
+            >
+              📱 @chrispteemagician
             </a>
           </div>
-          
-          <p className="text-xs text-gray-400 mt-4">
-            Made with love by Chris P Tee • Van Life + Comedy + Magic + Code
-            <br />
-            {totalListingsCreated > 0 && (
-              <>You've created {totalListingsCreated} listing{totalListingsCreated !== 1 ? 's' : ''} so far! • </>
-            )}
-            <span className="text-orange-600 font-medium">Neurospicy selling for when your brain says no</span>
-          </p>
-        </div>
 
-        <ProModal />
-        <ProActivationModal />
+          <a
+            href="https://comedymagic.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-600 hover:text-gray-800 font-medium mb-4 block transition-colors"
+          >
+            🌐 comedymagic.co.uk
+          </a>
+
+          <div className="border-t-2 pt-4 mt-4" style={{ borderColor: '#F28B82' }}>
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              Chris P Tee = Comedy + Magic + Vanlife + Code
+            </p>
+            <p className="text-xs text-gray-600 mb-3 italic max-w-2xl mx-auto">
+              ⚠️ This tool provides AI-generated suggestions. Your listing decisions are final - always review before posting!
+            </p>
+            <div className="flex justify-center gap-3 mb-3">
+              <a
+                href="mailto:chris@comedymagic.co.uk?subject=SpicyLister Feedback"
+                className="text-sm px-4 py-2 rounded-full font-semibold transition-all shadow-md"
+                style={{ backgroundColor: '#F28B82', color: 'white' }}
+              >
+                💬 Send Feedback
+              </a>
+              <a
+                href="https://www.tiktok.com/share?url=https://spicylister.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm bg-purple-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-purple-600 transition-all shadow-md"
+              >
+                📤 Share SpicyLister
+              </a>
+            </div>
+            <p className="text-xs text-gray-500">
+              © 2025 Chris P Tee Entertainments. All rights reserved.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-function App() {
-  return <SpicyLister />;
 }
-
-export default App;
