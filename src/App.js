@@ -48,8 +48,8 @@ export default function App() {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1024;
-          const MAX_HEIGHT = 1024;
+          const MAX_WIDTH = 800;  // Smaller for better API compatibility
+          const MAX_HEIGHT = 600;
           
           let width = img.width;
           let height = img.height;
@@ -72,7 +72,7 @@ export default function App() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5); // More compression
           resolve(compressedBase64);
         };
         img.src = e.target.result;
@@ -162,7 +162,23 @@ RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
       
     } catch (error) {
       console.error("Error:", error);
-      alert("Error analyzing image. The image might be too large or the API limit reached. Try a smaller image or wait a moment.");
+      
+      // Better error handling with user-friendly messages
+      let errorMessage = "Something went wrong. Please try again!";
+      
+      if (error.message?.includes('quota') || error.message?.includes('limit') || error.message?.includes('429')) {
+        errorMessage = "🌶️ High demand right now! Please wait a minute and try again. Your spicy brain deserves the best results!";
+      } else if (error.message?.includes('large') || error.message?.includes('size')) {
+        errorMessage = "Image is a bit too chunky! Try a smaller image or take a new photo.";
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = "Connection hiccup! Check your internet and try again.";
+      } else if (error.message?.includes('API') || error.message?.includes('key')) {
+        errorMessage = "API configuration issue. Please contact support or try again later.";
+      } else if (error.message?.includes('JSON') || error.message?.includes('parse')) {
+        errorMessage = "Got a confused response from the AI. Please try again!";
+      }
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
