@@ -1,25 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SpicyListerGlobalFeature } from './components/GlobalFeature';
 import { 
-  Upload, 
   Sparkles, 
   Copy, 
   CheckCircle, 
   X, 
-  Zap, 
   Crown, 
-  ImageIcon,
   Camera,
   RotateCw,
-  Trash2,
-  Download,
   Star,
-  Gift,
-  Clock,
-  TrendingUp,
-  Users,
-  Target,
-  Award,
   Heart,
   Smile
 } from 'lucide-react';
@@ -28,7 +17,6 @@ import {
 const API_ENDPOINT = '/.netlify/functions/generateListing';
 const MAX_FREE_LISTINGS = 5;
 const MAX_PRO_LISTINGS = 200;
-const PRO_PRICE = 4.99;
 
 // Utility function for copying text
 const copyToClipboard = async (text, sectionName) => {
@@ -306,12 +294,10 @@ const SpicyLister = () => {
   const [totalListingsCreated, setTotalListingsCreated] = useState(0);
   
   const [copiedSection, setCopiedSection] = useState('');
-  const [showProActivation, setShowProActivation] = useState(false);
   
   // Pro State
   const [isPro, setIsPro] = useState(false);
   const [proExpiryDate, setProExpiryDate] = useState(null);
-  const [showProModal, setShowProModal] = useState(false);
 
   // Load saved state
   useEffect(() => {
@@ -355,7 +341,7 @@ const SpicyLister = () => {
 
     // Check limits
     if (!isPro && totalListingsCreated >= MAX_FREE_LISTINGS) {
-      setShowProModal(true);
+      setError('You\'ve reached the free limit of 5 listings! Please upgrade to Pro.');
       return;
     }
 
@@ -417,19 +403,6 @@ const SpicyLister = () => {
       setCopiedSection(sectionName);
       setTimeout(() => setCopiedSection(''), 2000);
     }
-  };
-
-  // Pro activation
-  const activatePro = () => {
-    const expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() + 1);
-    
-    setIsPro(true);
-    setProExpiryDate(expiryDate);
-    setShowProModal(false);
-    
-    localStorage.setItem('spicylister_pro', 'true');
-    localStorage.setItem('spicylister_pro_expiry', expiryDate.toISOString());
   };
 
   // Start over
