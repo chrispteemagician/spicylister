@@ -1,86 +1,132 @@
-import React, { useState } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Copy, Check, Coffee, Sparkles, Share2, Zap, Trash2, Info } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { motion, AnimatePresence } from 'framer-motion';
+import Confetti from 'react-confetti';
+import { toPng } from 'html-to-image';
 
-// Global currency detection (invisible to user)
-const globalRegions = {
-  'US': { currency: 'USD', symbol: '$', multiplier: 1.27 },
-  'UK': { currency: 'GBP', symbol: '£', multiplier: 1.0 },
-  'DE': { currency: 'EUR', symbol: '€', multiplier: 1.17 },
-  'AU': { currency: 'AUD', symbol: 'A$', multiplier: 1.91 },
-  'CA': { currency: 'CAD', symbol: 'C$', multiplier: 1.71 },
-  'FR': { currency: 'EUR', symbol: '€', multiplier: 1.17 },
-  'IT': { currency: 'EUR', symbol: '€', multiplier: 1.17 },
-  'ES': { currency: 'EUR', symbol: '€', multiplier: 1.17 }
+// --- CONFIGURATION & CONSTANTS ---
+
+const RARITY_TIERS = {
+  'Common': { color: 'border-gray-400', bg: 'bg-gray-50', text: 'text-gray-600', emoji: '🗑️' },
+  'Uncommon': { color: 'border-green-400', bg: 'bg-green-50', text: 'text-green-600', emoji: '🍀' },
+  'Rare': { color: 'border-blue-400', bg: 'bg-blue-50', text: 'text-blue-600', emoji: '💎' },
+  'Epic': { color: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-600', emoji: '🔮' },
+  'Legendary': { color: 'border-yellow-500', bg: 'bg-yellow-50', text: 'text-yellow-600', emoji: '👑' },
+  'God-Tier': { color: 'border-rose-500', bg: 'bg-rose-50', text: 'text-rose-600', emoji: '🔥' }
 };
+
+const GLOBAL_REGIONS = {
+  'US': { currency: 'USD', symbol: '$' },
+  'UK': { currency: 'GBP', symbol: '£' },
+  'DE': { currency: 'EUR', symbol: '€' },
+  'AU': { currency: 'AUD', symbol: 'A$' },
+  'CA': { currency: 'CAD', symbol: 'C$' },
+  'EU': { currency: 'EUR', symbol: '€' }
+};
+
+// --- HELPER FUNCTIONS ---
 
 const detectUserRegion = () => {
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timezone.includes('America/New_York') || timezone.includes('America/Los_Angeles') || timezone.includes('America/Chicago')) return 'US';
-    if (timezone.includes('Europe/Berlin')) return 'DE';
+    if (timezone.includes('Europe/London')) return 'UK';
+    if (timezone.includes('America')) return 'US';
     if (timezone.includes('Australia')) return 'AU';
-    if (timezone.includes('America/Toronto')) return 'CA';
-    if (timezone.includes('Europe/Paris')) return 'FR';
-    if (timezone.includes('Europe/Rome')) return 'IT';
-    if (timezone.includes('Europe/Madrid')) return 'ES';
-    return 'UK';
+    if (timezone.includes('Europe')) return 'EU';
+    return 'UK'; // Default
   } catch {
     return 'UK';
   }
 };
 
+const compressImage = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+// --- COMPONENTS ---
+
+const LootBox = ({ onOpen }) => {
+  return (
+    <motion.div 
+      className="flex flex-col items-center justify-center py-12 cursor-pointer"
+      onClick={onOpen}
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+    >
+      <motion.div
+        className="text-9xl mb-4 filter drop-shadow-2xl"
+        animate={{ 
+          rotate: [-5, 5, -5], 
+          scale: [1, 1.05, 1] 
+        }}
+        transition={{ 
+          repeat: Infinity, 
+          duration: 0.5 
+        }}
+      >
+        🎁
+      </motion.div>
+      <motion.p 
+        className="text-2xl font-black text-white uppercase tracking-widest animate-pulse"
+      >
+        Tap to Reveal!
+      </motion.p>
+    </motion.div>
+  );
+};
+
 export default function App() {
+  // State
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [isSpicyMode, setIsSpicyMode] = useState(true); // Default to FUN
+  const [showLootBox, setShowLootBox] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [copiedSection, setCopiedSection] = useState(null);
 
-  // Auto-detect user region (invisible)
+  // Refs
+  const resultCardRef = useRef(null);
+  
+  // Derived
   const userRegion = detectUserRegion();
-  const userCurrency = globalRegions[userRegion];
+  const userCurrency = GLOBAL_REGIONS[userRegion];
 
-  const compressImage = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;  // Smaller for better API compatibility
-          const MAX_HEIGHT = 600;
-          
-          let width = img.width;
-          let height = img.height;
-          
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5); // More compression
-          resolve(compressedBase64);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
+  // Handlers
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -88,403 +134,308 @@ export default function App() {
       const compressed = await compressImage(file);
       setImagePreview(compressed);
       setResults(null);
+      setShowLootBox(false);
+      setShowConfetti(false);
     }
+  };
+
+  const resetApp = () => {
+    setImage(null);
+    setImagePreview(null);
+    setResults(null);
+    setShowLootBox(false);
+    setShowConfetti(false);
   };
 
   const analyzeItem = async () => {
     if (!image) return;
-
     setLoading(true);
     
     try {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      
-      if (!apiKey) {
-        alert('API configuration error. Please contact support.');
-        setLoading(false);
-        return;
-      }
+      if (!apiKey) throw new Error("API Key missing");
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // 1.5 is standard now
 
       const base64Data = imagePreview.split(',')[1];
-      
       const imagePart = {
-        inlineData: {
-          data: base64Data,
-          mimeType: 'image/jpeg'
-        }
+        inlineData: { data: base64Data, mimeType: 'image/jpeg' }
       };
 
-      // Enhanced prompt with region awareness
-      const prompt = `You are an expert in selling on eBay globally. The user is in ${userRegion} and uses ${userCurrency.currency}.
+      // THE SPICY PROMPT 🌶️
+      const systemPrompt = isSpicyMode 
+        ? `You are a hilarious, high-energy auctioneer and appraiser. 
+           Analyze this image. 
+           1. Determine its "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
+           2. Roast the item if it's junk, or Hype it up if it's valuable. Be British, witty, and concise.
+           3. Provide accurate eBay pricing for ${userRegion} in ${userCurrency.currency}.
+           
+           Return STRICT JSON:
+           {
+             "title": "SEO optimized title",
+             "rarity": "Tier Name",
+             "spicyComment": "Your roast or hype comment here",
+             "description": "Sales description",
+             "category": "eBay Category",
+             "priceLow": 10,
+             "priceHigh": 20,
+             "format": "Buy It Now"
+           }`
+        : `You are a professional eBay listing assistant.
+           Analyze this image for the ${userRegion} market (${userCurrency.currency}).
+           Return STRICT JSON:
+           {
+             "title": "SEO optimized title",
+             "rarity": "Standard",
+             "spicyComment": "Item analyzed successfully.",
+             "description": "Professional description",
+             "category": "eBay Category",
+             "priceLow": 10,
+             "priceHigh": 20,
+             "format": "Buy It Now"
+           }`;
 
-Analyze this image and create a listing with:
-
-1. A keyword-rich title (80 characters max)
-2. An honest, compelling description
-3. Best eBay category for ${userRegion}
-4. Estimated price range based on typical eBay ${userRegion} sold prices for similar items (give low/average/high in ${userCurrency.currency})
-5. Recommended starting price (auction) OR Buy It Now price in ${userCurrency.currency}
-
-Assume item is in good working order and condition.
-
-CRITICAL: Format your response EXACTLY as valid JSON with no markdown, no backticks, no extra text:
-
-{
-  "title": "your 80 char title here",
-  "category": "eBay category path",
-  "description": "compelling honest description",
-  "priceRange": {
-    "low": 10.00,
-    "average": 25.00,
-    "high": 45.00
-  },
-  "recommendation": {
-    "format": "Auction" or "Buy It Now",
-    "startPrice": 15.00,
-    "buyItNowPrice": 29.99
-  },
-  "notes": "any additional pricing guidance"
-}
-
-RESPOND ONLY WITH THE JSON OBJECT. NO OTHER TEXT.`;
-
-      const result = await model.generateContent([prompt, imagePart]);
+      const result = await model.generateContent([systemPrompt, imagePart]);
       const response = await result.response;
-      let text = response.text();
+      const text = response.text().replace(/```json\n?|```/g, "").trim();
+      const data = JSON.parse(text);
+
+      setResults(data);
+      setLoading(false);
       
-      text = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      
-      const listingData = JSON.parse(text);
-      setResults(listingData);
-      
-    } catch (error) {
-      console.error("Error:", error);
-      
-      // Better error handling with user-friendly messages
-      let errorMessage = "Something went wrong. Please try again!";
-      
-      if (error.message?.includes('quota') || error.message?.includes('limit') || error.message?.includes('429')) {
-        errorMessage = "🌶️ High demand right now! Please wait a minute and try again. Your spicy brain deserves the best results!";
-      } else if (error.message?.includes('large') || error.message?.includes('size')) {
-        errorMessage = "Image is a bit too chunky! Try a smaller image or take a new photo.";
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        errorMessage = "Connection hiccup! Check your internet and try again.";
-      } else if (error.message?.includes('API') || error.message?.includes('key')) {
-        errorMessage = "API configuration issue. Please contact support or try again later.";
-      } else if (error.message?.includes('JSON') || error.message?.includes('parse')) {
-        errorMessage = "Got a confused response from the AI. Please try again!";
+      // Trigger Loot Box Phase
+      if (isSpicyMode) {
+        setShowLootBox(true);
       }
-      
-      alert(errorMessage);
-    } finally {
+
+    } catch (error) {
+      console.error(error);
+      alert("The AI got confused. Try a clearer photo!");
       setLoading(false);
     }
   };
 
-  const copySection = (section, text) => {
+  const handleLootOpen = () => {
+    setShowLootBox(false);
+    // Trigger confetti if it's valuable or rare
+    if (results.rarity === 'Legendary' || results.rarity === 'God-Tier' || results.rarity === 'Epic') {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+    }
+  };
+
+  const shareResult = async () => {
+    if (resultCardRef.current) {
+      try {
+        const dataUrl = await toPng(resultCardRef.current, { cacheBust: true });
+        const link = document.createElement('a');
+        link.download = `spicylister-${results.title.substring(0, 10)}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error('Failed to share', err);
+      }
+    }
+  };
+
+  const copyText = (key, text) => {
     navigator.clipboard.writeText(text);
-    setCopiedSection(section);
+    setCopiedSection(key);
     setTimeout(() => setCopiedSection(null), 2000);
   };
 
+  // Rarity Styles Helper
+  const getRarityStyle = (tier) => RARITY_TIERS[tier] || RARITY_TIERS['Common'];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-6 pt-4">
-          <div className="inline-block mb-4">
-            <div className="text-8xl">🌶️📸</div>
+    <div className="min-h-screen bg-slate-100 font-sans selection:bg-orange-200">
+      {showConfetti && <Confetti numberOfPieces={200} recycle={false} />}
+
+      <div className="max-w-md mx-auto min-h-screen bg-white shadow-2xl overflow-hidden flex flex-col">
+        
+        {/* HEADER */}
+        <div className="bg-gradient-to-r from-orange-500 to-pink-600 p-6 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 opacity-10 text-9xl transform translate-x-10 -translate-y-10">🌶️</div>
+          <div className="relative z-10">
+            <h1 className="text-3xl font-black tracking-tighter flex items-center gap-2">
+              SpicyLister <span className="text-sm bg-white text-orange-600 px-2 py-0.5 rounded-full">BETA</span>
+            </h1>
+            <p className="text-orange-100 text-sm font-medium">Turn your clutter into dopamine.</p>
           </div>
-          <h1 className="text-6xl font-bold mb-3" style={{ color: '#F28B82' }}>
-            SpicyLister
-          </h1>
-          <p className="text-2xl font-bold text-gray-800 mb-2">
-            Sell your clutter without a stutter
-          </p>
-          <p className="text-lg text-gray-700 font-medium mb-1">
-            List in 60 seconds
-          </p>
-          <p className="text-gray-600 text-sm">
-            For when your spicy brain says NO. eBay • Vinted • More
-          </p>
-          {/* Invisible region indicator - remove in production */}
-          <p className="text-xs text-gray-400 mt-2">
-            🌍 {userRegion} • Prices in {userCurrency.currency}
-          </p>
+          
+          {/* MODE TOGGLE */}
+          <div className="mt-4 flex items-center gap-3 bg-black/20 p-1 rounded-full w-fit">
+            <button 
+              onClick={() => setIsSpicyMode(false)}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${!isSpicyMode ? 'bg-white text-orange-600 shadow-lg' : 'text-orange-100'}`}
+            >
+              Boring
+            </button>
+            <button 
+              onClick={() => setIsSpicyMode(true)}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${isSpicyMode ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg' : 'text-orange-100'}`}
+            >
+              <Zap size={12} fill="currentColor" /> SPICY
+            </button>
+          </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
-          <div className="mb-6">
-            <label className="flex flex-col items-center justify-center w-full h-72 border-4 border-dashed rounded-2xl cursor-pointer transition-all" style={{ borderColor: '#F28B82', backgroundColor: '#FFF5F3' }}>
-              {imagePreview ? (
-                <img src={imagePreview} alt="Preview" className="max-h-64 object-contain rounded-lg" />
-              ) : (
-                <div className="flex flex-col items-center">
-                  <Camera className="w-20 h-20 mb-4" style={{ color: '#F28B82' }} />
-                  <p className="font-bold text-xl mb-2" style={{ color: '#F28B82' }}>
-                    📸 Snap or Upload Your Item
-                  </p>
-                  <p className="text-gray-500">One picture. That's it.</p>
+        {/* MAIN CONTENT AREA */}
+        <div className="flex-1 p-6 flex flex-col gap-6 relative">
+          
+          {/* STATE: UPLOAD */}
+          {!image && (
+            <div className="flex-1 flex flex-col justify-center">
+              <label className="group relative flex flex-col items-center justify-center w-full h-80 border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50 cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-all overflow-hidden">
+                <div className="absolute inset-0 bg-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl transform scale-0 group-hover:scale-100"></div>
+                <div className="relative z-10 flex flex-col items-center text-center p-6">
+                  <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Camera className="w-10 h-10 text-orange-500" />
+                  </div>
+                  <p className="text-xl font-black text-gray-700">Snap It.</p>
+                  <p className="text-sm text-gray-500 mt-2">List in 60 seconds.<br/>Don't overthink it.</p>
                 </div>
-              )}
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-            </label>
-          </div>
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+              </label>
+            </div>
+          )}
 
-          {image && !results && (
-            <button
-              onClick={analyzeItem}
-              disabled={loading}
-              className="w-full text-white py-5 rounded-2xl font-bold text-xl transition-all shadow-xl flex items-center justify-center gap-3"
-              style={{ 
-                background: loading ? '#9CA3AF' : 'linear-gradient(135deg, #FFA07A 0%, #F28B82 50%, #FFD700 100%)',
-              }}
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-7 w-7 border-b-3 border-white"></div>
-                  Spicing it up...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-7 h-7" />
-                  Generate My Listing
-                </>
-              )}
-            </button>
+          {/* STATE: PREVIEW & ACTION */}
+          {image && !results && !loading && (
+            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="relative rounded-3xl overflow-hidden shadow-xl border-4 border-white aspect-square">
+                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                <button 
+                  onClick={resetApp}
+                  className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm hover:bg-red-500 transition-colors"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+
+              <button
+                onClick={analyzeItem}
+                className="w-full py-4 bg-black text-white rounded-2xl font-black text-xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 group"
+              >
+                <Sparkles className="group-hover:animate-spin" />
+                {isSpicyMode ? "ROAST MY JUNK" : "GENERATE LISTING"}
+              </button>
+            </div>
+          )}
+
+          {/* STATE: LOADING */}
+          {loading && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <div className="w-20 h-20 border-8 border-orange-200 border-t-orange-500 rounded-full animate-spin mb-6"></div>
+              <h3 className="text-xl font-bold text-gray-800">
+                {isSpicyMode ? "Summoning the Spirits..." : "Analyzing Image..."}
+              </h3>
+              <p className="text-gray-500 mt-2">
+                {isSpicyMode ? "Comparing to 50,000 other pieces of clutter." : "Identifying details..."}
+              </p>
+            </div>
+          )}
+
+          {/* STATE: LOOT BOX REVEAL */}
+          <AnimatePresence>
+            {results && showLootBox && (
+              <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center">
+                <LootBox onOpen={handleLootOpen} />
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* STATE: RESULTS (TRADING CARD) */}
+          {results && !showLootBox && (
+            <div className="flex flex-col gap-6 animate-in zoom-in duration-300">
+              
+              {/* TRADING CARD COMPONENT */}
+              <div 
+                ref={resultCardRef}
+                className={`bg-white rounded-3xl shadow-2xl overflow-hidden border-4 ${isSpicyMode ? getRarityStyle(results.rarity).color : 'border-gray-200'}`}
+              >
+                {/* Image Area */}
+                <div className="relative h-64 bg-gray-100">
+                  <img src={imagePreview} alt="Item" className="w-full h-full object-cover" />
+                  
+                  {/* Rarity Badge */}
+                  {isSpicyMode && (
+                    <div className={`absolute bottom-4 left-4 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border-2 bg-white ${getRarityStyle(results.rarity).color} ${getRarityStyle(results.rarity).text}`}>
+                      {getRarityStyle(results.rarity).emoji} {results.rarity}
+                    </div>
+                  )}
+                  
+                  {/* Price Tag */}
+                  <div className="absolute bottom-4 right-4 bg-black text-white px-4 py-2 rounded-xl font-black shadow-lg">
+                    {userCurrency.symbol}{results.priceLow} - {results.priceHigh}
+                  </div>
+                </div>
+
+                {/* Card Body */}
+                <div className={`p-6 ${isSpicyMode ? getRarityStyle(results.rarity).bg : 'bg-white'}`}>
+                  <h2 className="text-2xl font-black leading-tight text-gray-800 mb-2">
+                    {results.title}
+                  </h2>
+                  
+                  {/* Spicy Comment */}
+                  {isSpicyMode && (
+                    <div className="mb-4 p-3 bg-white/60 rounded-xl border border-black/5 italic text-gray-700 text-sm">
+                      "{results.spicyComment}"
+                    </div>
+                  )}
+
+                  {/* Actions Grid */}
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    <button 
+                      onClick={() => copyText('title', results.title)}
+                      className="col-span-2 flex items-center justify-center gap-2 bg-white border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 active:bg-gray-50 transition-colors"
+                    >
+                      {copiedSection === 'title' ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                      Copy Title
+                    </button>
+
+                    <button 
+                      onClick={() => copyText('desc', results.description)}
+                      className="flex items-center justify-center gap-2 bg-white border-2 border-gray-200 py-3 rounded-xl font-bold text-gray-700 active:bg-gray-50 transition-colors"
+                    >
+                      {copiedSection === 'desc' ? <Check size={18} className="text-green-500" /> : <Info size={18} />}
+                      Desc
+                    </button>
+
+                    <button 
+                      onClick={shareResult}
+                      className="flex items-center justify-center gap-2 bg-black text-white py-3 rounded-xl font-bold active:bg-gray-800 transition-colors"
+                    >
+                      <Share2 size={18} />
+                      Share
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Step */}
+              <button 
+                onClick={resetApp}
+                className="text-gray-400 font-semibold text-sm hover:text-gray-600 transition-colors text-center"
+              >
+                Scan Another Item
+              </button>
+            </div>
           )}
         </div>
 
-        {results && (
-          <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border-2" style={{ borderColor: '#F28B82' }}>
-            <div className="text-center mb-6">
-              <div className="text-5xl mb-2">💰✨</div>
-              <h2 className="text-3xl font-bold text-gray-800">
-                Your Listing is Ready!
-              </h2>
-            </div>
-
-            <div className="space-y-5">
-              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF5F3', borderColor: '#F28B82' }}>
-                <div className="flex justify-between items-start mb-3">
-                  <label className="text-sm font-bold uppercase" style={{ color: '#F28B82' }}>
-                    📝 Title
-                  </label>
-                  <button
-                    onClick={() => copySection('title', results.title)}
-                    className="flex items-center gap-2 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm"
-                    style={{ backgroundColor: '#F28B82' }}
-                  >
-                    {copiedSection === 'title' ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="text-lg font-semibold text-gray-800 mb-1">{results.title}</p>
-                <p className="text-xs text-gray-500">{results.title.length}/80 characters</p>
-              </div>
-
-              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FFF9E6', borderColor: '#FFD700' }}>
-                <div className="flex justify-between items-start mb-3">
-                  <label className="text-sm font-bold uppercase text-yellow-700">
-                    📁 Category
-                  </label>
-                  <button
-                    onClick={() => copySection('category', results.category)}
-                    className="flex items-center gap-2 bg-yellow-500 text-gray-900 px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-yellow-600"
-                  >
-                    {copiedSection === 'category' ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="text-gray-800 font-medium">{results.category}</p>
-              </div>
-
-              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#F0FFF4', borderColor: '#48BB78' }}>
-                <div className="flex justify-between items-start mb-3">
-                  <label className="text-sm font-bold text-green-700 uppercase">
-                    📄 Description
-                  </label>
-                  <button
-                    onClick={() => copySection('description', results.description)}
-                    className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-green-600"
-                  >
-                    {copiedSection === 'description' ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{results.description}</p>
-              </div>
-
-              <div className="p-5 rounded-2xl border-2" style={{ backgroundColor: '#FAF5FF', borderColor: '#9F7AEA' }}>
-                <div className="flex justify-between items-start mb-4">
-                  <label className="text-sm font-bold text-purple-700 uppercase">
-                    💷 Pricing Guide
-                  </label>
-                  <button
-                    onClick={() => copySection('pricing', `Low: ${userCurrency.symbol}${results.priceRange.low}\nAverage: ${userCurrency.symbol}${results.priceRange.average}\nHigh: ${userCurrency.symbol}${results.priceRange.high}\n\n${results.recommendation.format}\n${results.recommendation.startPrice ? `Start: ${userCurrency.symbol}${results.recommendation.startPrice}` : ''}\n${results.recommendation.buyItNowPrice ? `Buy It Now: ${userCurrency.symbol}${results.recommendation.buyItNowPrice}` : ''}\n\n${results.notes}`)}
-                    className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow-md text-sm hover:bg-purple-600"
-                  >
-                    {copiedSection === 'pricing' ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
-                    <p className="text-xs text-gray-600 mb-1 font-semibold">Low</p>
-                    <p className="text-2xl font-bold text-purple-600">{userCurrency.symbol}{results.priceRange.low}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
-                    <p className="text-xs text-gray-600 mb-1 font-semibold">Average</p>
-                    <p className="text-2xl font-bold text-purple-600">{userCurrency.symbol}{results.priceRange.average}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-xl text-center border-2 border-purple-200">
-                    <p className="text-xs text-gray-600 mb-1 font-semibold">High</p>
-                    <p className="text-2xl font-bold text-purple-600">{userCurrency.symbol}{results.priceRange.high}</p>
-                  </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border-2 border-purple-200">
-                  <p className="font-bold text-purple-700 mb-2 text-lg">💡 {results.recommendation.format}</p>
-                  {results.recommendation.startPrice && (
-                    <p className="text-gray-700">Start: <span className="font-semibold">{userCurrency.symbol}{results.recommendation.startPrice}</span></p>
-                  )}
-                  {results.recommendation.buyItNowPrice && (
-                    <p className="text-gray-700">Buy It Now: <span className="font-semibold">{userCurrency.symbol}{results.recommendation.buyItNowPrice}</span></p>
-                  )}
-                  {results.notes && (
-                    <p className="text-sm text-gray-600 mt-3 italic border-t pt-3 border-purple-100">{results.notes}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setImage(null);
-                setImagePreview(null);
-                setResults(null);
-              }}
-              className="w-full mt-6 bg-gray-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-all shadow-lg"
-            >
-              🌶️ List Another Item
-            </button>
-          </div>
-        )}
-
-        <div className="bg-white rounded-3xl shadow-2xl p-8 text-center border-2" style={{ borderColor: '#F28B82' }}>
-          <div className="text-5xl mb-4">☕✨</div>
-          <h3 className="text-2xl font-bold text-gray-800 mb-3">
-            This is Coffeeware!
-          </h3>
-          <p className="text-gray-700 mb-4 leading-relaxed">
-            Built by <span className="font-bold" style={{ color: '#F28B82' }}>Chris P Tee</span> for AuDHD brains that struggle with listing.<br />
-            Use it as much as you like - completely free!
-          </p>
-          <p className="text-gray-700 mb-5 leading-relaxed">
-            If this helps you turn clutter into cash, consider supporting the<br />
-            <span className="font-bold text-purple-600">🎭 Community Comedy Magic Tour 🎩</span> around the UK!
-          </p>
-          
-          <div className="flex flex-wrap justify-center gap-3 mb-5">
-            <a
-              href="https://buymeacoffee.com/chrispteemagician"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transition-all shadow-lg text-lg"
-            >
-              <Coffee className="w-5 h-5" />
-              Buy Me a Coffee
-            </a>
-            <a
-              href="https://www.tiktok.com/@chrispteemagician"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg text-lg"
-              style={{ backgroundColor: '#F28B82' }}
-            >
-              📱 @chrispteemagician
-            </a>
-          </div>
-
-          <a
-            href="https://comedymagic.co.uk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-600 hover:text-gray-800 font-medium mb-4 block transition-colors"
+        {/* FOOTER - The "Feel Famous" Link */}
+        <div className="p-4 bg-white border-t border-gray-100 text-center">
+          <a 
+            href="https://buymeacoffee.com/chrispteemagician" 
+            target="_blank" 
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-orange-500 transition-colors"
           >
-            🌐 comedymagic.co.uk
+            <Coffee size={16} />
+            Fuel the Van Life
           </a>
-
-          <div className="border-t-2 pt-4 mt-4" style={{ borderColor: '#F28B82' }}>
-            <p className="text-sm font-semibold text-gray-700 mb-2">
-              Chris P Tee = Comedy + Magic + Vanlife + Code
-            </p>
-            <p className="text-xs text-gray-600 mb-3 italic max-w-2xl mx-auto">
-              ⚠️ This tool provides AI-generated suggestions. Your listing decisions are final - always review before posting!
-            </p>
-            <div className="flex justify-center gap-3 mb-3">
-              <a
-                href="mailto:chris@comedymagic.co.uk?subject=SpicyLister Feedback"
-                className="text-sm px-4 py-2 rounded-full font-semibold transition-all shadow-md"
-                style={{ backgroundColor: '#F28B82', color: 'white' }}
-              >
-                💬 Send Feedback
-              </a>
-              <a
-                href="https://www.tiktok.com/share?url=https://spicylister.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm bg-purple-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-purple-600 transition-all shadow-md"
-              >
-                📤 Share SpicyLister
-              </a>
-            </div>
-            <p className="text-xs text-gray-500">
-              © 2025 Chris P Tee Entertainments. All rights reserved.
-            </p>
-          </div>
         </div>
       </div>
     </div>
