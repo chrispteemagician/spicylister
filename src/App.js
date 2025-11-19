@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles, Trash2, Zap } from 'lucide-react';
+import { Camera, Copy, Check, Sparkles, Trash2, Zap } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // --- CONFIGURATION ---
