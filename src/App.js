@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-// ADDED Sparkles BACK TO THIS LINE 👇
 import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
@@ -108,8 +107,9 @@ export default function App() {
 
       const genAI = new GoogleGenerativeAI(apiKey);
       
-      // Force the API to use 'v1beta' so we can access the Flash model
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
+      // FIX: Use the specific Production Version '002'. 
+      // This works on the standard API connection without beta flags.
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-002" });
 
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
@@ -177,7 +177,7 @@ export default function App() {
     } catch (error) {
       console.error(error);
       let msg = "Something went wrong.";
-      if (error.message.includes("404")) msg = "Model not found. Google might be updating the API.";
+      if (error.message.includes("404")) msg = "Model version not found. We are fixing the connection.";
       if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
       if (error.message.includes("API key")) msg = "API Key issue. Check Netlify.";
       alert(msg + "\nTechnical detail: " + error.message);
