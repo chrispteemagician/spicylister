@@ -126,10 +126,8 @@ export default function App() {
       if (!apiKey) throw new Error("Missing API Key. Check Netlify settings.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      // FIXED: Switched back to the standard model name
-// The "Ol' Reliable" model that almost never 404s
-// Use the Pro model which is often more stable globally
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+// Use the generic 'flash' alias which always points to the latest stable version
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
