@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Share2, Trash2, Flame, IceCream } from 'lucide-react';
+// ADDED Sparkles BACK TO THIS LINE 👇
+import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
@@ -107,8 +108,7 @@ export default function App() {
 
       const genAI = new GoogleGenerativeAI(apiKey);
       
-      // --- THIS IS THE FIX ---
-      // We explicitly tell the SDK to use 'v1beta' because that is where the Flash model lives.
+      // Force the API to use 'v1beta' so we can access the Flash model
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
 
       const base64Data = imagePreview.split(',')[1];
@@ -157,7 +157,7 @@ export default function App() {
       } catch (e) {
         console.error("JSON Parsing failed, using fallback");
         data = {
-          title: "Item Identified",
+          title: "Item Identified (AI Format Issue)",
           category: "Misc",
           description: text.substring(0, 200), 
           priceLow: 0,
