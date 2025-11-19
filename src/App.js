@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Share2, Trash2, Flame, IceCream } from 'lucide-react';
+import { Camera, Copy, Check, Coffee, Sparkles, Share2, Zap, Trash2, Info, Flame, IceCream } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
 
@@ -102,10 +102,10 @@ export default function App() {
       if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      // Standard flash model
-      // The standard, evergreen model for the v1 API
-// Force the SDK to use the 'v1beta' library where Flash lives
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
+      
+      // FIX: We force the API to look in the 'v1beta' folder where Flash lives
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
+
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
@@ -268,7 +268,17 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersi
                 disabled={loading}
                 className="w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 bg-gradient-to-r from-orange-400 to-red-500"
               >
-                {loading ? "Thinking..." : (isSpicyMode ? "Generate Spicy Listing" : "Generate Listing")}
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent"></div>
+                    {isSpicyMode ? "Cooking up magic..." : "Analyzing..."}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={24} />
+                    {isSpicyMode ? "Generate Spicy Listing" : "Generate Listing"}
+                  </>
+                )}
               </button>
             </div>
           )}
