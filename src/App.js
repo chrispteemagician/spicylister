@@ -4,9 +4,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
 
-/* eslint-disable no-unused-vars */
-// ^ This line tells the compiler to CHILL OUT about unused variables
-
 // --- CONFIGURATION ---
 const RARITY_TIERS = {
   'Common': { color: 'border-gray-400', bg: 'bg-gray-50', text: 'text-gray-600', emoji: '🗑️' },
@@ -106,14 +103,15 @@ export default function App() {
     
     try {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("Missing API Key. Check Netlify settings.");
+      if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
       
-      // --- THE FIX: SPECIFIC PRODUCTION MODEL ---
-      // We use the specific 002 version. This is the stable, production-ready Flash model.
-      // It works on the standard API without beta flags.
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-002" });
+      // --- THE FIX IS HERE ---
+      // 1. We use the generic name "gemini-1.5-flash" (no -002 suffix).
+      // 2. We keep the "v1beta" API version which we enabled earlier.
+      // This combination is the most compatible for UK/EU regions right now.
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
 
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
@@ -158,18 +156,18 @@ export default function App() {
       let data;
       try {
         data = JSON.parse(text);
-        // Sanitize numbers
+        // Sanitize numbers just in case
         data.priceLow = Number(data.priceLow) || 0;
         data.priceHigh = Number(data.priceHigh) || 0;
       } catch (e) {
         console.error("JSON Parsing failed, using fallback");
         data = {
-          title: "Item Identified",
+          title: "Item Identified (AI Format Issue)",
           category: "Misc",
           description: text.substring(0, 300), 
           priceLow: 0,
           priceHigh: 0,
-          spicyComment: "I see the item, but my formatting got messy. Here is the description!",
+          spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
           rarity: "Common"
         };
       }
@@ -184,7 +182,7 @@ export default function App() {
     } catch (error) {
       console.error(error);
       let msg = "Something went wrong.";
-      if (error.message.includes("404")) msg = "Model Not Found: Google is updating models. Try again in 1 min.";
+      if (error.message.includes("404")) msg = "Model not found. Please try again.";
       if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
       if (error.message.includes("API key")) msg = "API Key issue. Check Netlify.";
       alert(msg + "\nTechnical detail: " + error.message);
