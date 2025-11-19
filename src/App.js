@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Camera, Copy, Check, Coffee, Sparkles, Share2, Zap, Trash2, Info } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { motion, AnimatePresence } from 'framer-motion';
