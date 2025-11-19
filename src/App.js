@@ -108,8 +108,8 @@ export default function App() {
       const genAI = new GoogleGenerativeAI(apiKey);
       
       // FIX IS HERE: Force the API to use 'v1beta' where the Flash model lives
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
-
+// Use the specific 002 version on the beta channel. This is the "Gold Standard" combination.
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-002" }, { apiVersion: "v1beta" });
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
