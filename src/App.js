@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-// ADDED 'Info' BACK HERE 👇
 import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, Info } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
@@ -108,7 +107,7 @@ export default function App() {
 
       const genAI = new GoogleGenerativeAI(apiKey);
       
-      // Using v1beta to access Flash model
+      // FIX IS HERE: Force the API to use 'v1beta' where the Flash model lives
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
 
       const base64Data = imagePreview.split(',')[1];
@@ -321,7 +320,7 @@ export default function App() {
                    <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Description</span>
                     <button onClick={() => copyText('desc', results.description)} className="text-gray-400 hover:text-gray-600">
-                      {copiedSection === 'desc' ? <Check size={18} /> : <Copy size={18} />}
+                      {copiedSection === 'desc' ? <Check size={18} /> : <Info size={16} />}
                     </button>
                   </div>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{results.description}</p>
