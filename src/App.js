@@ -128,8 +128,7 @@ export default function App() {
       const genAI = new GoogleGenerativeAI(apiKey);
       // Using 1.5-flash because it is stable and cheap. 
       // If you have access to 2.0, you can change this string.
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
-
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
