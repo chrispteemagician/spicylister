@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles, Share2, Zap, Trash2, Info, Flame, IceCream } from 'lucide-react';
+import { Camera, Copy, Check, Coffee, Share2, Trash2, Flame, IceCream } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
 
@@ -73,7 +73,6 @@ export default function App() {
   const userRegion = detectUserRegion();
   const userCurrency = GLOBAL_REGIONS[userRegion];
 
-  // FIX: Helper function is now correctly defined and used
   const getRarityStyle = (tier) => {
     return RARITY_TIERS[tier] || RARITY_TIERS['Common'];
   };
@@ -100,9 +99,10 @@ export default function App() {
     
     try {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("Missing API Key.");
+      if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
+      // Standard flash model
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const base64Data = imagePreview.split(',')[1];
@@ -111,30 +111,32 @@ export default function App() {
       };
 
       const systemPrompt = isSpicyMode 
-        ? `You are SpicyLister. Analyze this image for the ${userRegion} market (${userCurrency.currency}).
+        ? `You are SpicyLister, a hilarious, high-energy auctioneer. 
+           Analyze this image for the ${userRegion} market (${userCurrency.currency}).
+           
            1. Assign a "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
-           2. Roast it if it's junk, Hype it if it's valuable.
+           2. Roast it if it's junk, Hype it if it's valuable. Be British, witty.
            3. Give a listing title and description.
-           4. Give a price range.
+           4. Give a price range (low/high).
            
            Return ONLY valid JSON:
            {
-             "title": "SEO title",
+             "title": "SEO optimized title",
              "rarity": "Tier Name",
-             "spicyComment": "Roast or hype",
-             "description": "Description",
-             "category": "Category",
+             "spicyComment": "Roast or hype comment",
+             "description": "Sales description",
+             "category": "eBay Category",
              "priceLow": 10,
              "priceHigh": 20
            }`
-        : `Act as a professional reseller for ${userRegion} (${userCurrency.currency}).
+        : `Act as a professional reseller for the ${userRegion} market (${userCurrency.currency}).
            Return ONLY valid JSON:
            {
-             "title": "SEO title",
+             "title": "SEO optimized title",
              "rarity": "Standard",
-             "spicyComment": "Professional note.",
-             "description": "Description",
-             "category": "Category",
+             "spicyComment": "Item analyzed.",
+             "description": "Professional description",
+             "category": "eBay Category",
              "priceLow": 10,
              "priceHigh": 20
            }`;
@@ -147,22 +149,27 @@ export default function App() {
       try {
         data = JSON.parse(text);
       } catch (e) {
-        console.error("JSON Parsing failed");
+        console.error("JSON Parsing failed, using fallback");
         data = {
           title: "Item Identified",
           category: "Misc",
           description: text.substring(0, 200), 
           priceLow: 0,
           priceHigh: 0,
-          spicyComment: "Could not format perfectly, but here is the listing!",
+          spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
           rarity: "Common"
         };
       }
+
       setResults(data);
 
     } catch (error) {
       console.error(error);
-      alert("Error: " + error.message);
+      let msg = "Something went wrong.";
+      if (error.message.includes("404")) msg = "Model not found. Google might be updating the API.";
+      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
+      if (error.message.includes("API key")) msg = "API Key issue. Check Netlify.";
+      alert(msg + "\nTechnical detail: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -187,11 +194,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-orange-50 font-sans p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 font-sans p-4">
       
       <div className="max-w-2xl mx-auto">
         
-        {/* HEADER */}
+        {/* HEADER & LOGO */}
         <div className="text-center mb-8 pt-4">
           <div className="flex justify-center mb-4">
              <img 
@@ -200,16 +207,17 @@ export default function App() {
                className="w-24 h-24 object-contain drop-shadow-md"
                onError={(e) => {e.target.style.display='none'}} 
              />
+             <div className="text-6xl" style={{display: 'none'}}>🌶️</div> 
           </div>
           
-          <h1 className="text-5xl font-bold mb-2 text-orange-400">
+          <h1 className="text-5xl font-bold mb-2" style={{ color: '#F28B82' }}>
             SpicyLister
           </h1>
           <p className="text-xl font-medium text-gray-700">
             Sell your clutter without a stutter
           </p>
           
-          {/* TOGGLE */}
+          {/* THE TOGGLE: Vanilla vs Spicy */}
           <div className="flex justify-center mt-6">
             <div className="bg-white p-1.5 rounded-full shadow-md inline-flex border border-orange-100">
               <button 
@@ -226,6 +234,12 @@ export default function App() {
               </button>
             </div>
           </div>
+          
+          {isSpicyMode ? (
+            <p className="text-xs text-orange-600 mt-2 font-medium animate-pulse">🔥 Neurospicy Mode: Engaged</p>
+          ) : (
+             <p className="text-xs text-blue-500 mt-2 font-medium">🍦 Professional Mode: Clean & Simple</p>
+          )}
         </div>
 
         {/* MAIN CARD */}
@@ -263,7 +277,6 @@ export default function App() {
               
               <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
                  {isSpicyMode && (
-                   // FIX: We are now USING the getRarityStyle function here
                   <div className={`mb-6 p-4 rounded-2xl border-2 ${getRarityStyle(results.rarity).bg} ${getRarityStyle(results.rarity).color} text-center`}>
                     <p className="text-lg font-bold italic text-gray-800">"{results.spicyComment}"</p>
                     <span className="text-xs uppercase font-black tracking-widest text-gray-500 mt-2 block">
@@ -327,6 +340,7 @@ export default function App() {
             <h3 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
               <Coffee className="text-yellow-500" /> This is Coffeeware
             </h3>
+            <p className="text-sm text-gray-500 mt-1">Free to use. Support if it helps you.</p>
             <a 
               href="https://buymeacoffee.com/chrispteemagician" 
               target="_blank" 
@@ -335,6 +349,16 @@ export default function App() {
             >
               Buy Chris a Coffee
             </a>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
+            <a href="https://comedymagic.co.uk" target="_blank" rel="noreferrer" className="hover:text-purple-500 transition-colors">
+              Support the <strong>Community Comedy Magic Tour</strong>
+            </a>
+            <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
+              Find me on TikTok
+            </a>
+             <p className="text-xs opacity-50 mt-4">SpicyLister v1.2 • Secure & Private</p>
           </div>
         </div>
 
