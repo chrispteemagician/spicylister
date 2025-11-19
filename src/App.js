@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream } from 'lucide-react';
+import { Camera, Copy, Check, Coffee, Sparkles, Share2, Zap, Trash2, Info, Flame, IceCream } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
 
@@ -73,6 +73,11 @@ export default function App() {
   const userRegion = detectUserRegion();
   const userCurrency = GLOBAL_REGIONS[userRegion];
 
+  // FIX: Helper function is now correctly defined and used
+  const getRarityStyle = (tier) => {
+    return RARITY_TIERS[tier] || RARITY_TIERS['Common'];
+  };
+
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -95,10 +100,9 @@ export default function App() {
     
     try {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
+      if (!apiKey) throw new Error("Missing API Key.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      // Use standard flash model
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const base64Data = imagePreview.split(',')[1];
@@ -107,32 +111,30 @@ export default function App() {
       };
 
       const systemPrompt = isSpicyMode 
-        ? `You are SpicyLister, a hilarious, high-energy auctioneer. 
-           Analyze this image for the ${userRegion} market (${userCurrency.currency}).
-           
+        ? `You are SpicyLister. Analyze this image for the ${userRegion} market (${userCurrency.currency}).
            1. Assign a "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
-           2. Roast it if it's junk, Hype it if it's valuable. Be British, witty.
+           2. Roast it if it's junk, Hype it if it's valuable.
            3. Give a listing title and description.
-           4. Give a price range (low/high).
+           4. Give a price range.
            
            Return ONLY valid JSON:
            {
-             "title": "SEO optimized title",
+             "title": "SEO title",
              "rarity": "Tier Name",
-             "spicyComment": "Roast or hype comment",
-             "description": "Sales description",
-             "category": "eBay Category",
+             "spicyComment": "Roast or hype",
+             "description": "Description",
+             "category": "Category",
              "priceLow": 10,
              "priceHigh": 20
            }`
-        : `Act as a professional reseller for the ${userRegion} market (${userCurrency.currency}).
+        : `Act as a professional reseller for ${userRegion} (${userCurrency.currency}).
            Return ONLY valid JSON:
            {
-             "title": "SEO optimized title",
+             "title": "SEO title",
              "rarity": "Standard",
-             "spicyComment": "Item analyzed.",
-             "description": "Professional description",
-             "category": "eBay Category",
+             "spicyComment": "Professional note.",
+             "description": "Description",
+             "category": "Category",
              "priceLow": 10,
              "priceHigh": 20
            }`;
@@ -145,27 +147,22 @@ export default function App() {
       try {
         data = JSON.parse(text);
       } catch (e) {
-        console.error("JSON Parsing failed, using fallback");
+        console.error("JSON Parsing failed");
         data = {
-          title: "Item Identified (AI Format Issue)",
+          title: "Item Identified",
           category: "Misc",
           description: text.substring(0, 200), 
           priceLow: 0,
           priceHigh: 0,
-          spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
+          spicyComment: "Could not format perfectly, but here is the listing!",
           rarity: "Common"
         };
       }
-
       setResults(data);
 
     } catch (error) {
       console.error(error);
-      let msg = "Something went wrong.";
-      if (error.message.includes("404")) msg = "Model not found. Google might be updating the API.";
-      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
-      if (error.message.includes("API key")) msg = "API Key issue. Check Netlify.";
-      alert(msg + "\nTechnical detail: " + error.message);
+      alert("Error: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -189,14 +186,12 @@ export default function App() {
     setTimeout(() => setCopiedSection(null), 2000);
   };
 
-  const getRarityStyle = (tier) => RARITY_TIERS[tier] || RARITY_TIERS['Common'];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 font-sans p-4">
+    <div className="min-h-screen bg-orange-50 font-sans p-4">
       
       <div className="max-w-2xl mx-auto">
         
-        {/* HEADER & LOGO */}
+        {/* HEADER */}
         <div className="text-center mb-8 pt-4">
           <div className="flex justify-center mb-4">
              <img 
@@ -205,17 +200,16 @@ export default function App() {
                className="w-24 h-24 object-contain drop-shadow-md"
                onError={(e) => {e.target.style.display='none'}} 
              />
-             <div className="text-6xl" style={{display: 'none'}}>🌶️</div> 
           </div>
           
-          <h1 className="text-5xl font-bold mb-2" style={{ color: '#F28B82' }}>
+          <h1 className="text-5xl font-bold mb-2 text-orange-400">
             SpicyLister
           </h1>
           <p className="text-xl font-medium text-gray-700">
             Sell your clutter without a stutter
           </p>
           
-          {/* THE TOGGLE: Vanilla vs Spicy */}
+          {/* TOGGLE */}
           <div className="flex justify-center mt-6">
             <div className="bg-white p-1.5 rounded-full shadow-md inline-flex border border-orange-100">
               <button 
@@ -232,28 +226,19 @@ export default function App() {
               </button>
             </div>
           </div>
-          
-          {isSpicyMode ? (
-            <p className="text-xs text-orange-600 mt-2 font-medium animate-pulse">🔥 Neurospicy Mode: Engaged</p>
-          ) : (
-             <p className="text-xs text-blue-500 mt-2 font-medium">🍦 Professional Mode: Clean & Simple</p>
-          )}
         </div>
 
         {/* MAIN CARD */}
         <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-orange-100">
           
-          {/* UPLOAD AREA */}
           {!image && (
-            <label className="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all hover:bg-orange-50" style={{ borderColor: '#F28B82' }}>
-              <Camera className="w-20 h-20 mb-4 opacity-50" style={{ color: '#F28B82' }} />
+            <label className="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all hover:bg-orange-50 border-orange-300">
+              <Camera className="w-20 h-20 mb-4 text-orange-300" />
               <p className="font-bold text-xl mb-2 text-gray-700">Tap to Snap or Upload</p>
-              <p className="text-gray-500">We'll write the listing for you.</p>
               <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             </label>
           )}
 
-          {/* PREVIEW & ANALYZE BUTTON */}
           {image && !results && (
             <div className="space-y-6">
               <div className="relative rounded-2xl overflow-hidden aspect-square shadow-inner bg-gray-100 border-2 border-orange-100">
@@ -266,39 +251,27 @@ export default function App() {
               <button
                 onClick={analyzeItem}
                 disabled={loading}
-                className="w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
-                style={{ background: loading ? '#cbd5e1' : `linear-gradient(135deg, #F28B82 0%, #f43f5e 100%)` }}
+                className="w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 bg-gradient-to-r from-orange-400 to-red-500"
               >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent"></div>
-                    {isSpicyMode ? "Cooking up magic..." : "Analyzing..."}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={24} />
-                    {isSpicyMode ? "Generate Spicy Listing" : "Generate Listing"}
-                  </>
-                )}
+                {loading ? "Thinking..." : (isSpicyMode ? "Generate Spicy Listing" : "Generate Listing")}
               </button>
             </div>
           )}
 
-          {/* RESULTS AREA */}
           {results && (
             <div className="space-y-6">
               
-              {/* This div is what gets screenshotted for sharing */}
               <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
-                 {/* Spicy Comment Banner */}
                  {isSpicyMode && (
-                  <div className={`mb-6 p-4 rounded-2xl border-2 ${results.rarity === 'Common' ? 'bg-gray-50 border-gray-200' : 'bg-yellow-50 border-yellow-300'} text-center`}>
+                   // FIX: We are now USING the getRarityStyle function here
+                  <div className={`mb-6 p-4 rounded-2xl border-2 ${getRarityStyle(results.rarity).bg} ${getRarityStyle(results.rarity).color} text-center`}>
                     <p className="text-lg font-bold italic text-gray-800">"{results.spicyComment}"</p>
-                    {results.rarity && <span className="text-xs uppercase font-black tracking-widest text-gray-400 mt-2 block">{results.rarity} TIER FIND</span>}
+                    <span className="text-xs uppercase font-black tracking-widest text-gray-500 mt-2 block">
+                        {results.rarity} TIER FIND {getRarityStyle(results.rarity).emoji}
+                    </span>
                   </div>
                 )}
 
-                {/* Title Section */}
                 <div className="bg-orange-50 p-5 rounded-2xl border border-orange-100 mb-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-orange-600 tracking-wider">Listing Title</span>
@@ -309,7 +282,6 @@ export default function App() {
                   <h2 className="text-xl font-bold text-gray-900 leading-tight">{results.title}</h2>
                 </div>
 
-                {/* Description Section */}
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 mb-4">
                    <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Description</span>
@@ -320,7 +292,6 @@ export default function App() {
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{results.description}</p>
                 </div>
 
-                {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
                     <span className="text-xs font-bold uppercase text-green-600">Est. Value</span>
@@ -333,7 +304,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
                 <button 
                   onClick={shareResult}
@@ -352,13 +322,11 @@ export default function App() {
           )}
         </div>
 
-        {/* RESTORED FOOTER */}
         <div className="mt-12 text-center space-y-6 pb-12">
           <div className="inline-block bg-white px-6 py-4 rounded-3xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
               <Coffee className="text-yellow-500" /> This is Coffeeware
             </h3>
-            <p className="text-sm text-gray-500 mt-1">Free to use. Support if it helps you.</p>
             <a 
               href="https://buymeacoffee.com/chrispteemagician" 
               target="_blank" 
@@ -367,16 +335,6 @@ export default function App() {
             >
               Buy Chris a Coffee
             </a>
-          </div>
-
-          <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
-            <a href="https://comedymagic.co.uk" target="_blank" rel="noreferrer" className="hover:text-purple-500 transition-colors">
-              Support the <strong>Community Comedy Magic Tour</strong>
-            </a>
-            <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
-              Find me on TikTok
-            </a>
-             <p className="text-xs opacity-50 mt-4">SpicyLister v1.2 • Secure & Private</p>
           </div>
         </div>
 
