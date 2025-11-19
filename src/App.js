@@ -126,8 +126,8 @@ export default function App() {
       if (!apiKey) throw new Error("Missing API Key. Check Netlify settings.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      // UPDATED MODEL NAME HERE:
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" }); 
+      // FIXED: Switched back to the standard model name
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
 
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
