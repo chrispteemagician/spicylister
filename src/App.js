@@ -126,8 +126,8 @@ export default function App() {
       if (!apiKey) throw new Error("Missing API Key. Check Netlify settings.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
-// Use the generic 'flash' alias which always points to the latest stable version
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
@@ -186,7 +186,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const handleLootOpen = () => {
     setShowLootBox(false);
-    if (['Legendary', 'God-Tier', 'Epic'].includes(results.rarity)) {
+    if (results.rarity === 'Legendary' || results.rarity === 'God-Tier' || results.rarity === 'Epic') {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 5000);
     }
