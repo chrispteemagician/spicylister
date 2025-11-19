@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles, Share2, Zap, Trash2, Info, Flame, IceCream } from 'lucide-react';
+import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { toPng } from 'html-to-image';
+import Confetti from 'react-confetti';
 
 // --- CONFIGURATION ---
 const RARITY_TIERS = {
@@ -67,6 +68,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [isSpicyMode, setIsSpicyMode] = useState(true); 
+  const [showConfetti, setShowConfetti] = useState(false);
   const [copiedSection, setCopiedSection] = useState(null);
 
   const resultCardRef = useRef(null);
@@ -84,6 +86,7 @@ export default function App() {
       const compressed = await compressImage(file);
       setImagePreview(compressed);
       setResults(null);
+      setShowConfetti(false);
     }
   };
 
@@ -91,6 +94,7 @@ export default function App() {
     setImage(null);
     setImagePreview(null);
     setResults(null);
+    setShowConfetti(false);
   };
 
   const analyzeItem = async () => {
@@ -103,7 +107,7 @@ export default function App() {
 
       const genAI = new GoogleGenerativeAI(apiKey);
       
-      // FIX: We force the API to look in the 'v1beta' folder where Flash lives
+      // Force the API to use 'v1beta' so we can access the Flash model
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
 
       const base64Data = imagePreview.split(',')[1];
@@ -152,7 +156,7 @@ export default function App() {
       } catch (e) {
         console.error("JSON Parsing failed, using fallback");
         data = {
-          title: "Item Identified",
+          title: "Item Identified (AI Format Issue)",
           category: "Misc",
           description: text.substring(0, 200), 
           priceLow: 0,
@@ -163,6 +167,11 @@ export default function App() {
       }
 
       setResults(data);
+      
+      if (isSpicyMode && (data.priceHigh > 50 || ['Rare', 'Legendary', 'God-Tier', 'Epic'].includes(data.rarity))) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }
 
     } catch (error) {
       console.error(error);
@@ -196,7 +205,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 font-sans p-4">
-      
+      {showConfetti && <Confetti numberOfPieces={200} recycle={false} />}
+
       <div className="max-w-2xl mx-auto">
         
         {/* HEADER & LOGO */}
