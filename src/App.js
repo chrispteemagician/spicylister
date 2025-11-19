@@ -104,8 +104,8 @@ export default function App() {
       const genAI = new GoogleGenerativeAI(apiKey);
       // Standard flash model
       // The standard, evergreen model for the v1 API
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
+// Force the SDK to use the 'v1beta' library where Flash lives
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
