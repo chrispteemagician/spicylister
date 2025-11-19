@@ -1,18 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles, Share2, Zap, Trash2, Info, Flame, IceCream } from 'lucide-react';
+import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { motion, AnimatePresence } from 'framer-motion';
-import Confetti from 'react-confetti';
 import { toPng } from 'html-to-image';
 
 // --- CONFIGURATION ---
-// This keeps your warm, original branding colors
-const COLORS = {
-  primary: '#F28B82', // Your brand coral/orange
-  secondary: '#FFD700', // Gold/Yellow
-  bg: 'from-orange-100 via-orange-50 to-yellow-50', // The cozy background
-  cardBg: 'bg-white',
-  text: 'text-gray-800'
+const RARITY_TIERS = {
+  'Common': { color: 'border-gray-400', bg: 'bg-gray-50', text: 'text-gray-600', emoji: '🗑️' },
+  'Uncommon': { color: 'border-green-400', bg: 'bg-green-50', text: 'text-green-600', emoji: '🍀' },
+  'Rare': { color: 'border-blue-400', bg: 'bg-blue-50', text: 'text-blue-600', emoji: '💎' },
+  'Epic': { color: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-600', emoji: '🔮' },
+  'Legendary': { color: 'border-yellow-500', bg: 'bg-yellow-50', text: 'text-yellow-600', emoji: '👑' },
+  'God-Tier': { color: 'border-rose-500', bg: 'bg-rose-50', text: 'text-rose-600', emoji: '🔥' }
 };
 
 const GLOBAL_REGIONS = {
@@ -68,9 +66,7 @@ export default function App() {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
-  // True = Spicy, False = Vanilla
   const [isSpicyMode, setIsSpicyMode] = useState(true); 
-  const [showConfetti, setShowConfetti] = useState(false);
   const [copiedSection, setCopiedSection] = useState(null);
 
   const resultCardRef = useRef(null);
@@ -84,7 +80,6 @@ export default function App() {
       const compressed = await compressImage(file);
       setImagePreview(compressed);
       setResults(null);
-      setShowConfetti(false);
     }
   };
 
@@ -92,7 +87,6 @@ export default function App() {
     setImage(null);
     setImagePreview(null);
     setResults(null);
-    setShowConfetti(false);
   };
 
   const analyzeItem = async () => {
@@ -104,7 +98,7 @@ export default function App() {
       if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      // Using the standard reliable model string
+      // Use standard flash model
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const base64Data = imagePreview.split(',')[1];
@@ -112,27 +106,36 @@ export default function App() {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
       };
 
-      // This prompt focuses on SELLING (Listing), not just identifying
-      const systemPrompt = `
-        You are an expert reseller and listing assistant.
-        Your goal is to create a high-converting eBay listing for the item in the image.
-        Target Market: ${userRegion} using ${userCurrency.currency}.
-
-        ${isSpicyMode ? 
-          "MODE: SPICY. Be witty, high-energy, and include a 'Spicy Comment' that either roasts the item (if it's common/junk) or hypes it up (if it's valuable). Make it fun!" : 
-          "MODE: VANILLA. Be professional, polite, and concise. No jokes."}
-
-        Return a JSON object with these specific fields:
-        {
-          "title": "SEO-optimized title for eBay (max 80 chars)",
-          "category": "The best eBay category path",
-          "description": "A compelling 2-3 sentence sales description describing condition and features.",
-          "priceLow": 10,
-          "priceHigh": 20,
-          "spicyComment": "${isSpicyMode ? "Your witty roast or hype comment here" : "Professional analysis note"}",
-          "rarity": "${isSpicyMode ? "One of: Common, Uncommon, Rare, Legendary" : "Standard"}"
-        }
-      `;
+      const systemPrompt = isSpicyMode 
+        ? `You are SpicyLister, a hilarious, high-energy auctioneer. 
+           Analyze this image for the ${userRegion} market (${userCurrency.currency}).
+           
+           1. Assign a "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
+           2. Roast it if it's junk, Hype it if it's valuable. Be British, witty.
+           3. Give a listing title and description.
+           4. Give a price range (low/high).
+           
+           Return ONLY valid JSON:
+           {
+             "title": "SEO optimized title",
+             "rarity": "Tier Name",
+             "spicyComment": "Roast or hype comment",
+             "description": "Sales description",
+             "category": "eBay Category",
+             "priceLow": 10,
+             "priceHigh": 20
+           }`
+        : `Act as a professional reseller for the ${userRegion} market (${userCurrency.currency}).
+           Return ONLY valid JSON:
+           {
+             "title": "SEO optimized title",
+             "rarity": "Standard",
+             "spicyComment": "Item analyzed.",
+             "description": "Professional description",
+             "category": "eBay Category",
+             "priceLow": 10,
+             "priceHigh": 20
+           }`;
 
       const result = await model.generateContent([systemPrompt, imagePart]);
       const response = await result.response;
@@ -142,12 +145,11 @@ export default function App() {
       try {
         data = JSON.parse(text);
       } catch (e) {
-        // Fallback so the app NEVER crashes even if AI makes a mistake
         console.error("JSON Parsing failed, using fallback");
         data = {
           title: "Item Identified (AI Format Issue)",
           category: "Misc",
-          description: text.substring(0, 200), // Show raw text so user still gets value
+          description: text.substring(0, 200), 
           priceLow: 0,
           priceHigh: 0,
           spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
@@ -157,15 +159,13 @@ export default function App() {
 
       setResults(data);
 
-      // Trigger confetti only for good stuff in Spicy Mode
-      if (isSpicyMode && (data.priceHigh > 50 || ['Rare', 'Legendary'].includes(data.rarity))) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }
-
     } catch (error) {
       console.error(error);
-      alert(`Error: ${error.message}. Please try again!`);
+      let msg = "Something went wrong.";
+      if (error.message.includes("404")) msg = "Model not found. Google might be updating the API.";
+      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
+      if (error.message.includes("API key")) msg = "API Key issue. Check Netlify.";
+      alert(msg + "\nTechnical detail: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -189,28 +189,26 @@ export default function App() {
     setTimeout(() => setCopiedSection(null), 2000);
   };
 
-  return (
-    <div className={`min-h-screen bg-gradient-to-br ${COLORS.bg} font-sans p-4`}>
-      {showConfetti && <Confetti numberOfPieces={200} recycle={false} />}
+  const getRarityStyle = (tier) => RARITY_TIERS[tier] || RARITY_TIERS['Common'];
 
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 font-sans p-4">
+      
       <div className="max-w-2xl mx-auto">
         
         {/* HEADER & LOGO */}
         <div className="text-center mb-8 pt-4">
-          {/* This img tag looks for logo.png in your public folder. 
-              If you haven't added it yet, it falls back to the text. */}
           <div className="flex justify-center mb-4">
              <img 
                src={process.env.PUBLIC_URL + '/logo.png'} 
                alt="SpicyLister Logo" 
                className="w-24 h-24 object-contain drop-shadow-md"
-               onError={(e) => {e.target.style.display='none'}} // Hides if no logo found
+               onError={(e) => {e.target.style.display='none'}} 
              />
-             {/* Fallback emoji if image missing */}
              <div className="text-6xl" style={{display: 'none'}}>🌶️</div> 
           </div>
           
-          <h1 className="text-5xl font-bold mb-2" style={{ color: COLORS.primary }}>
+          <h1 className="text-5xl font-bold mb-2" style={{ color: '#F28B82' }}>
             SpicyLister
           </h1>
           <p className="text-xl font-medium text-gray-700">
@@ -247,8 +245,8 @@ export default function App() {
           
           {/* UPLOAD AREA */}
           {!image && (
-            <label className="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all hover:bg-orange-50" style={{ borderColor: COLORS.primary }}>
-              <Camera className="w-20 h-20 mb-4 opacity-50" style={{ color: COLORS.primary }} />
+            <label className="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all hover:bg-orange-50" style={{ borderColor: '#F28B82' }}>
+              <Camera className="w-20 h-20 mb-4 opacity-50" style={{ color: '#F28B82' }} />
               <p className="font-bold text-xl mb-2 text-gray-700">Tap to Snap or Upload</p>
               <p className="text-gray-500">We'll write the listing for you.</p>
               <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -257,7 +255,7 @@ export default function App() {
 
           {/* PREVIEW & ANALYZE BUTTON */}
           {image && !results && (
-            <div className="space-y-6 animate-in fade-in">
+            <div className="space-y-6">
               <div className="relative rounded-2xl overflow-hidden aspect-square shadow-inner bg-gray-100 border-2 border-orange-100">
                 <img src={imagePreview} alt="Item" className="w-full h-full object-contain" />
                 <button onClick={resetApp} className="absolute top-4 right-4 bg-white p-3 rounded-full shadow-md text-gray-500 hover:text-red-500">
@@ -269,7 +267,7 @@ export default function App() {
                 onClick={analyzeItem}
                 disabled={loading}
                 className="w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
-                style={{ background: loading ? '#cbd5e1' : `linear-gradient(135deg, ${COLORS.primary} 0%, #f43f5e 100%)` }}
+                style={{ background: loading ? '#cbd5e1' : `linear-gradient(135deg, #F28B82 0%, #f43f5e 100%)` }}
               >
                 {loading ? (
                   <>
@@ -288,7 +286,7 @@ export default function App() {
 
           {/* RESULTS AREA */}
           {results && (
-            <div className="space-y-6 animate-in slide-in-from-bottom-4">
+            <div className="space-y-6">
               
               {/* This div is what gets screenshotted for sharing */}
               <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
