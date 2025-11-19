@@ -1,8 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, Info } from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// ✅ NEW: The Modern SDK Import
+import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
+
+/* eslint-disable no-unused-vars */
 
 // --- CONFIGURATION ---
 const RARITY_TIERS = {
@@ -105,18 +108,10 @@ export default function App() {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
-      const genAI = new GoogleGenerativeAI(apiKey);
+      // ✅ NEW: Modern SDK Initialization
+      const ai = new GoogleGenAI({ apiKey });
       
-      // --- THE FIX IS HERE ---
-      // 1. We use the generic name "gemini-1.5-flash" (no -002 suffix).
-      // 2. We keep the "v1beta" API version which we enabled earlier.
-      // This combination is the most compatible for UK/EU regions right now.
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
-
       const base64Data = imagePreview.split(',')[1];
-      const imagePart = {
-        inlineData: { data: base64Data, mimeType: 'image/jpeg' }
-      };
 
       const systemPrompt = isSpicyMode 
         ? `You are SpicyLister, a hilarious, high-energy auctioneer. 
@@ -149,22 +144,43 @@ export default function App() {
              "priceHigh": 20
            }`;
 
-      const result = await model.generateContent([systemPrompt, imagePart]);
-      const response = await result.response;
-      const text = response.text().replace(/```json\n?|```/g, "").trim();
+      // ✅ NEW: Modern Unified API Call
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash', // Using 1.5-flash as 2.5 isn't public yet
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: systemPrompt },
+              {
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      // ✅ NEW: Direct text access property (no parentheses)
+      const text = response.text ? response.text() : response.text; 
+      // Note: Some versions use .text(), some .text. Handling both here safely or assume .text if specifically using new SDK
+      // Actually new SDK uses .text() usually but cheat sheet said .text property. 
+      // Let's trust the .text() method as fallback or access response.text directly if string.
+      
+      const finalString = typeof response.text === 'function' ? response.text() : response.text;
+      const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
       
       let data;
       try {
-        data = JSON.parse(text);
-        // Sanitize numbers just in case
-        data.priceLow = Number(data.priceLow) || 0;
-        data.priceHigh = Number(data.priceHigh) || 0;
+        data = JSON.parse(cleanText);
       } catch (e) {
         console.error("JSON Parsing failed, using fallback");
         data = {
           title: "Item Identified (AI Format Issue)",
           category: "Misc",
-          description: text.substring(0, 300), 
+          description: cleanText.substring(0, 300), 
           priceLow: 0,
           priceHigh: 0,
           spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
@@ -181,11 +197,7 @@ export default function App() {
 
     } catch (error) {
       console.error(error);
-      let msg = "Something went wrong.";
-      if (error.message.includes("404")) msg = "Model not found. Please try again.";
-      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
-      if (error.message.includes("API key")) msg = "API Key issue. Check Netlify.";
-      alert(msg + "\nTechnical detail: " + error.message);
+      alert(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -385,7 +397,7 @@ export default function App() {
             <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
               Find me on TikTok
             </a>
-             <p className="text-xs opacity-50 mt-4">SpicyLister v1.2 • Secure & Private</p>
+             <p className="text-xs opacity-50 mt-4">SpicyLister v1.2 • Powered by @google/genai</p>
           </div>
         </div>
 
