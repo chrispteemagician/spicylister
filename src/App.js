@@ -128,7 +128,8 @@ export default function App() {
       const genAI = new GoogleGenerativeAI(apiKey);
       // FIXED: Switched back to the standard model name
 // The "Ol' Reliable" model that almost never 404s
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// Use the Pro model which is often more stable globally
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
         inlineData: { data: base64Data, mimeType: 'image/jpeg' }
