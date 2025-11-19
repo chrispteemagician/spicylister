@@ -103,8 +103,8 @@ export default function App() {
 
       const genAI = new GoogleGenerativeAI(apiKey);
       // Standard flash model
-      // Use the specific stable version '002' to avoid 404 errors
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002" });
+      // The standard, evergreen model for the v1 API
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const base64Data = imagePreview.split(',')[1];
       const imagePart = {
