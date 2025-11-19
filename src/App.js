@@ -1,11 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, Info } from 'lucide-react';
-// ✅ NEW: The Modern SDK Import
 import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
-
-/* eslint-disable no-unused-vars */
 
 // --- CONFIGURATION ---
 const RARITY_TIERS = {
@@ -108,7 +105,7 @@ export default function App() {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
-      // ✅ NEW: Modern SDK Initialization
+      // ✅ Modern SDK with new @google/genai package
       const ai = new GoogleGenAI({ apiKey });
       
       const base64Data = imagePreview.split(',')[1];
@@ -144,9 +141,10 @@ export default function App() {
              "priceHigh": 20
            }`;
 
-      // ✅ NEW: Modern Unified API Call
+      // ✅ Using gemini-flash-latest for best stability
+      // This automatically selects the best available stable Flash model
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash', // Using 1.5-flash as 2.5 isn't public yet
+        model: 'gemini-flash-latest',
         contents: [
           {
             role: 'user',
@@ -163,18 +161,16 @@ export default function App() {
         ]
       });
 
-      // ✅ NEW: Direct text access property (no parentheses)
-      const text = response.text ? response.text() : response.text; 
-      // Note: Some versions use .text(), some .text. Handling both here safely or assume .text if specifically using new SDK
-      // Actually new SDK uses .text() usually but cheat sheet said .text property. 
-      // Let's trust the .text() method as fallback or access response.text directly if string.
-      
+      // ✅ Defensive text extraction - handles both .text() method and .text property
       const finalString = typeof response.text === 'function' ? response.text() : response.text;
       const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
       
       let data;
       try {
         data = JSON.parse(cleanText);
+        // Sanitize numbers just in case
+        data.priceLow = Number(data.priceLow) || 0;
+        data.priceHigh = Number(data.priceHigh) || 0;
       } catch (e) {
         console.error("JSON Parsing failed, using fallback");
         data = {
@@ -197,7 +193,11 @@ export default function App() {
 
     } catch (error) {
       console.error(error);
-      alert(`Error: ${error.message}`);
+      let msg = "Something went wrong.";
+      if (error.message.includes("404")) msg = "Model not found. The API might have changed.";
+      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
+      if (error.message.includes("API key") || error.message.includes("apiKey")) msg = "API Key issue. Check Netlify.";
+      alert(msg + "\nTechnical detail: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -397,7 +397,7 @@ export default function App() {
             <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
               Find me on TikTok
             </a>
-             <p className="text-xs opacity-50 mt-4">SpicyLister v1.2 • Powered by @google/genai</p>
+             <p className="text-xs opacity-50 mt-4">SpicyLister v1.3 • Powered by Gemini Flash</p>
           </div>
         </div>
 
