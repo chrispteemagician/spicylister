@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, Info } from 'lucide-react';
+import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, Info, ExternalLink } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
@@ -30,7 +30,7 @@ const detectUserRegion = () => {
     if (timezone.includes('Europe/London')) return 'UK';
     if (timezone.includes('America')) return 'US';
     if (timezone.includes('Australia')) return 'AU';
-    return 'UK'; 
+    return 'UK';
   } catch { return 'UK'; }
 };
 
@@ -62,14 +62,44 @@ const compressImage = (file) => {
   });
 };
 
+// ✨ NEW: Store Integration Helper Functions
+const formatForStore = (results, userCurrency) => {
+  return `${results.title}
+
+${results.description}
+
+Condition: Excellent
+
+VALUE: ${userCurrency.symbol}${results.priceLow} - ${results.priceHigh}
+CATEGORY: ${results.category}`;
+};
+
+const sendToStore = (results, userCurrency) => {
+  const storeText = formatForStore(results, userCurrency);
+  const encoded = encodeURIComponent(storeText);
+  window.open(`https://spicylisterstore.manus.space/list?import=${encoded}`, '_blank');
+};
+
+const copyForStore = async (results, userCurrency, setCopiedStore) => {
+  const storeText = formatForStore(results, userCurrency);
+  try {
+    await navigator.clipboard.writeText(storeText);
+    setCopiedStore(true);
+    setTimeout(() => setCopiedStore(false), 2000);
+  } catch (err) {
+    console.error('Copy failed:', err);
+  }
+};
+
 export default function App() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
-  const [isSpicyMode, setIsSpicyMode] = useState(true); 
+  const [isSpicyMode, setIsSpicyMode] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [copiedSection, setCopiedSection] = useState(null);
+  const [copiedStore, setCopiedStore] = useState(false); // ✨ NEW: State for Store copy button
 
   const resultCardRef = useRef(null);
   const userRegion = detectUserRegion();
@@ -100,17 +130,17 @@ export default function App() {
   const analyzeItem = async () => {
     if (!image) return;
     setLoading(true);
-    
+
     try {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
       // ✅ Modern SDK with new @google/genai package
       const ai = new GoogleGenAI({ apiKey });
-      
+
       const base64Data = imagePreview.split(',')[1];
 
-      const systemPrompt = isSpicyMode 
+      const systemPrompt = isSpicyMode
         ? `You are SpicyLister, a hilarious, high-energy auctioneer. 
            Analyze this image for the ${userRegion} market (${userCurrency.currency}).
            
@@ -164,7 +194,7 @@ export default function App() {
       // ✅ Defensive text extraction - handles both .text() method and .text property
       const finalString = typeof response.text === 'function' ? response.text() : response.text;
       const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
-      
+
       let data;
       try {
         data = JSON.parse(cleanText);
@@ -176,7 +206,7 @@ export default function App() {
         data = {
           title: "Item Identified (AI Format Issue)",
           category: "Misc",
-          description: cleanText.substring(0, 300), 
+          description: cleanText.substring(0, 300),
           priceLow: 0,
           priceHigh: 0,
           spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
@@ -185,7 +215,7 @@ export default function App() {
       }
 
       setResults(data);
-      
+
       if (isSpicyMode && (data.priceHigh > 50 || ['Rare', 'Legendary', 'God-Tier', 'Epic'].includes(data.rarity))) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 5000);
@@ -226,36 +256,36 @@ export default function App() {
       {showConfetti && <Confetti numberOfPieces={200} recycle={false} />}
 
       <div className="max-w-2xl mx-auto">
-        
+
         {/* HEADER & LOGO */}
         <div className="text-center mb-8 pt-4">
           <div className="flex justify-center mb-4">
-             <img 
-               src={process.env.PUBLIC_URL + '/logo.png'} 
-               alt="SpicyLister Logo" 
-               className="w-24 h-24 object-contain drop-shadow-md"
-               onError={(e) => {e.target.style.display='none'}} 
-             />
-             <div className="text-6xl" style={{display: 'none'}}>🌶️</div> 
+            <img
+              src={process.env.PUBLIC_URL + '/logo.png'}
+              alt="SpicyLister Logo"
+              className="w-24 h-24 object-contain drop-shadow-md"
+              onError={(e) => { e.target.style.display = 'none' }}
+            />
+            <div className="text-6xl" style={{ display: 'none' }}>🌶️</div>
           </div>
-          
+
           <h1 className="text-5xl font-bold mb-2" style={{ color: '#F28B82' }}>
             SpicyLister
           </h1>
           <p className="text-xl font-medium text-gray-700">
             Sell your clutter without a stutter
           </p>
-          
+
           {/* THE TOGGLE: Vanilla vs Spicy */}
           <div className="flex justify-center mt-6">
             <div className="bg-white p-1.5 rounded-full shadow-md inline-flex border border-orange-100">
-              <button 
+              <button
                 onClick={() => setIsSpicyMode(false)}
                 className={`px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${!isSpicyMode ? 'bg-blue-100 text-blue-700 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 <IceCream size={18} /> Vanilla
               </button>
-              <button 
+              <button
                 onClick={() => setIsSpicyMode(true)}
                 className={`px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${isSpicyMode ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
               >
@@ -263,17 +293,17 @@ export default function App() {
               </button>
             </div>
           </div>
-          
+
           {isSpicyMode ? (
             <p className="text-xs text-orange-600 mt-2 font-medium animate-pulse">🔥 Neurospicy Mode: Engaged</p>
           ) : (
-             <p className="text-xs text-blue-500 mt-2 font-medium">🍦 Professional Mode: Clean & Simple</p>
+            <p className="text-xs text-blue-500 mt-2 font-medium">🍦 Professional Mode: Clean & Simple</p>
           )}
         </div>
 
         {/* MAIN CARD */}
         <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-orange-100">
-          
+
           {!image && (
             <label className="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all hover:bg-orange-50 border-orange-300">
               <Camera className="w-20 h-20 mb-4 text-orange-300" />
@@ -313,13 +343,13 @@ export default function App() {
 
           {results && (
             <div className="space-y-6">
-              
+
               <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
-                 {isSpicyMode && (
+                {isSpicyMode && (
                   <div className={`mb-6 p-4 rounded-2xl border-2 ${getRarityStyle(results.rarity).bg} ${getRarityStyle(results.rarity).color} text-center`}>
                     <p className="text-lg font-bold italic text-gray-800">"{results.spicyComment}"</p>
                     <span className="text-xs uppercase font-black tracking-widest text-gray-500 mt-2 block">
-                        {results.rarity} TIER FIND {getRarityStyle(results.rarity).emoji}
+                      {results.rarity} TIER FIND {getRarityStyle(results.rarity).emoji}
                     </span>
                   </div>
                 )}
@@ -335,7 +365,7 @@ export default function App() {
                 </div>
 
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 mb-4">
-                   <div className="flex justify-between items-start mb-2">
+                  <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Description</span>
                     <button onClick={() => copyText('desc', results.description)} className="text-gray-400 hover:text-gray-600">
                       {copiedSection === 'desc' ? <Check size={18} /> : <Info size={18} />}
@@ -356,19 +386,43 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button 
-                  onClick={shareResult}
-                  className="flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800"
+              {/* ✨ NEW: Store Integration Buttons */}
+              <div className="space-y-3">
+                {/* PRIMARY: Send to Store Button */}
+                <button
+                  onClick={() => sendToStore(results, userCurrency)}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
                 >
-                  <Share2 size={18} /> Share
+                  <ExternalLink size={20} />
+                  Send to SpicyLister Store
                 </button>
-                <button 
-                  onClick={resetApp}
-                  className="flex-1 bg-white border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50"
-                >
-                  Scan New Item
-                </button>
+
+                {/* SECONDARY: Other Actions */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => copyForStore(results, userCurrency, setCopiedStore)}
+                    className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
+                  >
+                    {copiedStore ? <Check size={18} /> : <Copy size={18} />}
+                    <span className="text-xs">{copiedStore ? 'Copied!' : 'Copy'}</span>
+                  </button>
+
+                  <button
+                    onClick={shareResult}
+                    className="bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
+                  >
+                    <Share2 size={18} />
+                    <span className="text-xs">Share</span>
+                  </button>
+
+                  <button
+                    onClick={resetApp}
+                    className="bg-white border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 flex flex-col items-center justify-center gap-1 text-sm transition-colors"
+                  >
+                    <Trash2 size={18} />
+                    <span className="text-xs">New Scan</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -380,9 +434,9 @@ export default function App() {
               <Coffee className="text-yellow-500" /> This is Coffeeware
             </h3>
             <p className="text-sm text-gray-500 mt-1">Free to use. Support if it helps you.</p>
-            <a 
-              href="https://buymeacoffee.com/chrispteemagician" 
-              target="_blank" 
+            <a
+              href="https://buymeacoffee.com/chrispteemagician"
+              target="_blank"
               rel="noreferrer"
               className="mt-3 block bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-xl hover:bg-yellow-500 transition-colors"
             >
@@ -397,7 +451,7 @@ export default function App() {
             <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
               Find me on TikTok
             </a>
-             <p className="text-xs opacity-50 mt-4">SpicyLister v1.3 • Powered by Gemini Flash</p>
+            <p className="text-xs opacity-50 mt-4">SpicyLister v1.4 • Powered by Gemini Flash • Store Integration Active</p>
           </div>
         </div>
 
