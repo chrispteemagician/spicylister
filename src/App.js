@@ -1,10 +1,16 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, Info, ExternalLink } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, 
+  Info, ExternalLink, Ruler, Package, Scale, Crown, Gift, Edit3, X, AlertCircle
+} from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
 
-// --- CONFIGURATION ---
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
 const RARITY_TIERS = {
   'Common': { color: 'border-gray-400', bg: 'bg-gray-50', text: 'text-gray-600', emoji: '🗑️' },
   'Uncommon': { color: 'border-green-400', bg: 'bg-green-50', text: 'text-green-600', emoji: '🍀' },
@@ -23,7 +29,101 @@ const GLOBAL_REGIONS = {
   'EU': { currency: 'EUR', symbol: '€' }
 };
 
-// --- HELPERS ---
+// ✨ NEW: SpicyLister Branded Packaging Sizes
+const SPICYLISTER_PACKAGING = {
+  'large-letter': {
+    dimensions: '24×16×3cm',
+    maxDimensions: { length: 24, width: 16, height: 3 },
+    maxWeight: 750,
+    price: 0.85,
+    name: 'SpicyLister Large Letter',
+    icon: '📬',
+    description: 'Perfect for flat items'
+  },
+  'small-parcel': {
+    dimensions: '45×35×16cm',
+    maxDimensions: { length: 45, width: 35, height: 16 },
+    maxWeight: 2000,
+    price: 1.20,
+    name: 'SpicyLister Small Box',
+    icon: '📦',
+    description: 'Most popular size'
+  },
+  'medium-parcel': {
+    dimensions: '61×46×46cm',
+    maxDimensions: { length: 61, width: 46, height: 46 },
+    maxWeight: 20000,
+    price: 2.50,
+    name: 'SpicyLister Medium Box',
+    icon: '📦',
+    description: 'For larger items'
+  },
+  'large-parcel': {
+    dimensions: 'Custom',
+    maxDimensions: { length: 999, width: 999, height: 999 },
+    maxWeight: 30000,
+    price: 4.00,
+    name: 'SpicyLister Large Box',
+    icon: '📦',
+    description: 'Heavy duty protection'
+  }
+};
+
+// ✨ NEW: Savings Calculator Constants
+const SAVINGS_PER_LISTING = {
+  time: 18, // minutes saved vs manual listing
+  cost: 3.50 // pounds saved vs listing service
+};
+
+// ✨ NEW: Reward Suggestions (dopamine boosters!)
+const REWARDS = [
+  '☕ A nice brew and biscuit',
+  '🚶 A 20-minute walk in fresh air',
+  '📖 A chapter of your book',
+  '🎮 A quick gaming session',
+  '🛀 A relaxing bath',
+  '📱 Catch up on TikTok',
+  '🎵 Listen to your favorite album',
+  '🌳 Sit in nature for 15 minutes',
+  '🧘 A short meditation break',
+  '🎨 Doodle or color for fun',
+  '☀️ Ten minutes in the sunshine',
+  '💬 Text a friend you\'ve been meaning to reach',
+  '🐕 Extra playtime with your pet',
+  '🍫 Treat yourself to something nice'
+];
+
+// ✨ NEW: Kudos Actions (for future FeelFamous integration)
+const KUDOS_ACTIONS = {
+  listing_created: { kudos: 5, coins: 2 },
+  item_sold: { kudos: 10, coins: 5 },
+  helped_user: { kudos: 15, coins: 5 },
+  shared_tip: { kudos: 5, coins: 0 }
+};
+
+// ✨ NEW: Pro Tier Configuration
+const TIER_LIMITS = {
+  free: {
+    listingsPerMonth: 5,
+    features: ['Single photo', 'Basic AI', 'Packaging recommendations']
+  },
+  pro: {
+    price: 4.99,
+    listingsPerMonth: 200,
+    features: [
+      'Video assessment',
+      'Batch processing (10+ items)',
+      'Advanced material analysis',
+      'Market trend insights',
+      'Priority support'
+    ]
+  }
+};
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
 const detectUserRegion = () => {
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -62,36 +162,198 @@ const compressImage = (file) => {
   });
 };
 
-// ✨ NEW: Store Integration Helper Functions
-const formatForStore = (results, userCurrency) => {
-  return `${results.title}
-
-${results.description}
-
-Condition: Excellent
-
-VALUE: ${userCurrency.symbol}${results.priceLow} - ${results.priceHigh}
-CATEGORY: ${results.category}`;
+// ✨ NEW: Category Mapping for Store Integration
+const CATEGORY_MAP = {
+  'Electronics': 'Electronics',
+  'Electronics > Phones': 'Electronics',
+  'Fashion': 'Fashion',
+  'Fashion > Clothing': 'Fashion',
+  'Home': 'Home & Garden',
+  'Books': 'Books, Comics & Magazines',
+  'Collectibles': 'Collectibles',
+  'Collectables': 'Collectibles',
+  'Art': 'Art',
+  'Toys': 'Toys & Games',
+  'Sports': 'Sports & Outdoors',
+  'Antiques': 'Antiques'
 };
 
-const sendToStore = (results, userCurrency) => {
-  const storeText = formatForStore(results, userCurrency);
-  const encoded = encodeURIComponent(storeText);
-  window.open(`https://spicylisterstore.manus.space/list?import=${encoded}`, '_blank');
+const mapCategory = (category) => {
+  if (!category) return 'Other';
+  if (CATEGORY_MAP[category]) return CATEGORY_MAP[category];
+  const mainCategory = category.split('>')[0].trim();
+  if (CATEGORY_MAP[mainCategory]) return CATEGORY_MAP[mainCategory];
+  // Fuzzy match
+  const lowerCat = category.toLowerCase();
+  if (lowerCat.includes('electronic') || lowerCat.includes('phone') || lowerCat.includes('computer')) return 'Electronics';
+  if (lowerCat.includes('fashion') || lowerCat.includes('cloth') || lowerCat.includes('shoe')) return 'Fashion';
+  if (lowerCat.includes('book') || lowerCat.includes('comic') || lowerCat.includes('magazine')) return 'Books, Comics & Magazines';
+  if (lowerCat.includes('collect')) return 'Collectibles';
+  if (lowerCat.includes('toy') || lowerCat.includes('game')) return 'Toys & Games';
+  if (lowerCat.includes('home') || lowerCat.includes('garden') || lowerCat.includes('kitchen')) return 'Home & Garden';
+  return 'Other';
 };
 
-const copyForStore = async (results, userCurrency, setCopiedStore) => {
-  const storeText = formatForStore(results, userCurrency);
+// ✨ NEW: Condition Mapping for Store Integration
+const CONDITION_MAP = {
+  'New with tags': 'new',
+  'New': 'new',
+  'Like new': 'like-new',
+  'Excellent condition': 'excellent',
+  'Excellent': 'excellent',
+  'Very good condition': 'excellent',
+  'Good condition': 'good',
+  'Good': 'good',
+  'Fair condition': 'fair',
+  'Fair': 'fair',
+  'Used': 'good'
+};
+
+const mapCondition = (condition) => {
+  if (!condition) return 'good';
+  if (CONDITION_MAP[condition]) return CONDITION_MAP[condition];
+  const lowerCond = condition.toLowerCase();
+  if (lowerCond.includes('new')) return 'new';
+  if (lowerCond.includes('excellent') || lowerCond.includes('like new') || lowerCond.includes('mint')) return 'excellent';
+  if (lowerCond.includes('good') || lowerCond.includes('very good')) return 'good';
+  if (lowerCond.includes('fair') || lowerCond.includes('acceptable')) return 'fair';
+  return 'good';
+};
+
+// ✨ NEW: Smart Packaging Recommendation
+const recommendPackaging = (dimensions, weight, fragility) => {
+  if (!dimensions || !weight) {
+    return {
+      recommended: 'small-parcel',
+      details: SPICYLISTER_PACKAGING['small-parcel'],
+      reasoning: 'Default recommendation - dimensions not available',
+      alternatives: [SPICYLISTER_PACKAGING['medium-parcel']]
+    };
+  }
+
+  const { length, width, height } = dimensions;
+  const weightGrams = weight.grams || weight;
+
+  // Add safety padding (3cm)
+  const paddedLength = length + 3;
+  const paddedWidth = width + 3;
+  const paddedHeight = height + 3;
+
+  // Determine smallest fitting package
+  let recommended = 'large-parcel';
+  let reasoning = 'Fits safely with protective padding';
+
+  const packagingOrder = ['large-letter', 'small-parcel', 'medium-parcel', 'large-parcel'];
+
+  for (const size of packagingOrder) {
+    const pkg = SPICYLISTER_PACKAGING[size];
+    const max = pkg.maxDimensions;
+    
+    if (paddedLength <= max.length && paddedWidth <= max.width && paddedHeight <= max.height && weightGrams <= pkg.maxWeight) {
+      recommended = size;
+      break;
+    }
+  }
+
+  // If high fragility, go up one size for extra protection
+  if (fragility === 'high') {
+    const currentIndex = packagingOrder.indexOf(recommended);
+    if (currentIndex < packagingOrder.length - 1 && recommended !== 'large-parcel') {
+      recommended = packagingOrder[currentIndex + 1];
+      reasoning = 'Upsized for fragile item protection';
+    }
+  }
+
+  // Build alternatives list
+  const currentIndex = packagingOrder.indexOf(recommended);
+  const alternatives = [];
+  if (currentIndex < packagingOrder.length - 1) {
+    alternatives.push(SPICYLISTER_PACKAGING[packagingOrder[currentIndex + 1]]);
+  }
+
+  return {
+    recommended,
+    details: SPICYLISTER_PACKAGING[recommended],
+    reasoning,
+    alternatives
+  };
+};
+
+// ✨ NEW: Savings Calculator
+const calculateSavings = () => {
+  const saved = JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
+  saved.count += 1;
+  saved.time += SAVINGS_PER_LISTING.time;
+  saved.cost += SAVINGS_PER_LISTING.cost;
+  localStorage.setItem('spicylister_savings', JSON.stringify(saved));
+  return saved;
+};
+
+const getCumulativeSavings = () => {
+  return JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
+};
+
+// ✨ NEW: Random Reward Suggestion
+const getRandomReward = () => {
+  return REWARDS[Math.floor(Math.random() * REWARDS.length)];
+};
+
+// ✨ NEW: Milestone Checker
+const checkMilestones = (count) => {
+  const milestones = [1, 5, 10, 25, 50, 100];
+  if (milestones.includes(count)) {
+    return {
+      show: true,
+      message: `🎊 ${count} listing${count > 1 ? 's' : ''} created! You're crushing it!`,
+      confetti: true
+    };
+  }
+  return { show: false };
+};
+
+// ✨ NEW: Kudos Award Function (with graceful fallback)
+const awardKudos = async (action, setShowKudosNotification) => {
+  const apiUrl = process.env.REACT_APP_FEELFAMOUS_API_URL;
+  const apiKey = process.env.REACT_APP_FEELFAMOUS_API_KEY;
+  
+  // If not configured, skip silently
+  if (!apiUrl || apiUrl.includes('placeholder')) {
+    console.log('Kudos system not yet configured - earning virtual kudos locally');
+    // Still show the notification for dopamine hit!
+    const { kudos, coins } = KUDOS_ACTIONS[action] || { kudos: 5, coins: 2 };
+    setShowKudosNotification({ kudos, coins });
+    setTimeout(() => setShowKudosNotification(null), 3000);
+    return;
+  }
+  
   try {
-    await navigator.clipboard.writeText(storeText);
-    setCopiedStore(true);
-    setTimeout(() => setCopiedStore(false), 2000);
+    const { kudos, coins } = KUDOS_ACTIONS[action];
+    
+    const response = await fetch(`${apiUrl}/kudos/award`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey
+      },
+      body: JSON.stringify({ action, kudos, coins })
+    });
+    
+    if (response.ok) {
+      setShowKudosNotification({ kudos, coins });
+      setTimeout(() => setShowKudosNotification(null), 3000);
+    }
   } catch (err) {
-    console.error('Copy failed:', err);
+    // Fail silently - kudos is optional
+    console.log('Kudos award failed:', err.message);
   }
 };
 
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
 export default function App() {
+  // Existing state
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -99,11 +361,44 @@ export default function App() {
   const [isSpicyMode, setIsSpicyMode] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [copiedSection, setCopiedSection] = useState(null);
-  const [copiedStore, setCopiedStore] = useState(false); // ✨ NEW: State for Store copy button
+  const [copiedStore, setCopiedStore] = useState(false);
+
+  // ✨ NEW: Dimension editing state
+  const [editingDimensions, setEditingDimensions] = useState(false);
+  const [editedDimensions, setEditedDimensions] = useState(null);
+  const [dimensionWarning, setDimensionWarning] = useState(null);
+
+  // ✨ NEW: Packaging state
+  const [packaging, setPackaging] = useState(null);
+  const [hasOwnPackaging, setHasOwnPackaging] = useState(false);
+
+  // ✨ NEW: Savings & Rewards state
+  const [currentSavings, setCurrentSavings] = useState(null);
+  const [currentReward, setCurrentReward] = useState(null);
+  const [milestone, setMilestone] = useState(null);
+
+  // ✨ NEW: Pro tier state
+  const [isPro, setIsPro] = useState(false);
+  const [listingCount, setListingCount] = useState(() => {
+    const saved = localStorage.getItem('spicylister_count');
+    return saved ? parseInt(saved) : 0;
+  });
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // ✨ NEW: Kudos notification state
+  const [showKudosNotification, setShowKudosNotification] = useState(null);
 
   const resultCardRef = useRef(null);
   const userRegion = detectUserRegion();
   const userCurrency = GLOBAL_REGIONS[userRegion];
+
+  // Load cumulative savings on mount
+  useEffect(() => {
+    const saved = getCumulativeSavings();
+    if (saved.count > 0) {
+      setCurrentSavings(saved);
+    }
+  }, []);
 
   const getRarityStyle = (tier) => {
     return RARITY_TIERS[tier] || RARITY_TIERS['Common'];
@@ -117,6 +412,13 @@ export default function App() {
       setImagePreview(compressed);
       setResults(null);
       setShowConfetti(false);
+      setPackaging(null);
+      setCurrentSavings(null);
+      setCurrentReward(null);
+      setMilestone(null);
+      setEditingDimensions(false);
+      setEditedDimensions(null);
+      setHasOwnPackaging(false);
     }
   };
 
@@ -125,6 +427,14 @@ export default function App() {
     setImagePreview(null);
     setResults(null);
     setShowConfetti(false);
+    setPackaging(null);
+    setCurrentSavings(null);
+    setCurrentReward(null);
+    setMilestone(null);
+    setEditingDimensions(false);
+    setEditedDimensions(null);
+    setHasOwnPackaging(false);
+    setDimensionWarning(null);
   };
 
   const analyzeItem = async () => {
@@ -135,19 +445,25 @@ export default function App() {
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
 
-      // ✅ Modern SDK with new @google/genai package
       const ai = new GoogleGenAI({ apiKey });
-
       const base64Data = imagePreview.split(',')[1];
 
+      // ✨ ENHANCED: System prompt now includes dimensions, weight, material, fragility
       const systemPrompt = isSpicyMode
-        ? `You are SpicyLister, a hilarious, high-energy auctioneer. 
+        ? `You are SpicyLister, a hilarious, high-energy auctioneer with expertise in item valuation AND shipping logistics. 
            Analyze this image for the ${userRegion} market (${userCurrency.currency}).
            
            1. Assign a "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
            2. Roast it if it's junk, Hype it if it's valuable. Be British, witty.
            3. Give a listing title and description.
            4. Give a price range (low/high).
+           
+           **CRITICAL: Also provide shipping intelligence:**
+           - Estimated dimensions (length, width, height in cm) - be realistic based on common objects
+           - Estimated weight (in grams)
+           - Material composition (plastic/metal/fabric/glass/ceramic/wood/mixed/etc)
+           - Fragility level (low/medium/high)
+           - Confidence scores for dimensions (0-100) and weight (0-100)
            
            Return ONLY valid JSON:
            {
@@ -156,10 +472,31 @@ export default function App() {
              "spicyComment": "Roast or hype comment",
              "description": "Sales description",
              "category": "eBay Category",
+             "condition": "Condition assessment",
              "priceLow": 10,
-             "priceHigh": 20
+             "priceHigh": 20,
+             "dimensions": {
+               "length": 15,
+               "width": 10,
+               "height": 5,
+               "confidence": 75
+             },
+             "weight": {
+               "grams": 250,
+               "confidence": 70
+             },
+             "material": "plastic housing with electronic components",
+             "fragility": "medium"
            }`
-        : `Act as a professional reseller for the ${userRegion} market (${userCurrency.currency}).
+        : `Act as a professional reseller and shipping expert for the ${userRegion} market (${userCurrency.currency}).
+           
+           **Provide both listing AND shipping details:**
+           - Estimated dimensions (length, width, height in cm)
+           - Estimated weight (in grams)
+           - Material composition
+           - Fragility level (low/medium/high)
+           - Confidence scores for dimensions and weight (0-100)
+           
            Return ONLY valid JSON:
            {
              "title": "SEO optimized title",
@@ -167,12 +504,23 @@ export default function App() {
              "spicyComment": "Item analyzed.",
              "description": "Professional description",
              "category": "eBay Category",
+             "condition": "Condition assessment",
              "priceLow": 10,
-             "priceHigh": 20
+             "priceHigh": 20,
+             "dimensions": {
+               "length": 15,
+               "width": 10,
+               "height": 5,
+               "confidence": 75
+             },
+             "weight": {
+               "grams": 250,
+               "confidence": 70
+             },
+             "material": "description of materials",
+             "fragility": "low"
            }`;
 
-      // ✅ Using gemini-flash-latest for best stability
-      // This automatically selects the best available stable Flash model
       const response = await ai.models.generateContent({
         model: 'gemini-flash-latest',
         contents: [
@@ -191,34 +539,90 @@ export default function App() {
         ]
       });
 
-      // ✅ Defensive text extraction - handles both .text() method and .text property
       const finalString = typeof response.text === 'function' ? response.text() : response.text;
       const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
 
       let data;
       try {
         data = JSON.parse(cleanText);
-        // Sanitize numbers just in case
+        // Sanitize numbers
         data.priceLow = Number(data.priceLow) || 0;
         data.priceHigh = Number(data.priceHigh) || 0;
+        
+        // Ensure dimensions and weight exist with defaults
+        if (!data.dimensions) {
+          data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
+        }
+        if (!data.weight) {
+          data.weight = { grams: 200, confidence: 50 };
+        }
+        if (!data.fragility) {
+          data.fragility = 'medium';
+        }
+        if (!data.material) {
+          data.material = 'Mixed materials';
+        }
+        if (!data.condition) {
+          data.condition = 'Good condition';
+        }
       } catch (e) {
         console.error("JSON Parsing failed, using fallback");
         data = {
           title: "Item Identified (AI Format Issue)",
           category: "Misc",
           description: cleanText.substring(0, 300),
+          condition: "Good condition",
           priceLow: 0,
           priceHigh: 0,
           spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
-          rarity: "Common"
+          rarity: "Common",
+          dimensions: { length: 15, width: 10, height: 5, confidence: 50 },
+          weight: { grams: 200, confidence: 50 },
+          material: "Unknown",
+          fragility: "medium"
         };
       }
 
       setResults(data);
+      setEditedDimensions(data.dimensions);
 
+      // ✨ NEW: Calculate packaging recommendation
+      const packagingRec = recommendPackaging(data.dimensions, data.weight, data.fragility);
+      setPackaging(packagingRec);
+
+      // ✨ NEW: Calculate and display savings
+      const savings = calculateSavings();
+      setCurrentSavings(savings);
+      setCurrentReward(getRandomReward());
+
+      // ✨ NEW: Increment listing count and check for milestones
+      const newCount = listingCount + 1;
+      setListingCount(newCount);
+      localStorage.setItem('spicylister_count', newCount.toString());
+      
+      const milestoneCheck = checkMilestones(newCount);
+      if (milestoneCheck.show) {
+        setMilestone(milestoneCheck);
+      }
+
+      // ✨ NEW: Award kudos
+      await awardKudos('listing_created', setShowKudosNotification);
+
+      // Confetti for high-value or rare items
       if (isSpicyMode && (data.priceHigh > 50 || ['Rare', 'Legendary', 'God-Tier', 'Epic'].includes(data.rarity))) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 5000);
+      }
+
+      // Also confetti for milestones
+      if (milestoneCheck.confetti) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }
+
+      // ✨ NEW: Check if free tier limit reached
+      if (!isPro && newCount >= TIER_LIMITS.free.listingsPerMonth) {
+        setTimeout(() => setShowUpgradeModal(true), 2000);
       }
 
     } catch (error) {
@@ -231,6 +635,32 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✨ NEW: Enhanced Store Integration with full shipping data
+  const sendToStore = () => {
+    if (!results) return;
+    
+    const dimensions = editedDimensions || results.dimensions;
+    
+    const storeData = {
+      title: results.title,
+      description: results.description,
+      category: mapCategory(results.category),
+      priceGbp: Math.round(results.priceLow * 100), // Convert £ to pence
+      condition: mapCondition(results.condition),
+      
+      // Shipping data
+      dimensions: `${dimensions.length}x${dimensions.width}x${dimensions.height}`,
+      weight: results.weight.grams,
+      recommendedPackaging: packaging?.recommended || 'small-parcel',
+      packagingPrice: packaging?.details?.price || 1.20,
+      shippingMethod: 'royal-mail-48-tracked',
+      shippingCost: 500 // £5 flat rate in pence (Fiver Flat Rate!)
+    };
+    
+    const encoded = encodeURIComponent(JSON.stringify(storeData));
+    window.open(`https://spicylisterstore.manus.space/list?import=${encoded}`, '_blank');
   };
 
   const shareResult = async () => {
@@ -251,9 +681,136 @@ export default function App() {
     setTimeout(() => setCopiedSection(null), 2000);
   };
 
+  const copyForStore = async () => {
+    if (!results) return;
+    const dimensions = editedDimensions || results.dimensions;
+    const storeText = `${results.title}
+
+${results.description}
+
+Condition: ${results.condition || 'Good condition'}
+
+VALUE: ${userCurrency.symbol}${results.priceLow} - ${results.priceHigh}
+CATEGORY: ${results.category}
+
+DIMENSIONS: ${dimensions.length}×${dimensions.width}×${dimensions.height}cm
+WEIGHT: ~${results.weight.grams}g
+PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
+    
+    try {
+      await navigator.clipboard.writeText(storeText);
+      setCopiedStore(true);
+      setTimeout(() => setCopiedStore(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
+
+  // ✨ NEW: Dimension editing handlers
+  const handleDimensionChange = (field, value) => {
+    const numValue = parseInt(value) || 0;
+    const newDimensions = { ...editedDimensions, [field]: numValue };
+    setEditedDimensions(newDimensions);
+
+    // Check if significantly different from AI estimate
+    if (results?.dimensions) {
+      const originalValue = results.dimensions[field];
+      const diff = Math.abs(numValue - originalValue);
+      const percentDiff = (diff / originalValue) * 100;
+      
+      if (percentDiff > 50 && numValue > 0) {
+        setDimensionWarning(`That's quite different from the AI estimate (${originalValue}cm). Are you sure?`);
+      } else {
+        setDimensionWarning(null);
+      }
+    }
+
+    // Recalculate packaging with new dimensions
+    if (results?.weight && results?.fragility) {
+      const newPackaging = recommendPackaging(newDimensions, results.weight, results.fragility);
+      setPackaging(newPackaging);
+    }
+  };
+
+  const saveDimensionEdits = () => {
+    setEditingDimensions(false);
+    setDimensionWarning(null);
+    // Recalculate packaging
+    if (results?.weight && results?.fragility) {
+      const newPackaging = recommendPackaging(editedDimensions, results.weight, results.fragility);
+      setPackaging(newPackaging);
+    }
+  };
+
+  // Format time for display
+  const formatTime = (minutes) => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}hr ${mins}min` : `${hours}hr`;
+  };
+
+  // =============================================================================
+  // RENDER
+  // =============================================================================
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 font-sans p-4">
-      {showConfetti && <Confetti numberOfPieces={200} recycle={false} />}
+      {showConfetti && <Confetti numberOfPieces={250} recycle={false} />}
+
+      {/* ✨ NEW: Kudos Notification */}
+      {showKudosNotification && (
+        <div className="fixed top-4 right-4 z-50 animate-bounce">
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-3 rounded-2xl shadow-lg">
+            <p className="font-bold text-lg">+{showKudosNotification.kudos} Kudos! 🌟</p>
+            <p className="text-xs opacity-90">You're helping build the community! 💚</p>
+          </div>
+        </div>
+      )}
+
+      {/* ✨ NEW: Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <button 
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X size={24} />
+            </button>
+            
+            <div className="text-center">
+              <h2 className="text-2xl font-black text-gray-800 mb-2">✨ You're on fire!</h2>
+              <p className="text-gray-600 mb-4">You've created {listingCount} listings this month!</p>
+              
+              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-4 rounded-2xl mb-4 text-left">
+                <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <Crown className="text-yellow-500" size={20} />
+                  SpicyLister Pro Unlocks:
+                </h3>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li>📹 Video assessment (scan from all angles)</li>
+                  <li>⚡ Batch processing (10+ items at once)</li>
+                  <li>🔬 Advanced material analysis</li>
+                  <li>📊 Market trend insights</li>
+                  <li>💬 Priority support</li>
+                </ul>
+              </div>
+              
+              <button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors">
+                Upgrade to Pro - £4.99/month
+              </button>
+              
+              <button 
+                onClick={() => setShowUpgradeModal(false)}
+                className="text-gray-500 text-sm hover:text-gray-700"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto">
 
@@ -354,6 +911,7 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Title Card */}
                 <div className="bg-orange-50 p-5 rounded-2xl border border-orange-100 mb-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-orange-600 tracking-wider">Listing Title</span>
@@ -364,17 +922,19 @@ export default function App() {
                   <h2 className="text-xl font-bold text-gray-900 leading-tight">{results.title}</h2>
                 </div>
 
+                {/* Description Card */}
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 mb-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Description</span>
                     <button onClick={() => copyText('desc', results.description)} className="text-gray-400 hover:text-gray-600">
-                      {copiedSection === 'desc' ? <Check size={18} /> : <Info size={18} />}
+                      {copiedSection === 'desc' ? <Check size={18} /> : <Copy size={18} />}
                     </button>
                   </div>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{results.description}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Price & Category Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
                     <span className="text-xs font-bold uppercase text-green-600">Est. Value</span>
                     <p className="text-2xl font-black text-green-700 mt-1">{userCurrency.symbol}{results.priceLow} - {results.priceHigh}</p>
@@ -384,13 +944,163 @@ export default function App() {
                     <p className="text-sm font-bold text-blue-800 mt-2 leading-tight">{results.category}</p>
                   </div>
                 </div>
+
+                {/* ✨ NEW: Dimensions Card */}
+                <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Ruler className="text-blue-600" size={20} />
+                      <span className="text-xs font-bold uppercase text-blue-600">Dimensions & Weight</span>
+                    </div>
+                    <button 
+                      onClick={() => setEditingDimensions(!editingDimensions)}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <Edit3 size={18} />
+                    </button>
+                  </div>
+
+                  {!editingDimensions ? (
+                    <>
+                      <div className="flex items-center gap-4 mb-2">
+                        <div className="flex-1">
+                          <p className="text-lg font-bold text-blue-900">
+                            📏 {editedDimensions?.length || results.dimensions.length} × {editedDimensions?.width || results.dimensions.width} × {editedDimensions?.height || results.dimensions.height} cm
+                          </p>
+                          <p className="text-sm text-blue-600 mt-1">
+                            <Scale size={14} className="inline mr-1" />
+                            Weight: ~{results.weight.grams}g
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 text-xs text-blue-500 mt-2">
+                        <span>Confidence: {editedDimensions?.confidence || results.dimensions.confidence}%</span>
+                        <span>•</span>
+                        <span className="capitalize">{results.material}</span>
+                        <span>•</span>
+                        <span className="capitalize">{results.fragility} fragility</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-xs text-blue-600 block mb-1">Length (cm)</label>
+                          <input
+                            type="number"
+                            value={editedDimensions?.length || ''}
+                            onChange={(e) => handleDimensionChange('length', e.target.value)}
+                            className="w-full p-2 border border-blue-200 rounded-lg text-center font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-blue-600 block mb-1">Width (cm)</label>
+                          <input
+                            type="number"
+                            value={editedDimensions?.width || ''}
+                            onChange={(e) => handleDimensionChange('width', e.target.value)}
+                            className="w-full p-2 border border-blue-200 rounded-lg text-center font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-blue-600 block mb-1">Height (cm)</label>
+                          <input
+                            type="number"
+                            value={editedDimensions?.height || ''}
+                            onChange={(e) => handleDimensionChange('height', e.target.value)}
+                            className="w-full p-2 border border-blue-200 rounded-lg text-center font-bold"
+                          />
+                        </div>
+                      </div>
+                      
+                      {dimensionWarning && (
+                        <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
+                          <AlertCircle size={16} />
+                          {dimensionWarning}
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={saveDimensionEdits}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm"
+                      >
+                        Save Dimensions
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* ✨ NEW: Packaging Recommendation Card */}
+                {packaging && !hasOwnPackaging && (
+                  <div className="bg-orange-50 p-5 rounded-2xl border border-orange-200 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Package className="text-orange-600" size={20} />
+                      <span className="text-xs font-bold uppercase text-orange-600">Recommended Packaging</span>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-xl border-2 border-orange-300 mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{packaging.details.icon}</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-900">{packaging.details.name}</p>
+                          <p className="text-sm text-gray-600">{packaging.details.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {packaging.details.dimensions}, up to {packaging.details.maxWeight >= 1000 ? `${packaging.details.maxWeight / 1000}kg` : `${packaging.details.maxWeight}g`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-orange-600">
+                            £{packaging.details.price.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-bold text-sm transition-colors">
+                        Order This Size
+                      </button>
+                      <button 
+                        onClick={() => setHasOwnPackaging(true)}
+                        className="flex-1 bg-white border-2 border-orange-200 text-orange-600 py-2 rounded-lg font-bold text-sm hover:bg-orange-50 transition-colors"
+                      >
+                        I Have It
+                      </button>
+                    </div>
+                    
+                    {packaging.alternatives && packaging.alternatives.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-3 text-center">
+                        Alternative: {packaging.alternatives[0].name} (£{packaging.alternatives[0].price.toFixed(2)})
+                      </p>
+                    )}
+                    
+                    <p className="text-xs text-orange-600 mt-2 text-center italic">
+                      {packaging.reasoning}
+                    </p>
+                  </div>
+                )}
+
+                {/* Packaging confirmed message */}
+                {hasOwnPackaging && (
+                  <div className="bg-green-50 p-4 rounded-2xl border border-green-200 mb-4 text-center">
+                    <p className="text-green-700 font-bold flex items-center justify-center gap-2">
+                      <Check size={20} /> Using your own packaging
+                    </p>
+                    <button 
+                      onClick={() => setHasOwnPackaging(false)}
+                      className="text-green-600 text-sm underline mt-1"
+                    >
+                      Show recommendations again
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* ✨ NEW: Store Integration Buttons */}
+              {/* Action Buttons */}
               <div className="space-y-3">
                 {/* PRIMARY: Send to Store Button */}
                 <button
-                  onClick={() => sendToStore(results, userCurrency)}
+                  onClick={sendToStore}
                   className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
                 >
                   <ExternalLink size={20} />
@@ -400,7 +1110,7 @@ export default function App() {
                 {/* SECONDARY: Other Actions */}
                 <div className="grid grid-cols-3 gap-2">
                   <button
-                    onClick={() => copyForStore(results, userCurrency, setCopiedStore)}
+                    onClick={copyForStore}
                     className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
                   >
                     {copiedStore ? <Check size={18} /> : <Copy size={18} />}
@@ -424,10 +1134,59 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* ✨ NEW: Savings Celebration Card */}
+              {currentSavings && (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-3xl border-2 border-green-200 text-center">
+                  <h2 className="text-3xl font-black text-green-700 mb-3">
+                    {milestone?.show ? milestone.message : '🎉 Well Done!'}
+                  </h2>
+                  
+                  <div className="bg-white p-4 rounded-2xl mb-4">
+                    <p className="text-gray-700 mb-2">You've saved:</p>
+                    <p className="text-3xl font-black text-green-600">
+                      {SAVINGS_PER_LISTING.time} min & £{SAVINGS_PER_LISTING.cost.toFixed(2)}
+                    </p>
+                  </div>
+                  
+                  {currentReward && (
+                    <div className="bg-green-100 p-4 rounded-2xl mb-4">
+                      <p className="text-sm text-green-800 mb-2 font-semibold">
+                        You've earned time for:
+                      </p>
+                      <p className="text-lg font-bold text-green-700">
+                        {currentReward}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-green-600">
+                    💚 Total saved: {formatTime(currentSavings.time)}, £{currentSavings.cost.toFixed(2)} across {currentSavings.count} listings
+                  </p>
+                </div>
+              )}
+
+              {/* ✨ NEW: Pro Tier Teaser (shows after 3 listings) */}
+              {!isPro && listingCount >= 3 && listingCount < TIER_LIMITS.free.listingsPerMonth && (
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-2xl border border-yellow-200 flex items-center gap-3">
+                  <Crown size={24} className="text-yellow-500 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-800">SpicyLister Pro</p>
+                    <p className="text-sm text-gray-600">Video assessment, batch processing & more</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm hover:from-yellow-500 hover:to-orange-600 transition-colors whitespace-nowrap"
+                  >
+                    £4.99/mo
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
+        {/* FOOTER */}
         <div className="mt-12 text-center space-y-6 pb-12">
           <div className="inline-block bg-white px-6 py-4 rounded-3xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
@@ -451,7 +1210,7 @@ export default function App() {
             <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
               Find me on TikTok
             </a>
-            <p className="text-xs opacity-50 mt-4">SpicyLister v1.4 • Powered by Gemini Flash • Store Integration Active</p>
+            <p className="text-xs opacity-50 mt-4">SpicyLister v2.0 • Powered by Gemini Flash • Dimensions + Packaging + Savings</p>
           </div>
         </div>
 
