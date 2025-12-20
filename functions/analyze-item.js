@@ -1,3 +1,16 @@
+/**
+ * SpicyLister v2.0 - Enhanced Analyze Item Function
+ * 
+ * Now includes:
+ * - Dimension estimation (L×W×H in cm)
+ * - Weight estimation (grams)
+ * - Material composition detection
+ * - Fragility assessment
+ * - Confidence scores
+ * 
+ * Built with 💚 for the neurodivergent community
+ */
+
 exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
@@ -23,7 +36,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { images, extraInfo } = JSON.parse(event.body);
+    const { images, extraInfo, isSpicyMode = true, region = 'UK' } = JSON.parse(event.body);
 
     if (!images || images.length === 0) {
       return {
@@ -44,62 +57,104 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // SpicyBrain prompt - Updated for MUCH better pricing research
-    const systemPrompt = `You are **"SpicyBrain,"** an expert online reseller with 10+ years of experience on eBay, Vinted, Depop, and Facebook Marketplace. You have an encyclopedic knowledge of current market values and pricing trends. Your special skill is helping neurodivergent individuals overcome executive dysfunction to declutter and get that dopamine boost from selling.
+    // ✨ ENHANCED: SpicyBrain prompt now includes shipping intelligence
+    const systemPrompt = `You are **"SpicyBrain,"** an expert online reseller with 10+ years of experience on eBay, Vinted, Depop, and Facebook Marketplace. You have an encyclopedic knowledge of current market values, pricing trends, AND shipping logistics. Your special skill is helping neurodivergent individuals overcome executive dysfunction to declutter and get that dopamine boost from selling.
+
+**YOUR MISSION:** Analyze the user-submitted image(s) and generate a complete listing package INCLUDING shipping intelligence.
 
 **CRITICAL PRICING INSTRUCTIONS:** You MUST provide realistic, research-based pricing. This is the most important part of your job. Follow these steps:
 
 1. **IDENTIFY** the exact item: brand, model, year, edition, size, color, condition
-2. **RESEARCH** current UK market values by thinking through:
+2. **RESEARCH** current ${region} market values by thinking through:
    - What similar items ACTUALLY SELL FOR (not asking prices)
-   - Brand reputation and demand in the UK market
+   - Brand reputation and demand in the ${region} market
    - Condition impact on value
    - Seasonal demand factors
    - Rarity or commonality of the item
 3. **PRICE REALISTICALLY** based on actual market data, not guesswork
 
-**Your Task:** Analyze the user-submitted image(s) and generate a complete, ready-to-use listing package.
+**CRITICAL SHIPPING INTELLIGENCE:** You MUST estimate physical properties for shipping:
 
-**Output Format:** Return as clean JSON with keys: \`title\`, \`description\`, \`condition\`, \`pricing\`, and \`platformTips\`.
+1. **DIMENSIONS** - Estimate length, width, height in centimeters by:
+   - Recognizing the item type and its typical size
+   - Using any reference objects visible in the image
+   - Considering standard sizes for common items (phones, books, clothes, etc.)
+   - Provide a confidence score (0-100) based on certainty
 
-**Detailed Instructions:**
+2. **WEIGHT** - Estimate weight in grams by:
+   - Identifying the primary materials (plastic, metal, fabric, glass, etc.)
+   - Calculating approximate mass based on volume and material density
+   - Accounting for internal components if applicable
+   - Provide a confidence score (0-100) based on certainty
 
-1. **\`title\`**: Create a keyword-rich title with brand, model, size, color, key features. Make it searchable and compelling.
+3. **MATERIAL COMPOSITION** - Identify primary materials:
+   - e.g., "plastic housing with metal internals"
+   - e.g., "100% cotton fabric"
+   - e.g., "ceramic with wooden base"
 
-2. **\`description\`**: Write a detailed, friendly description:
-   - Start with an engaging intro sentence
-   - Use bullet points for key features, materials, measurements
-   - Include relevant keywords naturally throughout
-   - End with: "Thanks for looking! This listing was created with SpicyLister, a free app designed to help neurospicy brains declutter and get that sweet dopamine boost from selling. If you find this helpful, consider supporting the Community Comedy Magic Tour at buymeacoffee @chrispteemagician ☕"
+4. **FRAGILITY LEVEL** - Assess shipping fragility:
+   - "low" = Durable items (books, clothing, plastic toys)
+   - "medium" = Moderately fragile (electronics, wooden items)
+   - "high" = Very fragile (glass, ceramics, antiques)
 
-3. **\`condition\`**: Assess honestly from photos. Use standard terms: "New with tags," "Excellent condition," "Very good condition," "Good condition with minor wear," etc. Mention specific flaws if visible.
+**Output Format:** Return as clean JSON with ALL of these keys:
 
-4. **\`pricing\`** - THIS IS CRITICAL - Base on REAL market research:
-   - **\`startingBid\`**: Set 25-35% below fair market value to attract bidders and create auction excitement
-   - **\`buyItNow\`**: Set at fair market value based on recent sold listings
-   
-   **PRICING RESEARCH PROCESS:**
-   - Consider what this exact item (brand/model/condition) recently sold for on UK platforms
-   - Factor in brand strength: Premium brands (Apple, Nike, etc.) hold value better
-   - Adjust for condition: Excellent = 80-90% of retail, Good = 60-75%, Fair = 40-60%
-   - Consider demand: Popular items can command higher prices
-   - UK market focus: Price in GBP based on UK selling platforms
-   
-   **EXAMPLES OF GOOD PRICING:**
-   - iPhone 12 64GB, Good condition: Starting £180, BIN £220 (not £300+)
-   - Zara dress, Excellent condition: Starting £8, BIN £12 (not £25+)
-   - Vintage band t-shirt, Good condition: Starting £15, BIN £22 (varies by band popularity)
-   - Unknown brand electronics: Starting £5, BIN £8 (price to move quickly)
+{
+  "title": "SEO-optimized listing title (brand, model, color, key features)",
+  "description": "Detailed, friendly description with bullet points for features",
+  "condition": "Honest condition assessment (New with tags/Excellent/Very good/Good/Fair)",
+  "category": "Primary eBay category",
+  "rarity": "${isSpicyMode ? 'Common/Uncommon/Rare/Epic/Legendary/God-Tier' : 'Standard'}",
+  "spicyComment": "${isSpicyMode ? 'Witty British roast or hype comment' : 'Professional assessment'}",
+  "priceLow": 10,
+  "priceHigh": 20,
+  "dimensions": {
+    "length": 15,
+    "width": 10,
+    "height": 5,
+    "confidence": 75
+  },
+  "weight": {
+    "grams": 250,
+    "confidence": 70
+  },
+  "material": "Primary material composition description",
+  "fragility": "low/medium/high"
+}
 
-5. **\`platformTips\`**: Provide brief, fun, and encouraging selling advice as a SINGLE STRING (not an object). Keep it friendly and supportive, not bossy. Example: "Sunday evenings are perfect for listings! Quick replies make buyers smile, and being honest about any little flaws actually builds trust. You've got this! 🌟" Example: "List on Sunday evenings for best visibility. Include measurements when relevant. Respond quickly to messages."
+**DIMENSION ESTIMATION GUIDELINES:**
 
-**REMEMBER:** It's better to sell quickly at fair market value than sit unsold for months at inflated prices. Your pricing should reflect what buyers actually pay, not wishful thinking.
+Common item sizes for reference:
+- Smartphone: ~15×7×1cm, ~180g
+- Paperback book: ~20×13×2cm, ~300g
+- T-shirt (folded): ~30×25×3cm, ~200g
+- DVD/Blu-ray case: ~19×14×1.5cm, ~100g
+- Coffee mug: ~10×10×10cm, ~350g
+- Laptop: ~35×25×2cm, ~1500g
+- Board game: ~30×30×8cm, ~1000g
+- Vinyl record: ~32×32×1cm, ~200g
+- Action figure (boxed): ~20×15×8cm, ~300g
+- Pair of shoes (boxed): ~35×25×15cm, ~1000g
 
-${extraInfo ? `\n\nAdditional context from seller: "${extraInfo}" - Use this information to improve pricing accuracy and add relevant details. If they mention original purchase price, consider depreciation realistically.` : ''}
+**PRICING EXAMPLES:**
 
-**Important:** Be conservative with pricing. It's better to sell quickly than sit unsold for months. Focus on realistic market values, not wishful thinking.
+Good pricing for ${region} market:
+- iPhone 12 64GB, Good condition: £180-£220 (not £300+)
+- Zara dress, Excellent condition: £8-£12 (not £25+)
+- Vintage band t-shirt, Good condition: £15-£22 (varies by band)
+- Unknown brand electronics: £5-£8 (price to move quickly)
+- Nintendo Switch game: £25-£35 (depending on title)
 
-Respond only with valid JSON. Do not include any text outside of the JSON structure.`;
+**REMEMBER:** 
+- It's better to sell quickly at fair market value than sit unsold for months
+- Your pricing should reflect what buyers actually pay, not wishful thinking
+- Be conservative with estimates - underpromise and overdeliver
+
+${extraInfo ? `\n\n**Additional context from seller:** "${extraInfo}" - Use this information to improve pricing accuracy and add relevant details. If they mention original purchase price, consider depreciation realistically.` : ''}
+
+${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! Roast junk items, hype valuable finds. Assign creative rarity tiers.` : '\n**PROFESSIONAL MODE:** Keep it clean, factual, and businesslike.'}
+
+**IMPORTANT:** Respond ONLY with valid JSON. Do not include any text outside of the JSON structure.`;
 
     // Prepare content for Gemini
     const contents = [{
@@ -171,30 +226,72 @@ Respond only with valid JSON. Do not include any text outside of the JSON struct
       };
     }
 
-    // Validate required fields
-    const requiredFields = ['title', 'description', 'condition', 'pricing', 'platformTips'];
+    // Validate and provide defaults for required fields
+    const requiredFields = ['title', 'description', 'condition', 'category'];
     const missingFields = requiredFields.filter(field => !parsedResult[field]);
     
     if (missingFields.length > 0) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: `Missing required fields: ${missingFields.join(', ')}` 
-        }),
-      };
+      console.warn('Missing fields, providing defaults:', missingFields);
+      // Provide defaults instead of failing
+      if (!parsedResult.title) parsedResult.title = 'Item for Sale';
+      if (!parsedResult.description) parsedResult.description = 'Item as shown in photos.';
+      if (!parsedResult.condition) parsedResult.condition = 'Good condition';
+      if (!parsedResult.category) parsedResult.category = 'Other';
     }
 
-    // Validate pricing structure
-    if (!parsedResult.pricing.startingBid || !parsedResult.pricing.buyItNow) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Pricing must include both startingBid and buyItNow values' 
-        }),
+    // Ensure numeric fields are numbers
+    parsedResult.priceLow = Number(parsedResult.priceLow) || 5;
+    parsedResult.priceHigh = Number(parsedResult.priceHigh) || 10;
+
+    // ✨ NEW: Ensure dimension/weight fields exist with sensible defaults
+    if (!parsedResult.dimensions || typeof parsedResult.dimensions !== 'object') {
+      parsedResult.dimensions = {
+        length: 15,
+        width: 10,
+        height: 5,
+        confidence: 50
       };
+    } else {
+      // Ensure all dimension fields are numbers
+      parsedResult.dimensions.length = Number(parsedResult.dimensions.length) || 15;
+      parsedResult.dimensions.width = Number(parsedResult.dimensions.width) || 10;
+      parsedResult.dimensions.height = Number(parsedResult.dimensions.height) || 5;
+      parsedResult.dimensions.confidence = Number(parsedResult.dimensions.confidence) || 50;
     }
+
+    if (!parsedResult.weight || typeof parsedResult.weight !== 'object') {
+      parsedResult.weight = {
+        grams: 200,
+        confidence: 50
+      };
+    } else {
+      parsedResult.weight.grams = Number(parsedResult.weight.grams) || 200;
+      parsedResult.weight.confidence = Number(parsedResult.weight.confidence) || 50;
+    }
+
+    if (!parsedResult.material) {
+      parsedResult.material = 'Mixed materials';
+    }
+
+    if (!parsedResult.fragility || !['low', 'medium', 'high'].includes(parsedResult.fragility)) {
+      parsedResult.fragility = 'medium';
+    }
+
+    if (!parsedResult.rarity) {
+      parsedResult.rarity = isSpicyMode ? 'Common' : 'Standard';
+    }
+
+    if (!parsedResult.spicyComment) {
+      parsedResult.spicyComment = isSpicyMode ? 'Let\'s get this listed!' : 'Item analyzed successfully.';
+    }
+
+    // ✨ NEW: Add computed shipping recommendation
+    const shippingRecommendation = calculateShippingRecommendation(
+      parsedResult.dimensions, 
+      parsedResult.weight, 
+      parsedResult.fragility
+    );
+    parsedResult.recommendedPackaging = shippingRecommendation;
 
     return {
       statusCode: 200,
@@ -214,3 +311,47 @@ Respond only with valid JSON. Do not include any text outside of the JSON struct
     };
   }
 };
+
+/**
+ * ✨ NEW: Calculate shipping recommendation based on dimensions/weight/fragility
+ */
+function calculateShippingRecommendation(dimensions, weight, fragility) {
+  const PACKAGING = {
+    'large-letter': { maxL: 24, maxW: 16, maxH: 3, maxWeight: 750, price: 0.85 },
+    'small-parcel': { maxL: 45, maxW: 35, maxH: 16, maxWeight: 2000, price: 1.20 },
+    'medium-parcel': { maxL: 61, maxW: 46, maxH: 46, maxWeight: 20000, price: 2.50 },
+    'large-parcel': { maxL: 999, maxW: 999, maxH: 999, maxWeight: 30000, price: 4.00 }
+  };
+
+  const { length, width, height } = dimensions;
+  const weightGrams = weight.grams;
+
+  // Add padding for safe shipping
+  const paddedL = length + 3;
+  const paddedW = width + 3;
+  const paddedH = height + 3;
+
+  // Find smallest fitting package
+  let recommended = 'large-parcel';
+  const sizes = ['large-letter', 'small-parcel', 'medium-parcel', 'large-parcel'];
+
+  for (const size of sizes) {
+    const pkg = PACKAGING[size];
+    if (paddedL <= pkg.maxL && paddedW <= pkg.maxW && paddedH <= pkg.maxH && weightGrams <= pkg.maxWeight) {
+      recommended = size;
+      break;
+    }
+  }
+
+  // Upsize for fragile items
+  if (fragility === 'high' && recommended !== 'large-parcel') {
+    const currentIndex = sizes.indexOf(recommended);
+    recommended = sizes[Math.min(currentIndex + 1, sizes.length - 1)];
+  }
+
+  return {
+    size: recommended,
+    price: PACKAGING[recommended].price,
+    reason: fragility === 'high' ? 'Upsized for fragile item' : 'Best fit with padding'
+  };
+}

@@ -864,9 +864,8 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
           {!image && (
             <label className="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all hover:bg-orange-50 border-orange-300">
               <Camera className="w-20 h-20 mb-4 text-orange-300" />
-              <p className="font-bold text-xl mb-2 text-gray-700">📸 Snap Something to Sell!</p>
-              <p className="text-sm text-gray-500 px-4 text-center">Photo an item you want to flog and I'll write the listing for you</p>
-              <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
+              <p className="font-bold text-xl mb-2 text-gray-700">Tap to Snap or Upload</p>
+              <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             </label>
           )}
 

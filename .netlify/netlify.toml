@@ -4,6 +4,10 @@ plugins = []
 headers = []
 redirects = []
 
+[functions]
+
+[functions."*"]
+
 [build]
 publish = "C:\\Users\\comed\\Desktop\\spicylister\\build"
 publishOrigin = "config"
@@ -24,7 +28,3 @@ functions = "C:\\Users\\comed\\Desktop\\spicylister\\netlify\\functions"
 [build.processing.js]
 
 [build.services]
-
-[functions]
-
-[functions."*"]
