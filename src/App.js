@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream,
+import { 
+  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, 
   Info, ExternalLink, Ruler, Package, Scale, Crown, Gift, Edit3, X, AlertCircle
 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
@@ -248,7 +248,7 @@ const recommendPackaging = (dimensions, weight, fragility) => {
   for (const size of packagingOrder) {
     const pkg = SPICYLISTER_PACKAGING[size];
     const max = pkg.maxDimensions;
-
+    
     if (paddedLength <= max.length && paddedWidth <= max.width && paddedHeight <= max.height && weightGrams <= pkg.maxWeight) {
       recommended = size;
       break;
@@ -315,7 +315,7 @@ const checkMilestones = (count) => {
 const awardKudos = async (action, setShowKudosNotification) => {
   const apiUrl = process.env.REACT_APP_FEELFAMOUS_API_URL;
   const apiKey = process.env.REACT_APP_FEELFAMOUS_API_KEY;
-
+  
   // If not configured, skip silently
   if (!apiUrl || apiUrl.includes('placeholder')) {
     console.log('Kudos system not yet configured - earning virtual kudos locally');
@@ -325,10 +325,10 @@ const awardKudos = async (action, setShowKudosNotification) => {
     setTimeout(() => setShowKudosNotification(null), 3000);
     return;
   }
-
+  
   try {
     const { kudos, coins } = KUDOS_ACTIONS[action];
-
+    
     const response = await fetch(`${apiUrl}/kudos/award`, {
       method: 'POST',
       headers: {
@@ -337,7 +337,7 @@ const awardKudos = async (action, setShowKudosNotification) => {
       },
       body: JSON.stringify({ action, kudos, coins })
     });
-
+    
     if (response.ok) {
       setShowKudosNotification({ kudos, coins });
       setTimeout(() => setShowKudosNotification(null), 3000);
@@ -548,7 +548,7 @@ export default function App() {
         // Sanitize numbers
         data.priceLow = Number(data.priceLow) || 0;
         data.priceHigh = Number(data.priceHigh) || 0;
-
+        
         // Ensure dimensions and weight exist with defaults
         if (!data.dimensions) {
           data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
@@ -599,7 +599,7 @@ export default function App() {
       const newCount = listingCount + 1;
       setListingCount(newCount);
       localStorage.setItem('spicylister_count', newCount.toString());
-
+      
       const milestoneCheck = checkMilestones(newCount);
       if (milestoneCheck.show) {
         setMilestone(milestoneCheck);
@@ -640,16 +640,16 @@ export default function App() {
   // ✨ NEW: Enhanced Store Integration with full shipping data
   const sendToStore = () => {
     if (!results) return;
-
+    
     const dimensions = editedDimensions || results.dimensions;
-
+    
     const storeData = {
       title: results.title,
       description: results.description,
       category: mapCategory(results.category),
       priceGbp: Math.round(results.priceLow * 100), // Convert £ to pence
       condition: mapCondition(results.condition),
-
+      
       // Shipping data
       dimensions: `${dimensions.length}x${dimensions.width}x${dimensions.height}`,
       weight: results.weight.grams,
@@ -658,7 +658,7 @@ export default function App() {
       shippingMethod: 'royal-mail-48-tracked',
       shippingCost: 500 // £5 flat rate in pence (Fiver Flat Rate!)
     };
-
+    
     const encoded = encodeURIComponent(JSON.stringify(storeData));
     window.open(`https://spicylisterstore.manus.space/list?import=${encoded}`, '_blank');
   };
@@ -696,7 +696,7 @@ CATEGORY: ${results.category}
 DIMENSIONS: ${dimensions.length}×${dimensions.width}×${dimensions.height}cm
 WEIGHT: ~${results.weight.grams}g
 PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
-
+    
     try {
       await navigator.clipboard.writeText(storeText);
       setCopiedStore(true);
@@ -717,7 +717,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
       const originalValue = results.dimensions[field];
       const diff = Math.abs(numValue - originalValue);
       const percentDiff = (diff / originalValue) * 100;
-
+      
       if (percentDiff > 50 && numValue > 0) {
         setDimensionWarning(`That's quite different from the AI estimate (${originalValue}cm). Are you sure?`);
       } else {
@@ -772,17 +772,17 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
       {showUpgradeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
-            <button
+            <button 
               onClick={() => setShowUpgradeModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
             >
               <X size={24} />
             </button>
-
+            
             <div className="text-center">
               <h2 className="text-2xl font-black text-gray-800 mb-2">✨ You're on fire!</h2>
               <p className="text-gray-600 mb-4">You've created {listingCount} listings this month!</p>
-
+              
               <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-4 rounded-2xl mb-4 text-left">
                 <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                   <Crown className="text-yellow-500" size={20} />
@@ -796,12 +796,12 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   <li>💬 Priority support</li>
                 </ul>
               </div>
-
+              
               <button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors">
                 Upgrade to Pro - £4.99/month
               </button>
-
-              <button
+              
+              <button 
                 onClick={() => setShowUpgradeModal(false)}
                 className="text-gray-500 text-sm hover:text-gray-700"
               >
@@ -862,12 +862,25 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
         <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-orange-100">
 
           {!image && (
-            <label className="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed rounded-2xl cursor-pointer transition-all hover:bg-orange-50 border-orange-300">
-              <Camera className="w-20 h-20 mb-4 text-orange-300" />
+            <div className="flex flex-col items-center justify-center w-full py-8">
+              <Camera className="w-16 h-16 mb-4 text-orange-300" />
               <p className="font-bold text-xl mb-2 text-gray-700">📸 Snap Something to Sell!</p>
-              <p className="text-sm text-gray-500 px-4 text-center">Photo an item you want to flog and I'll write the listing for you</p>
-              <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
-            </label>
+              <p className="text-sm text-gray-500 px-4 text-center mb-6">Photo an item you want to flog and I'll write the listing for you</p>
+              
+              <div className="flex gap-3 w-full max-w-xs">
+                <label className="flex-1 bg-gradient-to-r from-orange-400 to-red-500 text-white py-4 px-4 rounded-2xl font-bold text-center cursor-pointer hover:from-orange-500 hover:to-red-600 transition-all shadow-lg hover:scale-[1.02] active:scale-95">
+                  <span className="text-2xl block mb-1">📷</span>
+                  Camera
+                  <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
+                </label>
+                
+                <label className="flex-1 bg-white border-2 border-orange-300 text-orange-600 py-4 px-4 rounded-2xl font-bold text-center cursor-pointer hover:bg-orange-50 transition-all shadow-md hover:scale-[1.02] active:scale-95">
+                  <span className="text-2xl block mb-1">🖼️</span>
+                  Gallery
+                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </label>
+              </div>
+            </div>
           )}
 
           {image && !results && (
@@ -953,7 +966,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                       <Ruler className="text-blue-600" size={20} />
                       <span className="text-xs font-bold uppercase text-blue-600">Dimensions & Weight</span>
                     </div>
-                    <button
+                    <button 
                       onClick={() => setEditingDimensions(!editingDimensions)}
                       className="text-blue-500 hover:text-blue-700"
                     >
@@ -1013,14 +1026,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                           />
                         </div>
                       </div>
-
+                      
                       {dimensionWarning && (
                         <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
                           <AlertCircle size={16} />
                           {dimensionWarning}
                         </div>
                       )}
-
+                      
                       <button
                         onClick={saveDimensionEdits}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm"
@@ -1038,7 +1051,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                       <Package className="text-orange-600" size={20} />
                       <span className="text-xs font-bold uppercase text-orange-600">Recommended Packaging</span>
                     </div>
-
+                    
                     <div className="bg-white p-4 rounded-xl border-2 border-orange-300 mb-3">
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">{packaging.details.icon}</span>
@@ -1056,25 +1069,25 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                         </div>
                       </div>
                     </div>
-
+                    
                     <div className="flex gap-2">
                       <button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-bold text-sm transition-colors">
                         Order This Size
                       </button>
-                      <button
+                      <button 
                         onClick={() => setHasOwnPackaging(true)}
                         className="flex-1 bg-white border-2 border-orange-200 text-orange-600 py-2 rounded-lg font-bold text-sm hover:bg-orange-50 transition-colors"
                       >
                         I Have It
                       </button>
                     </div>
-
+                    
                     {packaging.alternatives && packaging.alternatives.length > 0 && (
                       <p className="text-xs text-gray-500 mt-3 text-center">
                         Alternative: {packaging.alternatives[0].name} (£{packaging.alternatives[0].price.toFixed(2)})
                       </p>
                     )}
-
+                    
                     <p className="text-xs text-orange-600 mt-2 text-center italic">
                       {packaging.reasoning}
                     </p>
@@ -1087,7 +1100,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     <p className="text-green-700 font-bold flex items-center justify-center gap-2">
                       <Check size={20} /> Using your own packaging
                     </p>
-                    <button
+                    <button 
                       onClick={() => setHasOwnPackaging(false)}
                       className="text-green-600 text-sm underline mt-1"
                     >
@@ -1142,14 +1155,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   <h2 className="text-3xl font-black text-green-700 mb-3">
                     {milestone?.show ? milestone.message : '🎉 Well Done!'}
                   </h2>
-
+                  
                   <div className="bg-white p-4 rounded-2xl mb-4">
                     <p className="text-gray-700 mb-2">You've saved:</p>
                     <p className="text-3xl font-black text-green-600">
                       {SAVINGS_PER_LISTING.time} min & £{SAVINGS_PER_LISTING.cost.toFixed(2)}
                     </p>
                   </div>
-
+                  
                   {currentReward && (
                     <div className="bg-green-100 p-4 rounded-2xl mb-4">
                       <p className="text-sm text-green-800 mb-2 font-semibold">
@@ -1160,7 +1173,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                       </p>
                     </div>
                   )}
-
+                  
                   <p className="text-xs text-green-600">
                     💚 Total saved: {formatTime(currentSavings.time)}, £{currentSavings.cost.toFixed(2)} across {currentSavings.count} listings
                   </p>
@@ -1175,7 +1188,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     <p className="font-bold text-gray-800">SpicyLister Pro</p>
                     <p className="text-sm text-gray-600">Video assessment, batch processing & more</p>
                   </div>
-                  <button
+                  <button 
                     onClick={() => setShowUpgradeModal(true)}
                     className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm hover:from-yellow-500 hover:to-orange-600 transition-colors whitespace-nowrap"
                   >
@@ -1203,7 +1216,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
               Buy Chris a Coffee
             </a>
           </div>
-          <p>Join the Feel Famous Kudos Family at <a href="https://feelfamous.com" target="_blank" rel="noopener noreferrer">FeelFamous.com</a></p>
 
           <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
             <a href="https://comedymagic.co.uk" target="_blank" rel="noreferrer" className="hover:text-purple-500 transition-colors">
