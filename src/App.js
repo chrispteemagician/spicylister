@@ -1,1234 +1,473 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, 
-  Info, ExternalLink, Ruler, Package, Scale, Crown, Gift, Edit3, X, AlertCircle
-} from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
-import { toPng } from 'html-to-image';
-import Confetti from 'react-confetti';
+import { Camera, Sparkles, Copy, Check, RefreshCw, Settings, Coffee, Zap, Package } from 'lucide-react';
 
-// =============================================================================
-// CONFIGURATION
-// =============================================================================
+function App() {
+    const [image, setImage] = useState(null);
+    const [preview, setPreview] = useState(null);
+    const [listing, setListing] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const [apiKey, setApiKey] = useState('');
+    const [showSettings, setShowSettings] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [isPro, setIsPro] = useState(false);
+    const fileInputRef = useRef(null);
 
-const RARITY_TIERS = {
-  'Common': { color: 'border-gray-400', bg: 'bg-gray-50', text: 'text-gray-600', emoji: '🗑️' },
-  'Uncommon': { color: 'border-green-400', bg: 'bg-green-50', text: 'text-green-600', emoji: '🍀' },
-  'Rare': { color: 'border-blue-400', bg: 'bg-blue-50', text: 'text-blue-600', emoji: '💎' },
-  'Epic': { color: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-600', emoji: '🔮' },
-  'Legendary': { color: 'border-yellow-500', bg: 'bg-yellow-50', text: 'text-yellow-600', emoji: '👑' },
-  'God-Tier': { color: 'border-rose-500', bg: 'bg-rose-50', text: 'text-rose-600', emoji: '🔥' }
-};
+    // Load API key and Pro status from localStorage
+    useEffect(() => {
+        const savedKey = localStorage.getItem('geminiApiKey');
+        const proStatus = localStorage.getItem('spicyListerPro');
+        const proExpiry = localStorage.getItem('spicyListerProExpiry');
 
-const GLOBAL_REGIONS = {
-  'US': { currency: 'USD', symbol: '$' },
-  'UK': { currency: 'GBP', symbol: '£' },
-  'DE': { currency: 'EUR', symbol: '€' },
-  'AU': { currency: 'AUD', symbol: 'A$' },
-  'CA': { currency: 'CAD', symbol: 'C$' },
-  'EU': { currency: 'EUR', symbol: '€' }
-};
+        if (savedKey) setApiKey(savedKey);
 
-// ✨ NEW: SpicyLister Branded Packaging Sizes
-const SPICYLISTER_PACKAGING = {
-  'large-letter': {
-    dimensions: '24×16×3cm',
-    maxDimensions: { length: 24, width: 16, height: 3 },
-    maxWeight: 750,
-    price: 0.85,
-    name: 'SpicyLister Large Letter',
-    icon: '📬',
-    description: 'Perfect for flat items'
-  },
-  'small-parcel': {
-    dimensions: '45×35×16cm',
-    maxDimensions: { length: 45, width: 35, height: 16 },
-    maxWeight: 2000,
-    price: 1.20,
-    name: 'SpicyLister Small Box',
-    icon: '📦',
-    description: 'Most popular size'
-  },
-  'medium-parcel': {
-    dimensions: '61×46×46cm',
-    maxDimensions: { length: 61, width: 46, height: 46 },
-    maxWeight: 20000,
-    price: 2.50,
-    name: 'SpicyLister Medium Box',
-    icon: '📦',
-    description: 'For larger items'
-  },
-  'large-parcel': {
-    dimensions: 'Custom',
-    maxDimensions: { length: 999, width: 999, height: 999 },
-    maxWeight: 30000,
-    price: 4.00,
-    name: 'SpicyLister Large Box',
-    icon: '📦',
-    description: 'Heavy duty protection'
-  }
-};
-
-// ✨ NEW: Savings Calculator Constants
-const SAVINGS_PER_LISTING = {
-  time: 18, // minutes saved vs manual listing
-  cost: 3.50 // pounds saved vs listing service
-};
-
-// ✨ NEW: Reward Suggestions (dopamine boosters!)
-const REWARDS = [
-  '☕ A nice brew and biscuit',
-  '🚶 A 20-minute walk in fresh air',
-  '📖 A chapter of your book',
-  '🎮 A quick gaming session',
-  '🛀 A relaxing bath',
-  '📱 Catch up on TikTok',
-  '🎵 Listen to your favorite album',
-  '🌳 Sit in nature for 15 minutes',
-  '🧘 A short meditation break',
-  '🎨 Doodle or color for fun',
-  '☀️ Ten minutes in the sunshine',
-  '💬 Text a friend you\'ve been meaning to reach',
-  '🐕 Extra playtime with your pet',
-  '🍫 Treat yourself to something nice'
-];
-
-// ✨ NEW: Kudos Actions (for future FeelFamous integration)
-const KUDOS_ACTIONS = {
-  listing_created: { kudos: 5, coins: 2 },
-  item_sold: { kudos: 10, coins: 5 },
-  helped_user: { kudos: 15, coins: 5 },
-  shared_tip: { kudos: 5, coins: 0 }
-};
-
-// ✨ NEW: Pro Tier Configuration
-const TIER_LIMITS = {
-  free: {
-    listingsPerMonth: 5,
-    features: ['Single photo', 'Basic AI', 'Packaging recommendations']
-  },
-  pro: {
-    price: 4.99,
-    listingsPerMonth: 200,
-    features: [
-      'Video assessment',
-      'Batch processing (10+ items)',
-      'Advanced material analysis',
-      'Market trend insights',
-      'Priority support'
-    ]
-  }
-};
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-const detectUserRegion = () => {
-  try {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timezone.includes('Europe/London')) return 'UK';
-    if (timezone.includes('America')) return 'US';
-    if (timezone.includes('Australia')) return 'AU';
-    return 'UK';
-  } catch { return 'UK'; }
-};
-
-const compressImage = (file) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-        } else {
-          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        // Check if Pro is still valid
+        if (proStatus === 'true' && proExpiry) {
+            const expiryDate = new Date(proExpiry);
+            if (expiryDate > new Date()) {
+                setIsPro(true);
+            } else {
+                // Pro expired
+                localStorage.removeItem('spicyListerPro');
+                localStorage.removeItem('spicyListerProExpiry');
+            }
         }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.6));
-      };
-      img.src = e.target.result;
+    }, []);
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setPreview(reader.result);
+            reader.readAsDataURL(file);
+            setListing(null);
+        }
     };
-    reader.readAsDataURL(file);
-  });
-};
 
-// ✨ NEW: Category Mapping for Store Integration
-const CATEGORY_MAP = {
-  'Electronics': 'Electronics',
-  'Electronics > Phones': 'Electronics',
-  'Fashion': 'Fashion',
-  'Fashion > Clothing': 'Fashion',
-  'Home': 'Home & Garden',
-  'Books': 'Books, Comics & Magazines',
-  'Collectibles': 'Collectibles',
-  'Collectables': 'Collectibles',
-  'Art': 'Art',
-  'Toys': 'Toys & Games',
-  'Sports': 'Sports & Outdoors',
-  'Antiques': 'Antiques'
-};
+    const generateListing = async () => {
+        if (!image) return;
 
-const mapCategory = (category) => {
-  if (!category) return 'Other';
-  if (CATEGORY_MAP[category]) return CATEGORY_MAP[category];
-  const mainCategory = category.split('>')[0].trim();
-  if (CATEGORY_MAP[mainCategory]) return CATEGORY_MAP[mainCategory];
-  // Fuzzy match
-  const lowerCat = category.toLowerCase();
-  if (lowerCat.includes('electronic') || lowerCat.includes('phone') || lowerCat.includes('computer')) return 'Electronics';
-  if (lowerCat.includes('fashion') || lowerCat.includes('cloth') || lowerCat.includes('shoe')) return 'Fashion';
-  if (lowerCat.includes('book') || lowerCat.includes('comic') || lowerCat.includes('magazine')) return 'Books, Comics & Magazines';
-  if (lowerCat.includes('collect')) return 'Collectibles';
-  if (lowerCat.includes('toy') || lowerCat.includes('game')) return 'Toys & Games';
-  if (lowerCat.includes('home') || lowerCat.includes('garden') || lowerCat.includes('kitchen')) return 'Home & Garden';
-  return 'Other';
-};
+        if (!apiKey) {
+            alert('Please add your Gemini API key in settings first! 🔑\n\nGet one free at: https://aistudio.google.com/apikey');
+            setShowSettings(true);
+            return;
+        }
 
-// ✨ NEW: Condition Mapping for Store Integration
-const CONDITION_MAP = {
-  'New with tags': 'new',
-  'New': 'new',
-  'Like new': 'like-new',
-  'Excellent condition': 'excellent',
-  'Excellent': 'excellent',
-  'Very good condition': 'excellent',
-  'Good condition': 'good',
-  'Good': 'good',
-  'Fair condition': 'fair',
-  'Fair': 'fair',
-  'Used': 'good'
-};
+        setLoading(true);
 
-const mapCondition = (condition) => {
-  if (!condition) return 'good';
-  if (CONDITION_MAP[condition]) return CONDITION_MAP[condition];
-  const lowerCond = condition.toLowerCase();
-  if (lowerCond.includes('new')) return 'new';
-  if (lowerCond.includes('excellent') || lowerCond.includes('like new') || lowerCond.includes('mint')) return 'excellent';
-  if (lowerCond.includes('good') || lowerCond.includes('very good')) return 'good';
-  if (lowerCond.includes('fair') || lowerCond.includes('acceptable')) return 'fair';
-  return 'good';
-};
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(image);
+            reader.onloadend = async () => {
+                const base64Image = reader.result.split(',')[1];
 
-// ✨ NEW: Smart Packaging Recommendation
-const recommendPackaging = (dimensions, weight, fragility) => {
-  if (!dimensions || !weight) {
-    return {
-      recommended: 'small-parcel',
-      details: SPICYLISTER_PACKAGING['small-parcel'],
-      reasoning: 'Default recommendation - dimensions not available',
-      alternatives: [SPICYLISTER_PACKAGING['medium-parcel']]
-    };
-  }
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    {
+                                        text: `You are SpicyLister - an expert eBay listing generator with a friendly, neurodivergent-friendly approach.
 
-  const { length, width, height } = dimensions;
-  const weightGrams = weight.grams || weight;
+Analyze this item photo and create a compelling eBay listing with:
 
-  // Add safety padding (3cm)
-  const paddedLength = length + 3;
-  const paddedWidth = width + 3;
-  const paddedHeight = height + 3;
+**TITLE** (80 chars max, keyword-rich, searchable)
 
-  // Determine smallest fitting package
-  let recommended = 'large-parcel';
-  let reasoning = 'Fits safely with protective padding';
+**DESCRIPTION** (Well-formatted with:)
+- Engaging opening line
+- Key features & condition
+- Measurements/specs if visible
+- Any flaws noted honestly
+- Why someone would love this item
 
-  const packagingOrder = ['large-letter', 'small-parcel', 'medium-parcel', 'large-parcel'];
+**CATEGORY SUGGESTION** (Best eBay category)
 
-  for (const size of packagingOrder) {
-    const pkg = SPICYLISTER_PACKAGING[size];
-    const max = pkg.maxDimensions;
-    
-    if (paddedLength <= max.length && paddedWidth <= max.width && paddedHeight <= max.height && weightGrams <= pkg.maxWeight) {
-      recommended = size;
-      break;
-    }
-  }
+**STARTING PRICE** (Conservative estimate in £)
 
-  // If high fragility, go up one size for extra protection
-  if (fragility === 'high') {
-    const currentIndex = packagingOrder.indexOf(recommended);
-    if (currentIndex < packagingOrder.length - 1 && recommended !== 'large-parcel') {
-      recommended = packagingOrder[currentIndex + 1];
-      reasoning = 'Upsized for fragile item protection';
-    }
-  }
+**CONDITION** (New, Used - Like New, Used - Good, Used - Acceptable, For Parts)
 
-  // Build alternatives list
-  const currentIndex = packagingOrder.indexOf(recommended);
-  const alternatives = [];
-  if (currentIndex < packagingOrder.length - 1) {
-    alternatives.push(SPICYLISTER_PACKAGING[packagingOrder[currentIndex + 1]]);
-  }
+**SHIPPING NOTES** (Suggested packaging & any special handling)
 
-  return {
-    recommended,
-    details: SPICYLISTER_PACKAGING[recommended],
-    reasoning,
-    alternatives
-  };
-};
+Keep it friendly, honest, and optimized for search. Make me want to buy it!`
+                                    },
+                                    {
+                                        inline_data: {
+                                            mime_type: image.type,
+                                            data: base64Image
+                                        }
+                                    }
+                                ]
+                            }],
+                            generationConfig: {
+                                temperature: 0.7,
+                                maxOutputTokens: 1000
+                            }
+                        })
+                    }
+                );
 
-// ✨ NEW: Savings Calculator
-const calculateSavings = () => {
-  const saved = JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
-  saved.count += 1;
-  saved.time += SAVINGS_PER_LISTING.time;
-  saved.cost += SAVINGS_PER_LISTING.cost;
-  localStorage.setItem('spicylister_savings', JSON.stringify(saved));
-  return saved;
-};
+                const data = await response.json();
 
-const getCumulativeSavings = () => {
-  return JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
-};
-
-// ✨ NEW: Random Reward Suggestion
-const getRandomReward = () => {
-  return REWARDS[Math.floor(Math.random() * REWARDS.length)];
-};
-
-// ✨ NEW: Milestone Checker
-const checkMilestones = (count) => {
-  const milestones = [1, 5, 10, 25, 50, 100];
-  if (milestones.includes(count)) {
-    return {
-      show: true,
-      message: `🎊 ${count} listing${count > 1 ? 's' : ''} created! You're crushing it!`,
-      confetti: true
-    };
-  }
-  return { show: false };
-};
-
-// ✨ NEW: Kudos Award Function (with graceful fallback)
-const awardKudos = async (action, setShowKudosNotification) => {
-  const apiUrl = process.env.REACT_APP_FEELFAMOUS_API_URL;
-  const apiKey = process.env.REACT_APP_FEELFAMOUS_API_KEY;
-  
-  // If not configured, skip silently
-  if (!apiUrl || apiUrl.includes('placeholder')) {
-    console.log('Kudos system not yet configured - earning virtual kudos locally');
-    // Still show the notification for dopamine hit!
-    const { kudos, coins } = KUDOS_ACTIONS[action] || { kudos: 5, coins: 2 };
-    setShowKudosNotification({ kudos, coins });
-    setTimeout(() => setShowKudosNotification(null), 3000);
-    return;
-  }
-  
-  try {
-    const { kudos, coins } = KUDOS_ACTIONS[action];
-    
-    const response = await fetch(`${apiUrl}/kudos/award`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey
-      },
-      body: JSON.stringify({ action, kudos, coins })
-    });
-    
-    if (response.ok) {
-      setShowKudosNotification({ kudos, coins });
-      setTimeout(() => setShowKudosNotification(null), 3000);
-    }
-  } catch (err) {
-    // Fail silently - kudos is optional
-    console.log('Kudos award failed:', err.message);
-  }
-};
-
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
-
-export default function App() {
-  // Existing state
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
-  const [isSpicyMode, setIsSpicyMode] = useState(true);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [copiedSection, setCopiedSection] = useState(null);
-  const [copiedStore, setCopiedStore] = useState(false);
-
-  // ✨ NEW: Dimension editing state
-  const [editingDimensions, setEditingDimensions] = useState(false);
-  const [editedDimensions, setEditedDimensions] = useState(null);
-  const [dimensionWarning, setDimensionWarning] = useState(null);
-
-  // ✨ NEW: Packaging state
-  const [packaging, setPackaging] = useState(null);
-  const [hasOwnPackaging, setHasOwnPackaging] = useState(false);
-
-  // ✨ NEW: Savings & Rewards state
-  const [currentSavings, setCurrentSavings] = useState(null);
-  const [currentReward, setCurrentReward] = useState(null);
-  const [milestone, setMilestone] = useState(null);
-
-  // ✨ NEW: Pro tier state
-  const [isPro, setIsPro] = useState(false);
-  const [listingCount, setListingCount] = useState(() => {
-    const saved = localStorage.getItem('spicylister_count');
-    return saved ? parseInt(saved) : 0;
-  });
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-
-  // ✨ NEW: Kudos notification state
-  const [showKudosNotification, setShowKudosNotification] = useState(null);
-
-  const resultCardRef = useRef(null);
-  const userRegion = detectUserRegion();
-  const userCurrency = GLOBAL_REGIONS[userRegion];
-
-  // Load cumulative savings on mount
-  useEffect(() => {
-    const saved = getCumulativeSavings();
-    if (saved.count > 0) {
-      setCurrentSavings(saved);
-    }
-  }, []);
-
-  const getRarityStyle = (tier) => {
-    return RARITY_TIERS[tier] || RARITY_TIERS['Common'];
-  };
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImage(file);
-      const compressed = await compressImage(file);
-      setImagePreview(compressed);
-      setResults(null);
-      setShowConfetti(false);
-      setPackaging(null);
-      setCurrentSavings(null);
-      setCurrentReward(null);
-      setMilestone(null);
-      setEditingDimensions(false);
-      setEditedDimensions(null);
-      setHasOwnPackaging(false);
-    }
-  };
-
-  const resetApp = () => {
-    setImage(null);
-    setImagePreview(null);
-    setResults(null);
-    setShowConfetti(false);
-    setPackaging(null);
-    setCurrentSavings(null);
-    setCurrentReward(null);
-    setMilestone(null);
-    setEditingDimensions(false);
-    setEditedDimensions(null);
-    setHasOwnPackaging(false);
-    setDimensionWarning(null);
-  };
-
-  const analyzeItem = async () => {
-    if (!image) return;
-    setLoading(true);
-
-    try {
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
-
-      const ai = new GoogleGenAI({ apiKey });
-      const base64Data = imagePreview.split(',')[1];
-
-      // ✨ ENHANCED: System prompt now includes dimensions, weight, material, fragility
-      const systemPrompt = isSpicyMode
-        ? `You are SpicyLister, a hilarious, high-energy auctioneer with expertise in item valuation AND shipping logistics. 
-           Analyze this image for the ${userRegion} market (${userCurrency.currency}).
-           
-           1. Assign a "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
-           2. Roast it if it's junk, Hype it if it's valuable. Be British, witty.
-           3. Give a listing title and description.
-           4. Give a price range (low/high).
-           
-           **CRITICAL: Also provide shipping intelligence:**
-           - Estimated dimensions (length, width, height in cm) - be realistic based on common objects
-           - Estimated weight (in grams)
-           - Material composition (plastic/metal/fabric/glass/ceramic/wood/mixed/etc)
-           - Fragility level (low/medium/high)
-           - Confidence scores for dimensions (0-100) and weight (0-100)
-           
-           Return ONLY valid JSON:
-           {
-             "title": "SEO optimized title",
-             "rarity": "Tier Name",
-             "spicyComment": "Roast or hype comment",
-             "description": "Sales description",
-             "category": "eBay Category",
-             "condition": "Condition assessment",
-             "priceLow": 10,
-             "priceHigh": 20,
-             "dimensions": {
-               "length": 15,
-               "width": 10,
-               "height": 5,
-               "confidence": 75
-             },
-             "weight": {
-               "grams": 250,
-               "confidence": 70
-             },
-             "material": "plastic housing with electronic components",
-             "fragility": "medium"
-           }`
-        : `Act as a professional reseller and shipping expert for the ${userRegion} market (${userCurrency.currency}).
-           
-           **Provide both listing AND shipping details:**
-           - Estimated dimensions (length, width, height in cm)
-           - Estimated weight (in grams)
-           - Material composition
-           - Fragility level (low/medium/high)
-           - Confidence scores for dimensions and weight (0-100)
-           
-           Return ONLY valid JSON:
-           {
-             "title": "SEO optimized title",
-             "rarity": "Standard",
-             "spicyComment": "Item analyzed.",
-             "description": "Professional description",
-             "category": "eBay Category",
-             "condition": "Condition assessment",
-             "priceLow": 10,
-             "priceHigh": 20,
-             "dimensions": {
-               "length": 15,
-               "width": 10,
-               "height": 5,
-               "confidence": 75
-             },
-             "weight": {
-               "grams": 250,
-               "confidence": 70
-             },
-             "material": "description of materials",
-             "fragility": "low"
-           }`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: systemPrompt },
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: base64Data
+                if (data.candidates && data.candidates[0]) {
+                    const generatedText = data.candidates[0].content.parts[0].text;
+                    setListing(generatedText);
+                } else {
+                    throw new Error('No response from Gemini');
                 }
-              }
-            ]
-          }
-        ]
-      });
-
-      const finalString = typeof response.text === 'function' ? response.text() : response.text;
-      const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
-
-      let data;
-      try {
-        data = JSON.parse(cleanText);
-        // Sanitize numbers
-        data.priceLow = Number(data.priceLow) || 0;
-        data.priceHigh = Number(data.priceHigh) || 0;
-        
-        // Ensure dimensions and weight exist with defaults
-        if (!data.dimensions) {
-          data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
+            };
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Oops! Something went wrong. Check your API key and try again. 🌶️');
+        } finally {
+            setLoading(false);
         }
-        if (!data.weight) {
-          data.weight = { grams: 200, confidence: 50 };
-        }
-        if (!data.fragility) {
-          data.fragility = 'medium';
-        }
-        if (!data.material) {
-          data.material = 'Mixed materials';
-        }
-        if (!data.condition) {
-          data.condition = 'Good condition';
-        }
-      } catch (e) {
-        console.error("JSON Parsing failed, using fallback");
-        data = {
-          title: "Item Identified (AI Format Issue)",
-          category: "Misc",
-          description: cleanText.substring(0, 300),
-          condition: "Good condition",
-          priceLow: 0,
-          priceHigh: 0,
-          spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
-          rarity: "Common",
-          dimensions: { length: 15, width: 10, height: 5, confidence: 50 },
-          weight: { grams: 200, confidence: 50 },
-          material: "Unknown",
-          fragility: "medium"
-        };
-      }
-
-      setResults(data);
-      setEditedDimensions(data.dimensions);
-
-      // ✨ NEW: Calculate packaging recommendation
-      const packagingRec = recommendPackaging(data.dimensions, data.weight, data.fragility);
-      setPackaging(packagingRec);
-
-      // ✨ NEW: Calculate and display savings
-      const savings = calculateSavings();
-      setCurrentSavings(savings);
-      setCurrentReward(getRandomReward());
-
-      // ✨ NEW: Increment listing count and check for milestones
-      const newCount = listingCount + 1;
-      setListingCount(newCount);
-      localStorage.setItem('spicylister_count', newCount.toString());
-      
-      const milestoneCheck = checkMilestones(newCount);
-      if (milestoneCheck.show) {
-        setMilestone(milestoneCheck);
-      }
-
-      // ✨ NEW: Award kudos
-      await awardKudos('listing_created', setShowKudosNotification);
-
-      // Confetti for high-value or rare items
-      if (isSpicyMode && (data.priceHigh > 50 || ['Rare', 'Legendary', 'God-Tier', 'Epic'].includes(data.rarity))) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }
-
-      // Also confetti for milestones
-      if (milestoneCheck.confetti) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }
-
-      // ✨ NEW: Check if free tier limit reached
-      if (!isPro && newCount >= TIER_LIMITS.free.listingsPerMonth) {
-        setTimeout(() => setShowUpgradeModal(true), 2000);
-      }
-
-    } catch (error) {
-      console.error(error);
-      let msg = "Something went wrong.";
-      if (error.message.includes("404")) msg = "Model not found. The API might have changed.";
-      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
-      if (error.message.includes("API key") || error.message.includes("apiKey")) msg = "API Key issue. Check Netlify.";
-      alert(msg + "\nTechnical detail: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✨ NEW: Enhanced Store Integration with full shipping data
-  const sendToStore = () => {
-    if (!results) return;
-    
-    const dimensions = editedDimensions || results.dimensions;
-    
-    const storeData = {
-      title: results.title,
-      description: results.description,
-      category: mapCategory(results.category),
-      priceGbp: Math.round(results.priceLow * 100), // Convert £ to pence
-      condition: mapCondition(results.condition),
-      
-      // Shipping data
-      dimensions: `${dimensions.length}x${dimensions.width}x${dimensions.height}`,
-      weight: results.weight.grams,
-      recommendedPackaging: packaging?.recommended || 'small-parcel',
-      packagingPrice: packaging?.details?.price || 1.20,
-      shippingMethod: 'royal-mail-48-tracked',
-      shippingCost: 500 // £5 flat rate in pence (Fiver Flat Rate!)
     };
-    
-    const encoded = encodeURIComponent(JSON.stringify(storeData));
-    window.open(`https://spicylisterstore.manus.space/list?import=${encoded}`, '_blank');
-  };
 
-  const shareResult = async () => {
-    if (resultCardRef.current) {
-      try {
-        const dataUrl = await toPng(resultCardRef.current, { cacheBust: true });
-        const link = document.createElement('a');
-        link.download = `spicylister-share.png`;
-        link.href = dataUrl;
-        link.click();
-      } catch (err) { console.error(err); }
-    }
-  };
+    const copyToClipboard = () => {
+        if (listing) {
+            navigator.clipboard.writeText(listing);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
 
-  const copyText = (key, text) => {
-    navigator.clipboard.writeText(text);
-    setCopiedSection(key);
-    setTimeout(() => setCopiedSection(null), 2000);
-  };
+    const saveApiKey = () => {
+        localStorage.setItem('geminiApiKey', apiKey);
+        setShowSettings(false);
+        alert('API key saved! 🎉');
+    };
 
-  const copyForStore = async () => {
-    if (!results) return;
-    const dimensions = editedDimensions || results.dimensions;
-    const storeText = `${results.title}
+    const startOver = () => {
+        setImage(null);
+        setPreview(null);
+        setListing(null);
+        setCopied(false);
+    };
 
-${results.description}
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50">
+            <div className="container mx-auto px-4 py-8 max-w-4xl">
 
-Condition: ${results.condition || 'Good condition'}
-
-VALUE: ${userCurrency.symbol}${results.priceLow} - ${results.priceHigh}
-CATEGORY: ${results.category}
-
-DIMENSIONS: ${dimensions.length}×${dimensions.width}×${dimensions.height}cm
-WEIGHT: ~${results.weight.grams}g
-PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
-    
-    try {
-      await navigator.clipboard.writeText(storeText);
-      setCopiedStore(true);
-      setTimeout(() => setCopiedStore(false), 2000);
-    } catch (err) {
-      console.error('Copy failed:', err);
-    }
-  };
-
-  // ✨ NEW: Dimension editing handlers
-  const handleDimensionChange = (field, value) => {
-    const numValue = parseInt(value) || 0;
-    const newDimensions = { ...editedDimensions, [field]: numValue };
-    setEditedDimensions(newDimensions);
-
-    // Check if significantly different from AI estimate
-    if (results?.dimensions) {
-      const originalValue = results.dimensions[field];
-      const diff = Math.abs(numValue - originalValue);
-      const percentDiff = (diff / originalValue) * 100;
-      
-      if (percentDiff > 50 && numValue > 0) {
-        setDimensionWarning(`That's quite different from the AI estimate (${originalValue}cm). Are you sure?`);
-      } else {
-        setDimensionWarning(null);
-      }
-    }
-
-    // Recalculate packaging with new dimensions
-    if (results?.weight && results?.fragility) {
-      const newPackaging = recommendPackaging(newDimensions, results.weight, results.fragility);
-      setPackaging(newPackaging);
-    }
-  };
-
-  const saveDimensionEdits = () => {
-    setEditingDimensions(false);
-    setDimensionWarning(null);
-    // Recalculate packaging
-    if (results?.weight && results?.fragility) {
-      const newPackaging = recommendPackaging(editedDimensions, results.weight, results.fragility);
-      setPackaging(newPackaging);
-    }
-  };
-
-  // Format time for display
-  const formatTime = (minutes) => {
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}hr ${mins}min` : `${hours}hr`;
-  };
-
-  // =============================================================================
-  // RENDER
-  // =============================================================================
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 font-sans p-4">
-      {showConfetti && <Confetti numberOfPieces={250} recycle={false} />}
-
-      {/* ✨ NEW: Kudos Notification */}
-      {showKudosNotification && (
-        <div className="fixed top-4 right-4 z-50 animate-bounce">
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-3 rounded-2xl shadow-lg">
-            <p className="font-bold text-lg">+{showKudosNotification.kudos} Kudos! 🌟</p>
-            <p className="text-xs opacity-90">You're helping build the community! 💚</p>
-          </div>
-        </div>
-      )}
-
-      {/* ✨ NEW: Upgrade Modal */}
-      {showUpgradeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
-            <button 
-              onClick={() => setShowUpgradeModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <X size={24} />
-            </button>
-            
-            <div className="text-center">
-              <h2 className="text-2xl font-black text-gray-800 mb-2">✨ You're on fire!</h2>
-              <p className="text-gray-600 mb-4">You've created {listingCount} listings this month!</p>
-              
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-4 rounded-2xl mb-4 text-left">
-                <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-                  <Crown className="text-yellow-500" size={20} />
-                  SpicyLister Pro Unlocks:
-                </h3>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li>📹 Video assessment (scan from all angles)</li>
-                  <li>⚡ Batch processing (10+ items at once)</li>
-                  <li>🔬 Advanced material analysis</li>
-                  <li>📊 Market trend insights</li>
-                  <li>💬 Priority support</li>
-                </ul>
-              </div>
-              
-              <button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors">
-                Upgrade to Pro - £4.99/month
-              </button>
-              
-              <button 
-                onClick={() => setShowUpgradeModal(false)}
-                className="text-gray-500 text-sm hover:text-gray-700"
-              >
-                Maybe Later
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-2xl mx-auto">
-
-        {/* HEADER & LOGO */}
-        <div className="text-center mb-8 pt-4">
-          <div className="flex justify-center mb-4">
-            <img
-              src={process.env.PUBLIC_URL + '/logo.png'}
-              alt="SpicyLister Logo"
-              className="w-24 h-24 object-contain drop-shadow-md"
-              onError={(e) => { e.target.style.display = 'none' }}
-            />
-            <div className="text-6xl" style={{ display: 'none' }}>🌶️</div>
-          </div>
-
-          <h1 className="text-5xl font-bold mb-2" style={{ color: '#F28B82' }}>
-            SpicyLister
-          </h1>
-          <p className="text-xl font-medium text-gray-700">
-            Sell your clutter without a stutter
-          </p>
-
-          {/* THE TOGGLE: Vanilla vs Spicy */}
-          <div className="flex justify-center mt-6">
-            <div className="bg-white p-1.5 rounded-full shadow-md inline-flex border border-orange-100">
-              <button
-                onClick={() => setIsSpicyMode(false)}
-                className={`px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${!isSpicyMode ? 'bg-blue-100 text-blue-700 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <IceCream size={18} /> Vanilla
-              </button>
-              <button
-                onClick={() => setIsSpicyMode(true)}
-                className={`px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${isSpicyMode ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <Flame size={18} /> SPICY
-              </button>
-            </div>
-          </div>
-
-          {isSpicyMode ? (
-            <p className="text-xs text-orange-600 mt-2 font-medium animate-pulse">🔥 Neurospicy Mode: Engaged</p>
-          ) : (
-            <p className="text-xs text-blue-500 mt-2 font-medium">🍦 Professional Mode: Clean & Simple</p>
-          )}
-        </div>
-
-        {/* MAIN CARD */}
-        <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-orange-100">
-
-          {!image && (
-            <div className="flex flex-col items-center justify-center w-full py-8">
-              <Camera className="w-16 h-16 mb-4 text-orange-300" />
-              <p className="font-bold text-xl mb-2 text-gray-700">📸 Snap Something to Sell!</p>
-              <p className="text-sm text-gray-500 px-4 text-center mb-6">Photo an item you want to flog and I'll write the listing for you</p>
-              
-              <div className="flex gap-3 w-full max-w-xs">
-                <label className="flex-1 bg-gradient-to-r from-orange-400 to-red-500 text-white py-4 px-4 rounded-2xl font-bold text-center cursor-pointer hover:from-orange-500 hover:to-red-600 transition-all shadow-lg hover:scale-[1.02] active:scale-95">
-                  <span className="text-2xl block mb-1">📷</span>
-                  Camera
-                  <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
-                </label>
-                
-                <label className="flex-1 bg-white border-2 border-orange-300 text-orange-600 py-4 px-4 rounded-2xl font-bold text-center cursor-pointer hover:bg-orange-50 transition-all shadow-md hover:scale-[1.02] active:scale-95">
-                  <span className="text-2xl block mb-1">🖼️</span>
-                  Gallery
-                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                </label>
-              </div>
-            </div>
-          )}
-
-          {image && !results && (
-            <div className="space-y-6">
-              <div className="relative rounded-2xl overflow-hidden aspect-square shadow-inner bg-gray-100 border-2 border-orange-100">
-                <img src={imagePreview} alt="Item" className="w-full h-full object-contain" />
-                <button onClick={resetApp} className="absolute top-4 right-4 bg-white p-3 rounded-full shadow-md text-gray-500 hover:text-red-500">
-                  <Trash2 size={24} />
-                </button>
-              </div>
-
-              <button
-                onClick={analyzeItem}
-                disabled={loading}
-                className="w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 bg-gradient-to-r from-orange-400 to-red-500"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent"></div>
-                    {isSpicyMode ? "Cooking up magic..." : "Analyzing..."}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={24} />
-                    {isSpicyMode ? "Generate Spicy Listing" : "Generate Listing"}
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {results && (
-            <div className="space-y-6">
-
-              <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
-                {isSpicyMode && (
-                  <div className={`mb-6 p-4 rounded-2xl border-2 ${getRarityStyle(results.rarity).bg} ${getRarityStyle(results.rarity).color} text-center`}>
-                    <p className="text-lg font-bold italic text-gray-800">"{results.spicyComment}"</p>
-                    <span className="text-xs uppercase font-black tracking-widest text-gray-500 mt-2 block">
-                      {results.rarity} TIER FIND {getRarityStyle(results.rarity).emoji}
-                    </span>
-                  </div>
-                )}
-
-                {/* Title Card */}
-                <div className="bg-orange-50 p-5 rounded-2xl border border-orange-100 mb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-bold uppercase text-orange-600 tracking-wider">Listing Title</span>
-                    <button onClick={() => copyText('title', results.title)} className="text-orange-500 hover:text-orange-700">
-                      {copiedSection === 'title' ? <Check size={18} /> : <Copy size={18} />}
-                    </button>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 leading-tight">{results.title}</h2>
-                </div>
-
-                {/* Description Card */}
-                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 mb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Description</span>
-                    <button onClick={() => copyText('desc', results.description)} className="text-gray-400 hover:text-gray-600">
-                      {copiedSection === 'desc' ? <Check size={18} /> : <Copy size={18} />}
-                    </button>
-                  </div>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{results.description}</p>
-                </div>
-
-                {/* Price & Category Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
-                    <span className="text-xs font-bold uppercase text-green-600">Est. Value</span>
-                    <p className="text-2xl font-black text-green-700 mt-1">{userCurrency.symbol}{results.priceLow} - {results.priceHigh}</p>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
-                    <span className="text-xs font-bold uppercase text-blue-600">Category</span>
-                    <p className="text-sm font-bold text-blue-800 mt-2 leading-tight">{results.category}</p>
-                  </div>
-                </div>
-
-                {/* ✨ NEW: Dimensions Card */}
-                <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Ruler className="text-blue-600" size={20} />
-                      <span className="text-xs font-bold uppercase text-blue-600">Dimensions & Weight</span>
+                {/* HEADER */}
+                <div className="text-center mb-8">
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                        <Zap className="text-orange-500 w-10 h-10" />
+                        <h1 className="text-5xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                            SpicyLister
+                        </h1>
+                        <Zap className="text-orange-500 w-10 h-10" />
                     </div>
-                    <button 
-                      onClick={() => setEditingDimensions(!editingDimensions)}
-                      className="text-blue-500 hover:text-blue-700"
+                    <p className="text-xl text-gray-600 font-medium">
+                        From Clutter to Cash in 60 Seconds 🌶️
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                        Take a photo → Get a perfect eBay listing → List it!
+                    </p>
+                </div>
+
+                {/* SETTINGS BUTTON */}
+                <div className="flex justify-end mb-4">
+                    <button
+                        onClick={() => setShowSettings(!showSettings)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
                     >
-                      <Edit3 size={18} />
+                        <Settings className="w-4 h-4" />
+                        <span className="text-sm font-medium">Settings</span>
                     </button>
-                  </div>
-
-                  {!editingDimensions ? (
-                    <>
-                      <div className="flex items-center gap-4 mb-2">
-                        <div className="flex-1">
-                          <p className="text-lg font-bold text-blue-900">
-                            📏 {editedDimensions?.length || results.dimensions.length} × {editedDimensions?.width || results.dimensions.width} × {editedDimensions?.height || results.dimensions.height} cm
-                          </p>
-                          <p className="text-sm text-blue-600 mt-1">
-                            <Scale size={14} className="inline mr-1" />
-                            Weight: ~{results.weight.grams}g
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 text-xs text-blue-500 mt-2">
-                        <span>Confidence: {editedDimensions?.confidence || results.dimensions.confidence}%</span>
-                        <span>•</span>
-                        <span className="capitalize">{results.material}</span>
-                        <span>•</span>
-                        <span className="capitalize">{results.fragility} fragility</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="text-xs text-blue-600 block mb-1">Length (cm)</label>
-                          <input
-                            type="number"
-                            value={editedDimensions?.length || ''}
-                            onChange={(e) => handleDimensionChange('length', e.target.value)}
-                            className="w-full p-2 border border-blue-200 rounded-lg text-center font-bold"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-blue-600 block mb-1">Width (cm)</label>
-                          <input
-                            type="number"
-                            value={editedDimensions?.width || ''}
-                            onChange={(e) => handleDimensionChange('width', e.target.value)}
-                            className="w-full p-2 border border-blue-200 rounded-lg text-center font-bold"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-blue-600 block mb-1">Height (cm)</label>
-                          <input
-                            type="number"
-                            value={editedDimensions?.height || ''}
-                            onChange={(e) => handleDimensionChange('height', e.target.value)}
-                            className="w-full p-2 border border-blue-200 rounded-lg text-center font-bold"
-                          />
-                        </div>
-                      </div>
-                      
-                      {dimensionWarning && (
-                        <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
-                          <AlertCircle size={16} />
-                          {dimensionWarning}
-                        </div>
-                      )}
-                      
-                      <button
-                        onClick={saveDimensionEdits}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm"
-                      >
-                        Save Dimensions
-                      </button>
-                    </div>
-                  )}
                 </div>
 
-                {/* ✨ NEW: Packaging Recommendation Card */}
-                {packaging && !hasOwnPackaging && (
-                  <div className="bg-orange-50 p-5 rounded-2xl border border-orange-200 mb-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Package className="text-orange-600" size={20} />
-                      <span className="text-xs font-bold uppercase text-orange-600">Recommended Packaging</span>
-                    </div>
-                    
-                    <div className="bg-white p-4 rounded-xl border-2 border-orange-300 mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{packaging.details.icon}</span>
-                        <div className="flex-1">
-                          <p className="font-bold text-gray-900">{packaging.details.name}</p>
-                          <p className="text-sm text-gray-600">{packaging.details.description}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {packaging.details.dimensions}, up to {packaging.details.maxWeight >= 1000 ? `${packaging.details.maxWeight / 1000}kg` : `${packaging.details.maxWeight}g`}
-                          </p>
+                {/* SETTINGS PANEL */}
+                {showSettings && (
+                    <div className="mb-6 p-6 bg-white rounded-2xl shadow-lg border-2 border-orange-200">
+                        <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                            <Settings className="w-5 h-5 text-orange-500" />
+                            Settings
+                        </h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">
+                                    Gemini API Key {!apiKey && <span className="text-red-500">*Required</span>}
+                                </label>
+                                <input
+                                    type="password"
+                                    value={apiKey}
+                                    onChange={(e) => setApiKey(e.target.value)}
+                                    placeholder="AIza..."
+                                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-orange-400 focus:outline-none"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Get your free API key at{' '}
+                                    <a
+                                        href="https://aistudio.google.com/apikey"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-orange-500 hover:underline"
+                                    >
+                                        aistudio.google.com/apikey
+                                    </a>
+                                </p>
+                            </div>
+                            <button
+                                onClick={saveApiKey}
+                                className="w-full bg-orange-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-orange-600 transition-colors"
+                            >
+                                Save Settings
+                            </button>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-black text-orange-600">
-                            £{packaging.details.price.toFixed(2)}
-                          </p>
+                    </div>
+                )}
+
+                {/* UPGRADE MODAL */}
+                {showUpgradeModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                            <div className="text-center mb-6">
+                                <Sparkles className="w-16 h-16 text-yellow-500 mx-auto mb-3" />
+                                <h2 className="text-2xl font-black text-gray-800 mb-2">
+                                    SpicyLister Pro
+                                </h2>
+                                <p className="text-gray-600">
+                                    Coming Soon: One-Click eBay Integration! 🚀
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                                <div className="flex items-start gap-3">
+                                    <Check className="text-green-500 flex-shrink-0 mt-1" />
+                                    <p className="text-gray-700"><strong>Direct eBay Listing</strong> - One click and it's live!</p>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <Check className="text-green-500 flex-shrink-0 mt-1" />
+                                    <p className="text-gray-700"><strong>Batch Upload</strong> - List multiple items at once</p>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <Check className="text-green-500 flex-shrink-0 mt-1" />
+                                    <p className="text-gray-700"><strong>Smart Pricing Assistant</strong> - AI-powered price suggestions</p>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <Check className="text-green-500 flex-shrink-0 mt-1" />
+                                    <p className="text-gray-700"><strong>Template Library</strong> - Save & reuse your best listings</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-4">
+                                <p className="text-center text-2xl font-black text-gray-800 mb-1">
+                                    £4.99/month
+                                </p>
+                                <p className="text-center text-sm text-gray-600">
+                                    Unlimited listings • Cancel anytime
+                                </p>
+                            </div>
+
+                            <p className="text-xs text-center text-gray-500 mb-4">
+                                💚 Buy me a coffee to get 7 days of Pro features when they launch!
+                            </p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowUpgradeModal(false)}
+                                    className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                                >
+                                    Maybe Later
+                                </button>
+                                <a
+                                    href="https://buymeacoffee.com/chrispteemagician"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex-1 bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-xl hover:bg-yellow-500 transition-colors text-center"
+                                    onClick={() => setShowUpgradeModal(false)}
+                                >
+                                    Get Early Access ☕
+                                </a>
+                            </div>
                         </div>
-                      </div>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-bold text-sm transition-colors">
-                        Order This Size
-                      </button>
-                      <button 
-                        onClick={() => setHasOwnPackaging(true)}
-                        className="flex-1 bg-white border-2 border-orange-200 text-orange-600 py-2 rounded-lg font-bold text-sm hover:bg-orange-50 transition-colors"
-                      >
-                        I Have It
-                      </button>
-                    </div>
-                    
-                    {packaging.alternatives && packaging.alternatives.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-3 text-center">
-                        Alternative: {packaging.alternatives[0].name} (£{packaging.alternatives[0].price.toFixed(2)})
-                      </p>
+                )}
+
+                {/* MAIN CARD */}
+                <div className="bg-white rounded-3xl shadow-2xl border-4 border-orange-200 overflow-hidden">
+
+                    {/* UPLOAD SECTION */}
+                    {!preview && (
+                        <div className="p-8">
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="border-4 border-dashed border-orange-300 rounded-2xl p-16 text-center cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all"
+                            >
+                                <Camera className="w-20 h-20 text-orange-400 mx-auto mb-4" />
+                                <p className="text-xl font-bold text-gray-700 mb-2">
+                                    Snap a Photo of Your Item
+                                </p>
+                                <p className="text-gray-500">
+                                    Click to upload or drag & drop
+                                </p>
+                            </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                            />
+                        </div>
                     )}
-                    
-                    <p className="text-xs text-orange-600 mt-2 text-center italic">
-                      {packaging.reasoning}
-                    </p>
-                  </div>
-                )}
 
-                {/* Packaging confirmed message */}
-                {hasOwnPackaging && (
-                  <div className="bg-green-50 p-4 rounded-2xl border border-green-200 mb-4 text-center">
-                    <p className="text-green-700 font-bold flex items-center justify-center gap-2">
-                      <Check size={20} /> Using your own packaging
-                    </p>
-                    <button 
-                      onClick={() => setHasOwnPackaging(false)}
-                      className="text-green-600 text-sm underline mt-1"
-                    >
-                      Show recommendations again
-                    </button>
-                  </div>
-                )}
-              </div>
+                    {/* PREVIEW & GENERATE */}
+                    {preview && !listing && (
+                        <div className="p-8">
+                            <img
+                                src={preview}
+                                alt="Preview"
+                                className="w-full max-h-96 object-contain rounded-xl mb-6 border-2 border-gray-200"
+                            />
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={startOver}
+                                    className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors"
+                                >
+                                    Choose Different Photo
+                                </button>
+                                <button
+                                    onClick={generateListing}
+                                    disabled={loading}
+                                    className="flex-1 px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-black text-lg rounded-xl hover:from-orange-600 hover:to-red-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <RefreshCw className="w-5 h-5 animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-5 h-5" />
+                                            Generate Listing
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                {/* PRIMARY: Send to Store Button */}
-                <button
-                  onClick={sendToStore}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
-                >
-                  <ExternalLink size={20} />
-                  Send to SpicyLister Store
-                </button>
+                    {/* LISTING RESULT */}
+                    {listing && (
+                        <div className="p-8">
+                            <div className="mb-6">
+                                <img
+                                    src={preview}
+                                    alt="Preview"
+                                    className="w-full max-h-64 object-contain rounded-xl border-2 border-gray-200"
+                                />
+                            </div>
 
-                {/* SECONDARY: Other Actions */}
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={copyForStore}
-                    className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
-                  >
-                    {copiedStore ? <Check size={18} /> : <Copy size={18} />}
-                    <span className="text-xs">{copiedStore ? 'Copied!' : 'Copy'}</span>
-                  </button>
+                            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 mb-6 border-2 border-orange-200">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
+                                        <Sparkles className="text-orange-500" />
+                                        Your Listing
+                                    </h3>
+                                    <button
+                                        onClick={copyToClipboard}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${copied
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
+                                            }`}
+                                    >
+                                        {copied ? (
+                                            <>
+                                                <Check className="w-4 h-4" />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="w-4 h-4" />
+                                                Copy
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                                <div className="bg-white rounded-xl p-4 border-2 border-orange-100">
+                                    <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
+                                        {listing}
+                                    </pre>
+                                </div>
+                            </div>
 
-                  <button
-                    onClick={shareResult}
-                    className="bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
-                  >
-                    <Share2 size={18} />
-                    <span className="text-xs">Share</span>
-                  </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={startOver}
+                                    className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    Start Over
+                                </button>
+                                <button
+                                    onClick={generateListing}
+                                    className="flex-1 px-6 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    Regenerate
+                                </button>
+                            </div>
 
-                  <button
-                    onClick={resetApp}
-                    className="bg-white border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 flex flex-col items-center justify-center gap-1 text-sm transition-colors"
-                  >
-                    <Trash2 size={18} />
-                    <span className="text-xs">New Scan</span>
-                  </button>
+                            {/* PRO UPGRADE PROMPT */}
+                            {!isPro && (
+                                <div className="mt-6 bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 rounded-2xl p-4 flex items-center gap-4">
+                                    <Zap className="text-yellow-500 flex-shrink-0 w-8 h-8" />
+                                    <div className="flex-1">
+                                        <p className="font-bold text-gray-800">Want one-click listing?</p>
+                                        <p className="text-sm text-gray-600">SpicyLister Pro coming soon!</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowUpgradeModal(true)}
+                                        className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm hover:from-yellow-500 hover:to-orange-600 transition-colors whitespace-nowrap"
+                                    >
+                                        Learn More
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
-              </div>
 
-              {/* ✨ NEW: Savings Celebration Card */}
-              {currentSavings && (
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-3xl border-2 border-green-200 text-center">
-                  <h2 className="text-3xl font-black text-green-700 mb-3">
-                    {milestone?.show ? milestone.message : '🎉 Well Done!'}
-                  </h2>
-                  
-                  <div className="bg-white p-4 rounded-2xl mb-4">
-                    <p className="text-gray-700 mb-2">You've saved:</p>
-                    <p className="text-3xl font-black text-green-600">
-                      {SAVINGS_PER_LISTING.time} min & £{SAVINGS_PER_LISTING.cost.toFixed(2)}
-                    </p>
-                  </div>
-                  
-                  {currentReward && (
-                    <div className="bg-green-100 p-4 rounded-2xl mb-4">
-                      <p className="text-sm text-green-800 mb-2 font-semibold">
-                        You've earned time for:
-                      </p>
-                      <p className="text-lg font-bold text-green-700">
-                        {currentReward}
-                      </p>
+                {/* FOOTER */}
+                <div className="mt-12 text-center space-y-6 pb-12">
+                    <div className="inline-block bg-white px-6 py-4 rounded-3xl shadow-sm border border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
+                            <Coffee className="text-yellow-500" /> This is Coffeeware
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">Free to use. Support if it helps you.</p>
+                        <a
+                            href="https://buymeacoffee.com/chrispteemagician"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 block bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-xl hover:bg-yellow-500 transition-colors"
+                        >
+                            Buy Chris a Coffee ☕
+                        </a>
+                        <p className="text-xs text-gray-500 mt-2">
+                            💚 Coffee supporters get 7 days of Pro when it launches!
+                        </p>
                     </div>
-                  )}
-                  
-                  <p className="text-xs text-green-600">
-                    💚 Total saved: {formatTime(currentSavings.time)}, £{currentSavings.cost.toFixed(2)} across {currentSavings.count} listings
-                  </p>
-                </div>
-              )}
 
-              {/* ✨ NEW: Pro Tier Teaser (shows after 3 listings) */}
-              {!isPro && listingCount >= 3 && listingCount < TIER_LIMITS.free.listingsPerMonth && (
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-2xl border border-yellow-200 flex items-center gap-3">
-                  <Crown size={24} className="text-yellow-500 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-800">SpicyLister Pro</p>
-                    <p className="text-sm text-gray-600">Video assessment, batch processing & more</p>
-                  </div>
-                  <button 
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm hover:from-yellow-500 hover:to-orange-600 transition-colors whitespace-nowrap"
-                  >
-                    £4.99/mo
-                  </button>
+                    <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
+                        <a href="https://comedymagic.co.uk" target="_blank" rel="noreferrer" className="hover:text-purple-500 transition-colors">
+                            Built by <strong>Chris P Tee</strong> - UK Children's Entertainer of the Year 2018
+                        </a>
+                        <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
+                            Follow on TikTok for tips & tricks
+                        </a>
+                        <p className="text-xs opacity-50 mt-4">SpicyLister v2.0 • Powered by Gemini Flash • Free Forever 💚</p>
+                    </div>
                 </div>
-              )}
+
             </div>
-          )}
         </div>
-
-        {/* FOOTER */}
-        <div className="mt-12 text-center space-y-6 pb-12">
-          <div className="inline-block bg-white px-6 py-4 rounded-3xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
-              <Coffee className="text-yellow-500" /> This is Coffeeware
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">Free to use. Support if it helps you.</p>
-            <a
-              href="https://buymeacoffee.com/chrispteemagician"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 block bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-xl hover:bg-yellow-500 transition-colors"
-            >
-              Buy Chris a Coffee
-            </a>
-          </div>
-
-          <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
-            <a href="https://comedymagic.co.uk" target="_blank" rel="noreferrer" className="hover:text-purple-500 transition-colors">
-              Support the <strong>Community Comedy Magic Tour</strong>
-            </a>
-            <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors flex items-center gap-1">
-              Find me on TikTok
-            </a>
-            <p className="text-xs opacity-50 mt-4">SpicyLister v2.0 • Powered by Gemini Flash • Dimensions + Packaging + Savings</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
+    );
 }
+
+export default App;
