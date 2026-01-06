@@ -595,4 +595,518 @@ Created with SpicyLister - spicylister.com
                 <li>✅ Pro features across ALL -Oid apps</li>
               </ul>
               <a 
-                href="https://buymeacoffee.com/chrisp
+                href="https://buymeacoffee.com/chrispteemagician"
+                target="_blank"
+                rel="noreferrer"
+                className="block bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-3 px-6 rounded-xl text-center transition-colors"
+              >
+                Buy Me a Coffee → Get 7 Days Pro
+              </a>
+            </div>
+
+            {/* EARLY ADOPTER */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-2xl border-2 border-purple-300 mb-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 transform rotate-12 translate-x-4 -translate-y-2">
+                LIMITED!
+              </div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-bold text-gray-800">🎯 Early Adopter</h3>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-purple-600">£4.95</span>
+                  <span className="text-sm text-gray-600">/month</span>
+                </div>
+              </div>
+              <p className="text-sm font-bold text-purple-700 mb-2">⚡ LOCKED PRICE FOREVER</p>
+              <p className="text-sm text-gray-600 mb-3">First 1,000 subscribers only!</p>
+              <ul className="space-y-2 text-sm text-gray-700 mb-4">
+                <li>✅ Everything in Pro</li>
+                <li>✅ Price stays £4.95 forever (even when others pay £9.95)</li>
+                <li>✅ Pro access to ALL future -Oid apps</li>
+                <li>✅ Priority support</li>
+                <li>✅ Founders badge</li>
+              </ul>
+              <div className="bg-white p-3 rounded-xl mb-4">
+                <p className="text-sm text-gray-600 text-center">
+                  You'll be subscriber <strong>#{earlyAdopterCount}</strong>
+                  <br />
+                  <span className="text-xs">Only {1000 - earlyAdopterCount} spots left!</span>
+                </p>
+              </div>
+              <a 
+                href={STRIPE_LINKS.earlyAdopter}
+                className="block bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-xl text-center transition-colors"
+              >
+                Lock In £4.95 Forever
+              </a>
+            </div>
+
+            {/* REGULAR */}
+            <div className="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-bold text-gray-800">💎 Regular Pro</h3>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-blue-600">£9.95</span>
+                  <span className="text-sm text-gray-600">/month</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mb-3">After Early Adopter slots fill</p>
+              <ul className="space-y-2 text-sm text-gray-700 mb-4">
+                <li>✅ Everything Early Adopters get</li>
+                <li>✅ Pro across all apps</li>
+                <li>✅ Cancel anytime</li>
+              </ul>
+              <a 
+                href={STRIPE_LINKS.regular}
+                className="block bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl text-center transition-colors"
+              >
+                Get Pro Access
+              </a>
+            </div>
+
+            {/* RESELLER */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border-2 border-green-300">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-bold text-gray-800">🏪 Reseller</h3>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-green-600">£49.95</span>
+                  <span className="text-sm text-gray-600">/month</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mb-3">For professional sellers</p>
+              <ul className="space-y-2 text-sm text-gray-700 mb-4">
+                <li>✅ Everything in Pro</li>
+                <li>✅ Own storefront on SpicyLister Store</li>
+                <li>✅ Zero commission selling</li>
+                <li>✅ Bulk upload tools</li>
+                <li>✅ API access</li>
+                <li>✅ Priority support</li>
+              </ul>
+              <a 
+                href={STRIPE_LINKS.reseller}
+                className="block bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl text-center transition-colors"
+              >
+                Get Reseller Access
+              </a>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-6">
+              💚 All subscriptions support Chris P Tee's work and help bring AI tools to the neurodivergent community
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-2xl mx-auto">
+        
+        {/* HEADER */}
+        <div className="text-center mb-8 pt-4">
+          <div className="flex justify-center mb-4">
+            <div className="text-6xl">🌶️</div>
+          </div>
+          
+          <h1 className="text-5xl font-bold mb-2 text-orange-600">
+            SpicyLister
+          </h1>
+          <p className="text-xl font-medium text-gray-700 mb-4">
+            Sell your clutter without a stutter
+          </p>
+
+          {isPro && (
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full border border-purple-300 mb-4">
+              <Crown className="text-purple-600" size={20} />
+              <span className="text-sm font-bold text-purple-700">Pro Active</span>
+            </div>
+          )}
+          
+          {/* TOGGLE */}
+          <div className="flex justify-center mt-6">
+            <div className="bg-white p-1.5 rounded-full shadow-md inline-flex border border-orange-100">
+              <button 
+                onClick={() => setIsSpicyMode(false)}
+                className={`px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${!isSpicyMode ? 'bg-blue-100 text-blue-700 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <IceCream size={18} /> Vanilla
+              </button>
+              <button 
+                onClick={() => setIsSpicyMode(true)}
+                className={`px-6 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${isSpicyMode ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <Flame size={18} /> SPICY
+              </button>
+            </div>
+          </div>
+          
+          {isSpicyMode ? (
+            <p className="text-sm text-gray-600 mt-4 max-w-md mx-auto">
+              🔥 SPICY mode adds humor and personality to your listings
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600 mt-4 max-w-md mx-auto">
+              Professional, straightforward descriptions perfect for serious selling
+            </p>
+          )}
+        </div>
+
+        {/* UPLOAD SECTION */}
+        {!imagePreview && (
+          <div className="bg-white p-8 rounded-3xl shadow-lg border-2 border-dashed border-orange-300 text-center mb-6">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+              id="file-upload"
+            />
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <Camera className="mx-auto mb-4 text-orange-500" size={64} />
+              <p className="text-xl font-bold text-gray-800 mb-2">Snap a pic of your item</p>
+              <p className="text-sm text-gray-600 mb-4">We'll do the rest 🌶️</p>
+              <div className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl inline-block transition-colors">
+                Upload Photo
+              </div>
+            </label>
+            <p className="text-xs text-gray-500 mt-4">Max 5MB • JPG, PNG, WebP</p>
+          </div>
+        )}
+
+        {/* PREVIEW & ANALYZE */}
+        {imagePreview && !results && (
+          <div className="bg-white p-6 rounded-3xl shadow-lg mb-6">
+            <img 
+              src={imagePreview} 
+              alt="Preview" 
+              className="w-full h-64 object-cover rounded-2xl mb-4"
+            />
+            <button
+              onClick={analyzeItem}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                  Analyzing your treasure...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={20} />
+                  Generate Listing
+                </>
+              )}
+            </button>
+            <button
+              onClick={reset}
+              className="w-full mt-3 text-gray-600 hover:text-gray-800 py-2 font-medium text-sm"
+            >
+              Choose Different Photo
+            </button>
+          </div>
+        )}
+
+        {/* RESULTS */}
+        {results && (
+          <div ref={shareCardRef} className="space-y-4">
+            
+            {/* Milestone */}
+            {milestone?.show && (
+              <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-2xl border-2 border-purple-300 text-center">
+                <p className="text-2xl font-black text-purple-700">{milestone.message}</p>
+              </div>
+            )}
+
+            {/* Savings */}
+            {currentSavings && (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gift className="text-green-600" size={20} />
+                  <span className="text-xs font-bold uppercase text-green-600">You've Saved</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-black text-green-600">{formatTime(currentSavings.allTime.time)}</p>
+                    <p className="text-xs text-gray-600">Time Saved</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-black text-green-600">£{currentSavings.allTime.cost.toFixed(2)}</p>
+                    <p className="text-xs text-gray-600">Money Saved</p>
+                  </div>
+                </div>
+                {currentReward && (
+                  <p className="text-sm text-gray-700 text-center mt-3 bg-white p-2 rounded-lg">
+                    You've earned: <strong>{currentReward}</strong>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Rarity */}
+            {results.rarity && (
+              <div className={`${RARITY_TIERS[results.rarity]?.bg || 'bg-gray-50'} p-6 rounded-2xl border-2 ${RARITY_TIERS[results.rarity]?.color || 'border-gray-200'}`}>
+                <div className="text-center">
+                  <div className="text-5xl mb-2">{RARITY_TIERS[results.rarity]?.emoji}</div>
+                  <p className={`text-2xl font-black ${RARITY_TIERS[results.rarity]?.text || 'text-gray-600'}`}>
+                    {results.rarity}
+                  </p>
+                  {results.spicyComment && (
+                    <p className="text-sm text-gray-700 mt-2 italic">{results.spicyComment}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Title */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase text-gray-500">Title</span>
+                <button
+                  onClick={() => copyText('title', results.title)}
+                  className="text-orange-500 hover:text-orange-600"
+                >
+                  {copiedSection === 'title' ? <Check size={18} /> : <Copy size={18} />}
+                </button>
+              </div>
+              <p className="text-gray-800 font-semibold">{results.title}</p>
+            </div>
+
+            {/* Description */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase text-gray-500">Description</span>
+                <button
+                  onClick={() => copyText('description', results.description)}
+                  className="text-orange-500 hover:text-orange-600"
+                >
+                  {copiedSection === 'description' ? <Check size={18} /> : <Copy size={18} />}
+                </button>
+              </div>
+              <p className="text-gray-700 text-sm whitespace-pre-wrap">{results.description}</p>
+            </div>
+
+            {/* Price & Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-gray-200">
+                <p className="text-xs font-bold uppercase text-gray-500 mb-2">Price Range</p>
+                <p className="text-2xl font-black text-green-600">£{results.priceLow} - £{results.priceHigh}</p>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-gray-200">
+                <p className="text-xs font-bold uppercase text-gray-500 mb-2">Category</p>
+                <p className="text-lg font-bold text-gray-800">{results.category}</p>
+              </div>
+            </div>
+
+            {/* Dimensions */}
+            {editedDimensions && (
+              <div className="bg-orange-50 p-5 rounded-2xl border border-orange-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Ruler className="text-orange-600" size={20} />
+                    <span className="text-xs font-bold uppercase text-orange-600">Dimensions</span>
+                  </div>
+                  {!editingDimensions && (
+                    <button
+                      onClick={() => setEditingDimensions(true)}
+                      className="text-orange-500 hover:text-orange-600"
+                    >
+                      <Edit3 size={18} />
+                    </button>
+                  )}
+                </div>
+                
+                {!editingDimensions ? (
+                  <div className="bg-white p-4 rounded-xl">
+                    <p className="text-2xl font-black text-gray-800">
+                      {editedDimensions.length} × {editedDimensions.width} × {editedDimensions.height} cm
+                    </p>
+                    {results.dimensions?.confidence && (
+                      <p className="text-xs text-gray-500 mt-1">Confidence: {results.dimensions.confidence}%</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-600">Length (cm)</label>
+                        <input
+                          type="number"
+                          value={editedDimensions.length}
+                          onChange={(e) => updateDimensions('length', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Width (cm)</label>
+                        <input
+                          type="number"
+                          value={editedDimensions.width}
+                          onChange={(e) => updateDimensions('width', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Height (cm)</label>
+                        <input
+                          type="number"
+                          value={editedDimensions.height}
+                          onChange={(e) => updateDimensions('height', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                    
+                    {dimensionWarning && (
+                      <div className="bg-yellow-50 p-3 rounded-lg flex items-start gap-2">
+                        <AlertCircle className="text-yellow-600 flex-shrink-0" size={18} />
+                        <p className="text-xs text-yellow-800">{dimensionWarning}</p>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={saveDimensionEdits}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-bold text-sm"
+                    >
+                      Save Dimensions
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Weight */}
+            {results.weight && (
+              <div className="bg-white p-5 rounded-2xl border border-gray-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Scale className="text-gray-600" size={20} />
+                  <span className="text-xs font-bold uppercase text-gray-500">Weight</span>
+                </div>
+                <p className="text-xl font-bold text-gray-800">~{results.weight.grams}g</p>
+                {results.weight.confidence && (
+                  <p className="text-xs text-gray-500 mt-1">Confidence: {results.weight.confidence}%</p>
+                )}
+              </div>
+            )}
+
+            {/* Packaging */}
+            {packaging && !hasOwnPackaging && (
+              <div className="bg-orange-50 p-5 rounded-2xl border border-orange-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="text-orange-600" size={20} />
+                  <span className="text-xs font-bold uppercase text-orange-600">Recommended Packaging</span>
+                </div>
+                
+                <div className="bg-white p-4 rounded-xl border-2 border-orange-300 mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{packaging.details.icon}</span>
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-900">{packaging.details.name}</p>
+                      <p className="text-sm text-gray-600">{packaging.details.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {packaging.details.dimensions}, up to {packaging.details.maxWeight >= 1000 ? `${packaging.details.maxWeight/1000}kg` : `${packaging.details.maxWeight}g`}
+                      </p>
+                    </div>
+                    <p className="text-xl font-black text-green-600">£{packaging.details.price.toFixed(2)}</p>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-600 mb-3">💡 {packaging.reasoning}</p>
+                
+                <button
+                  onClick={() => setHasOwnPackaging(true)}
+                  className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 py-2 rounded-lg font-semibold text-sm"
+                >
+                  I Have My Own Packaging
+                </button>
+              </div>
+            )}
+
+            {/* ACTION BUTTONS */}
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button
+                onClick={openEbay}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <ExternalLink size={18} />
+                Search eBay
+              </button>
+              
+              <button
+                onClick={openVinted}
+                className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <ExternalLink size={18} />
+                Open Vinted
+              </button>
+              
+              <button
+                onClick={copyAll}
+                className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                {copiedSection === 'all' ? <Check size={18} /> : <Copy size={18} />}
+                Copy All
+              </button>
+              
+              <button
+                onClick={generateShareImage}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <Share2 size={18} />
+                Share
+              </button>
+            </div>
+
+            <button
+              onClick={reset}
+              className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <Camera size={20} />
+              Scan Another Item
+            </button>
+
+            {/* Pro CTA */}
+            {!isPro && listingCount >= 3 && (
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-2xl border-2 border-purple-300 text-center">
+                <Crown className="mx-auto text-purple-600 mb-3" size={48} />
+                <h3 className="text-xl font-black text-gray-800 mb-2">You're on fire! 🔥</h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  You've created {listingCount} listings! Upgrade to Pro for batch uploads, multi-photo support, and more!
+                </p>
+                <button
+                  onClick={() => setShowPricingModal(true)}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-xl transition-all"
+                >
+                  View Pro Plans
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* FOOTER */}
+        <div className="mt-12 text-center space-y-6 pb-12">
+          <div className="inline-block bg-white px-6 py-4 rounded-3xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center justify-center gap-2">
+              <Coffee className="text-yellow-500" /> This is Coffeeware
+            </h3>
+            <p className="text-sm text-gray-500 mt-1 mb-3">Free forever. Support if it helps you.</p>
+            <button
+              onClick={() => setShowPricingModal(true)}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-2 px-6 rounded-xl transition-all"
+            >
+              View Plans
+            </button>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
+            <a href="https://comedymagic.co.uk" target="_blank" rel="noreferrer" className="hover:text-purple-500 transition-colors">
+              Support the <strong>Community Comedy Magic Tour</strong>
+            </a>
+            <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
+              Find me on TikTok
+            </a>
+            <p className="text-xs opacity-50 mt-4">SpicyLister • Powered by Gemini Flash • Made with 💚 by Chris P Tee</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
