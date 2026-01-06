@@ -1200,7 +1200,16 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     <span className="text-lg">🛒</span>
                     <span className="text-xs">eBay</span>
                   </button>
-
+<button
+                onClick={() => {
+                  window.open('https://www.vinted.co.uk/', '_blank');
+                  alert('💡 Tip: Copy your title and description, then paste them into Vinted!');
+                }}
+                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl transition-all flex flex-col items-center gap-1"
+              >
+                <ExternalLink size={18} />
+                <span className="text-xs">Vinted</span>
+              </button>
                   <button
                     onClick={copyForStore}
                     className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
