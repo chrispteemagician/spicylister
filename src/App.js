@@ -7,6 +7,18 @@ import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
 
+javascript
+// =============================================================================
+// STRIPE CHECKOUT LINKS
+// =============================================================================
+
+const STRIPE_LINKS = {
+  earlyAdopter: 'https://buy.stripe.com/aFabJ1fJ10Vw6zT89NfrW00',
+  regular: 'https://buy.stripe.com/8x29ATcwPdIi2jDahVfrW01',
+  reseller: 'https://buy.stripe.com/7sY14n40j1ZA3nH3TxfrW02',
+};
+
+
 // =============================================================================
 // CONFIGURATION
 // =============================================================================
@@ -395,6 +407,20 @@ export default function App() {
   const userRegion = detectUserRegion();
   const userCurrency = GLOBAL_REGIONS[userRegion];
 
+  javascript
+  const startEarlyAdopterCheckout = () => {
+    window.location.href = STRIPE_LINKS.earlyAdopter;
+  };
+
+  const startRegularProCheckout = () => {
+    window.location.href = STRIPE_LINKS.regular;
+  };
+
+  const startResellerCheckout = () => {
+    window.location.href = STRIPE_LINKS.reseller;
+  };
+
+
   // Load cumulative savings on mount
   useEffect(() => {
     const saved = getCumulativeSavings();
@@ -417,6 +443,21 @@ export default function App() {
     };
     fetchGlobalCount();
   }, []);
+
+  javascript
+  // Check for Pro activation from Stripe return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const proParam = params.get('pro');
+    if (proParam) {
+      localStorage.setItem('spicylister_pro', 'true');
+      localStorage.setItem('spicylister_pro_tier', proParam);
+      setIsPro(true);
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
 
   const getRarityStyle = (tier) => {
     return RARITY_TIERS[tier] || RARITY_TIERS['Common'];
@@ -824,8 +865,11 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 </ul>
               </div>
               
-              <button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors">
-                Upgrade to Pro - £4.99/month
+              <button 
+                onClick={startEarlyAdopterCheckout}
+                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors"
+              >
+                Lock in £4.95 Forever (Early Adopter)
               </button>
               
               <button 
