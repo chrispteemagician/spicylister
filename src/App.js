@@ -7,7 +7,6 @@ import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
 
-javascript
 // =============================================================================
 // STRIPE CHECKOUT LINKS
 // =============================================================================
@@ -406,8 +405,6 @@ export default function App() {
   const resultCardRef = useRef(null);
   const userRegion = detectUserRegion();
   const userCurrency = GLOBAL_REGIONS[userRegion];
-
-  javascript
   const startEarlyAdopterCheckout = () => {
     window.location.href = STRIPE_LINKS.earlyAdopter;
   };
@@ -444,7 +441,6 @@ export default function App() {
     fetchGlobalCount();
   }, []);
 
-  javascript
   // Check for Pro activation from Stripe return
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
