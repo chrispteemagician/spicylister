@@ -1,15 +1,13 @@
 /**
- * SpicyLister v2.0 - Enhanced Analyze Item Function
+ * SpicyLister v2.5 - Multi-API Fallback System
  * 
- * Now includes:
- * - Dimension estimation (L×W×H in cm)
- * - Weight estimation (grams)
- * - Material composition detection
- * - Fragility assessment
- * - Confidence scores
+ * Tries Claude API first, falls back to Gemini if Claude fails
+ * Includes dimension estimation, weight, materials, and fragility
  * 
  * Built with 💚 for the neurodivergent community
  */
+
+const Anthropic = require('@anthropic-ai/sdk');
 
 exports.handler = async (event, context) => {
   // Enable CORS
@@ -46,257 +44,67 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get API key from environment
-    const apiKey = process.env.GOOGLE_API_KEY;
-    
-    if (!apiKey) {
+    // Get API keys from environment
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const googleKey = process.env.GOOGLE_API_KEY;
+
+    if (!anthropicKey && !googleKey) {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'API key not configured' }),
+        body: JSON.stringify({ error: 'No API keys configured' }),
       };
     }
 
-    // ✨ ENHANCED: SpicyBrain prompt now includes shipping intelligence
-    const systemPrompt = `You are **"SpicyBrain,"** an expert online reseller with 10+ years of experience on eBay, Vinted, Depop, and Facebook Marketplace. You have an encyclopedic knowledge of current market values, pricing trends, AND shipping logistics. Your special skill is helping neurodivergent individuals overcome executive dysfunction to declutter and get that dopamine boost from selling.
+    // Build the system prompt
+    const systemPrompt = buildSystemPrompt(region, extraInfo, isSpicyMode);
 
-**YOUR MISSION:** Analyze the user-submitted image(s) and generate a complete listing package INCLUDING shipping intelligence.
+    let result;
+    let apiUsed = 'none';
+    let lastError;
 
-**CRITICAL PRICING INSTRUCTIONS:** You MUST provide realistic, research-based pricing. This is the most important part of your job. Follow these steps:
-
-1. **IDENTIFY** the exact item: brand, model, year, edition, size, color, condition
-2. **RESEARCH** current ${region} market values by thinking through:
-   - What similar items ACTUALLY SELL FOR (not asking prices)
-   - Brand reputation and demand in the ${region} market
-   - Condition impact on value
-   - Seasonal demand factors
-   - Rarity or commonality of the item
-3. **PRICE REALISTICALLY** based on actual market data, not guesswork
-
-**CRITICAL SHIPPING INTELLIGENCE:** You MUST estimate physical properties for shipping:
-
-1. **DIMENSIONS** - Estimate length, width, height in centimeters by:
-   - Recognizing the item type and its typical size
-   - Using any reference objects visible in the image
-   - Considering standard sizes for common items (phones, books, clothes, etc.)
-   - Provide a confidence score (0-100) based on certainty
-
-2. **WEIGHT** - Estimate weight in grams by:
-   - Identifying the primary materials (plastic, metal, fabric, glass, etc.)
-   - Calculating approximate mass based on volume and material density
-   - Accounting for internal components if applicable
-   - Provide a confidence score (0-100) based on certainty
-
-3. **MATERIAL COMPOSITION** - Identify primary materials:
-   - e.g., "plastic housing with metal internals"
-   - e.g., "100% cotton fabric"
-   - e.g., "ceramic with wooden base"
-
-4. **FRAGILITY LEVEL** - Assess shipping fragility:
-   - "low" = Durable items (books, clothing, plastic toys)
-   - "medium" = Moderately fragile (electronics, wooden items)
-   - "high" = Very fragile (glass, ceramics, antiques)
-
-**Output Format:** Return as clean JSON with ALL of these keys:
-
-{
-  "title": "SEO-optimized listing title (brand, model, color, key features)",
-  "description": "Detailed, friendly description with bullet points for features",
-  "condition": "Honest condition assessment (New with tags/Excellent/Very good/Good/Fair)",
-  "category": "Primary eBay category",
-  "rarity": "${isSpicyMode ? 'Common/Uncommon/Rare/Epic/Legendary/God-Tier' : 'Standard'}",
-  "spicyComment": "${isSpicyMode ? 'Witty British roast or hype comment' : 'Professional assessment'}",
-  "priceLow": 10,
-  "priceHigh": 20,
-  "dimensions": {
-    "length": 15,
-    "width": 10,
-    "height": 5,
-    "confidence": 75
-  },
-  "weight": {
-    "grams": 250,
-    "confidence": 70
-  },
-  "material": "Primary material composition description",
-  "fragility": "low/medium/high"
-}
-
-**DIMENSION ESTIMATION GUIDELINES:**
-
-Common item sizes for reference:
-- Smartphone: ~15×7×1cm, ~180g
-- Paperback book: ~20×13×2cm, ~300g
-- T-shirt (folded): ~30×25×3cm, ~200g
-- DVD/Blu-ray case: ~19×14×1.5cm, ~100g
-- Coffee mug: ~10×10×10cm, ~350g
-- Laptop: ~35×25×2cm, ~1500g
-- Board game: ~30×30×8cm, ~1000g
-- Vinyl record: ~32×32×1cm, ~200g
-- Action figure (boxed): ~20×15×8cm, ~300g
-- Pair of shoes (boxed): ~35×25×15cm, ~1000g
-
-**PRICING EXAMPLES:**
-
-Good pricing for ${region} market:
-- iPhone 12 64GB, Good condition: £180-£220 (not £300+)
-- Zara dress, Excellent condition: £8-£12 (not £25+)
-- Vintage band t-shirt, Good condition: £15-£22 (varies by band)
-- Unknown brand electronics: £5-£8 (price to move quickly)
-- Nintendo Switch game: £25-£35 (depending on title)
-
-**REMEMBER:** 
-- It's better to sell quickly at fair market value than sit unsold for months
-- Your pricing should reflect what buyers actually pay, not wishful thinking
-- Be conservative with estimates - underpromise and overdeliver
-
-${extraInfo ? `\n\n**Additional context from seller:** "${extraInfo}" - Use this information to improve pricing accuracy and add relevant details. If they mention original purchase price, consider depreciation realistically.` : ''}
-
-${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! Roast junk items, hype valuable finds. Assign creative rarity tiers.` : '\n**PROFESSIONAL MODE:** Keep it clean, factual, and businesslike.'}
-
-**IMPORTANT:** Respond ONLY with valid JSON. Do not include any text outside of the JSON structure.`;
-
-    // Prepare content for Gemini
-    const contents = [{
-      parts: [
-        { text: systemPrompt },
-        ...images.map(image => ({
-          inline_data: {
-            mime_type: image.mimeType,
-            data: image.data
-          }
-        }))
-      ]
-    }];
-
-    // Call Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ contents }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: 'AI analysis failed', 
-          details: `Gemini API returned ${response.status}` 
-        }),
-      };
+    // Try Claude first
+    if (anthropicKey) {
+      try {
+        console.log('🤖 Attempting Claude API...');
+        result = await callClaudeAPI(anthropicKey, images, systemPrompt);
+        apiUsed = 'claude';
+        console.log('✅ Successfully used Claude API');
+      } catch (claudeError) {
+        console.warn('⚠️ Claude failed:', claudeError.message);
+        lastError = claudeError;
+      }
     }
 
-    const aiResponse = await response.json();
-    
-    if (!aiResponse.candidates || !aiResponse.candidates[0] || !aiResponse.candidates[0].content) {
-      console.error('Unexpected Gemini response structure:', aiResponse);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Unexpected AI response format' 
-        }),
-      };
+    // Fallback to Gemini if Claude failed or unavailable
+    if (!result && googleKey) {
+      try {
+        console.log('🤖 Falling back to Gemini API...');
+        result = await callGeminiAPI(googleKey, images, systemPrompt);
+        apiUsed = 'gemini';
+        console.log('✅ Successfully used Gemini API (fallback)');
+      } catch (geminiError) {
+        console.error('❌ Gemini also failed:', geminiError.message);
+        if (lastError) {
+          throw new Error(`All AI services failed. Claude: ${lastError.message}, Gemini: ${geminiError.message}`);
+        } else {
+          throw geminiError;
+        }
+      }
     }
 
-    let responseText = aiResponse.candidates[0].content.parts[0].text;
-
-    // Clean up response - remove any markdown code blocks
-    responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-
-    // Parse JSON
-    let parsedResult;
-    try {
-      parsedResult = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.error('Raw response:', responseText);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Failed to parse AI response as JSON',
-          details: 'AI returned invalid JSON format'
-        }),
-      };
+    if (!result) {
+      throw new Error('No AI service available or all failed');
     }
 
-    // Validate and provide defaults for required fields
-    const requiredFields = ['title', 'description', 'condition', 'category'];
-    const missingFields = requiredFields.filter(field => !parsedResult[field]);
-    
-    if (missingFields.length > 0) {
-      console.warn('Missing fields, providing defaults:', missingFields);
-      // Provide defaults instead of failing
-      if (!parsedResult.title) parsedResult.title = 'Item for Sale';
-      if (!parsedResult.description) parsedResult.description = 'Item as shown in photos.';
-      if (!parsedResult.condition) parsedResult.condition = 'Good condition';
-      if (!parsedResult.category) parsedResult.category = 'Other';
-    }
-
-    // Ensure numeric fields are numbers
-    parsedResult.priceLow = Number(parsedResult.priceLow) || 5;
-    parsedResult.priceHigh = Number(parsedResult.priceHigh) || 10;
-
-    // ✨ NEW: Ensure dimension/weight fields exist with sensible defaults
-    if (!parsedResult.dimensions || typeof parsedResult.dimensions !== 'object') {
-      parsedResult.dimensions = {
-        length: 15,
-        width: 10,
-        height: 5,
-        confidence: 50
-      };
-    } else {
-      // Ensure all dimension fields are numbers
-      parsedResult.dimensions.length = Number(parsedResult.dimensions.length) || 15;
-      parsedResult.dimensions.width = Number(parsedResult.dimensions.width) || 10;
-      parsedResult.dimensions.height = Number(parsedResult.dimensions.height) || 5;
-      parsedResult.dimensions.confidence = Number(parsedResult.dimensions.confidence) || 50;
-    }
-
-    if (!parsedResult.weight || typeof parsedResult.weight !== 'object') {
-      parsedResult.weight = {
-        grams: 200,
-        confidence: 50
-      };
-    } else {
-      parsedResult.weight.grams = Number(parsedResult.weight.grams) || 200;
-      parsedResult.weight.confidence = Number(parsedResult.weight.confidence) || 50;
-    }
-
-    if (!parsedResult.material) {
-      parsedResult.material = 'Mixed materials';
-    }
-
-    if (!parsedResult.fragility || !['low', 'medium', 'high'].includes(parsedResult.fragility)) {
-      parsedResult.fragility = 'medium';
-    }
-
-    if (!parsedResult.rarity) {
-      parsedResult.rarity = isSpicyMode ? 'Common' : 'Standard';
-    }
-
-    if (!parsedResult.spicyComment) {
-      parsedResult.spicyComment = isSpicyMode ? 'Let\'s get this listed!' : 'Item analyzed successfully.';
-    }
-
-    // ✨ NEW: Add computed shipping recommendation
-    const shippingRecommendation = calculateShippingRecommendation(
-      parsedResult.dimensions, 
-      parsedResult.weight, 
-      parsedResult.fragility
-    );
-    parsedResult.recommendedPackaging = shippingRecommendation;
+    // Add API metadata
+    result.apiUsed = apiUsed;
+    result.timestamp = new Date().toISOString();
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(parsedResult),
+      body: JSON.stringify(result),
     };
 
   } catch (error) {
@@ -313,25 +121,159 @@ ${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! R
 };
 
 /**
- * ✨ NEW: Calculate shipping recommendation based on dimensions/weight/fragility
+ * Call Claude (Anthropic) API
  */
+async function callClaudeAPI(apiKey, images, systemPrompt) {
+  const anthropic = new Anthropic({ apiKey });
+
+  // Convert images to Claude format
+  const imageContent = images.map(img => ({
+    type: 'image',
+    source: {
+      type: 'base64',
+      media_type: img.mimeType,
+      data: img.data,
+    },
+  }));
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 2048,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          ...imageContent,
+          {
+            type: 'text',
+            text: systemPrompt,
+          },
+        ],
+      },
+    ],
+  });
+
+  const responseText = response.content[0].text;
+  return parseAndValidateResponse(responseText);
+}
+
+/**
+ * Call Gemini API (fallback)
+ */
+async function callGeminiAPI(apiKey, images, systemPrompt) {
+  const contents = [{
+    parts: [
+      { text: systemPrompt },
+      ...images.map(image => ({
+        inline_data: {
+          mime_type: image.mimeType,
+          data: image.data,
+        },
+      })),
+    ],
+  }];
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+  }
+
+  const aiResponse = await response.json();
+
+  if (!aiResponse.candidates?.[0]?.content?.parts?.[0]?.text) {
+    throw new Error('Unexpected Gemini response structure');
+  }
+
+  const responseText = aiResponse.candidates[0].content.parts[0].text;
+  return parseAndValidateResponse(responseText);
+}
+
+/**
+ * Parse and validate AI response
+ */
+function parseAndValidateResponse(responseText) {
+  // Clean up response
+  const cleaned = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    throw new Error(`Failed to parse JSON: ${e.message}`);
+  }
+
+  // Validate and provide defaults
+  const result = {
+    title: parsed.title || 'Item for Sale',
+    description: parsed.description || 'Item as shown in photos.',
+    condition: parsed.condition || 'Good condition',
+    category: parsed.category || 'Other',
+    rarity: parsed.rarity || 'Common',
+    spicyComment: parsed.spicyComment || "Let's get this listed!",
+    priceLow: Number(parsed.priceLow) || 5,
+    priceHigh: Number(parsed.priceHigh) || 10,
+    dimensions: validateDimensions(parsed.dimensions),
+    weight: validateWeight(parsed.weight),
+    material: parsed.material || 'Mixed materials',
+    fragility: ['low', 'medium', 'high'].includes(parsed.fragility) ? parsed.fragility : 'medium',
+  };
+
+  // Add shipping recommendation
+  result.recommendedPackaging = calculateShippingRecommendation(
+    result.dimensions,
+    result.weight,
+    result.fragility
+  );
+
+  return result;
+}
+
+function validateDimensions(dims) {
+  if (!dims || typeof dims !== 'object') {
+    return { length: 15, width: 10, height: 5, confidence: 50 };
+  }
+  return {
+    length: Number(dims.length) || 15,
+    width: Number(dims.width) || 10,
+    height: Number(dims.height) || 5,
+    confidence: Number(dims.confidence) || 50,
+  };
+}
+
+function validateWeight(weight) {
+  if (!weight || typeof weight !== 'object') {
+    return { grams: 200, confidence: 50 };
+  }
+  return {
+    grams: Number(weight.grams) || 200,
+    confidence: Number(weight.confidence) || 50,
+  };
+}
+
 function calculateShippingRecommendation(dimensions, weight, fragility) {
   const PACKAGING = {
     'large-letter': { maxL: 24, maxW: 16, maxH: 3, maxWeight: 750, price: 0.85 },
     'small-parcel': { maxL: 45, maxW: 35, maxH: 16, maxWeight: 2000, price: 1.20 },
     'medium-parcel': { maxL: 61, maxW: 46, maxH: 46, maxWeight: 20000, price: 2.50 },
-    'large-parcel': { maxL: 999, maxW: 999, maxH: 999, maxWeight: 30000, price: 4.00 }
+    'large-parcel': { maxL: 999, maxW: 999, maxH: 999, maxWeight: 30000, price: 4.00 },
   };
 
   const { length, width, height } = dimensions;
   const weightGrams = weight.grams;
 
-  // Add padding for safe shipping
   const paddedL = length + 3;
   const paddedW = width + 3;
   const paddedH = height + 3;
 
-  // Find smallest fitting package
   let recommended = 'large-parcel';
   const sizes = ['large-letter', 'small-parcel', 'medium-parcel', 'large-parcel'];
 
@@ -343,7 +285,6 @@ function calculateShippingRecommendation(dimensions, weight, fragility) {
     }
   }
 
-  // Upsize for fragile items
   if (fragility === 'high' && recommended !== 'large-parcel') {
     const currentIndex = sizes.indexOf(recommended);
     recommended = sizes[Math.min(currentIndex + 1, sizes.length - 1)];
@@ -352,6 +293,52 @@ function calculateShippingRecommendation(dimensions, weight, fragility) {
   return {
     size: recommended,
     price: PACKAGING[recommended].price,
-    reason: fragility === 'high' ? 'Upsized for fragile item' : 'Best fit with padding'
+    reason: fragility === 'high' ? 'Upsized for fragile item' : 'Best fit with padding',
   };
+}
+
+function buildSystemPrompt(region, extraInfo, isSpicyMode) {
+  return `You are **"SpicyBrain,"** an expert online reseller with 10+ years of experience. Analyze images and generate complete listing packages INCLUDING shipping intelligence.
+
+**YOUR MISSION:** Provide realistic, research-based pricing and shipping details.
+
+**CRITICAL PRICING INSTRUCTIONS:**
+1. IDENTIFY exact item: brand, model, year, size, color, condition
+2. RESEARCH current ${region} market values by considering:
+   - What similar items ACTUALLY SELL FOR (not asking prices)
+   - Brand reputation and demand
+   - Condition impact
+   - Seasonal factors
+   - Rarity
+3. PRICE REALISTICALLY based on actual market data
+
+**SHIPPING INTELLIGENCE:**
+1. **DIMENSIONS** - Estimate L×W×H in cm with confidence score
+2. **WEIGHT** - Estimate grams with confidence score  
+3. **MATERIAL** - Identify primary materials
+4. **FRAGILITY** - Assess as low/medium/high
+
+**Output Format:** Return ONLY valid JSON:
+{
+  "title": "SEO-optimized title",
+  "description": "Friendly description with bullet points",
+  "condition": "Honest condition",
+  "category": "Primary category",
+  "rarity": "${isSpicyMode ? 'Common/Rare/Epic/Legendary/God-Tier' : 'Standard'}",
+  "spicyComment": "${isSpicyMode ? 'Witty British comment' : 'Professional assessment'}",
+  "priceLow": 10,
+  "priceHigh": 20,
+  "dimensions": { "length": 15, "width": 10, "height": 5, "confidence": 75 },
+  "weight": { "grams": 250, "confidence": 70 },
+  "material": "Material description",
+  "fragility": "low/medium/high"
+}
+
+**Common Sizes Reference:**
+- Smartphone: ~15×7×1cm, ~180g
+- Book: ~20×13×2cm, ~300g
+- T-shirt: ~30×25×3cm, ~200g
+- Mug: ~10×10×10cm, ~350g
+${extraInfo ? `\n\n**Seller notes:** "${extraInfo}"` : ''}
+${isSpicyMode ? '\n**SPICY MODE:** Be witty and entertaining!' : '\n**PROFESSIONAL MODE:** Keep it businesslike.'}`;
 }
