@@ -4,6 +4,7 @@ import {
   Info, ExternalLink, Ruler, Package, Scale, Crown, Gift, Edit3, X, AlertCircle
 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
+import Anthropic from '@anthropic-ai/sdk';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
 
@@ -497,12 +498,84 @@ export default function App() {
     setLoading(true);
 
     try {
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
-
-      const ai = new GoogleGenAI({ apiKey });
+      // Try Anthropic first, fall back to Gemini
+      const anthropicKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+      const geminiKey = process.env.REACT_APP_GEMINI_API_KEY;
       const base64Data = imagePreview.split(',')[1];
-
+      
+      let data;
+      let usedAPI = 'none';
+      
+      // Try Anthropic API first
+      if (anthropicKey && !anthropicKey.includes('placeholder')) {
+        try {
+          console.log('Trying Anthropic API...');
+          const anthropic = new Anthropic({ apiKey: anthropicKey });
+          
+          const message = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1024,
+            messages: [{
+              role: 'user',
+              content: [{
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: 'image/jpeg',
+                  data: base64Data
+                }
+              }, {
+                type: 'text',
+                text: systemPrompt
+              }]
+            }]
+          });
+          
+          const responseText = message.content[0].text;
+          const cleanText = responseText.replace(/```json\n?|```/g, '').trim();
+          data = JSON.parse(cleanText);
+          usedAPI = 'anthropic';
+          console.log('✓ Anthropic API successful');
+        } catch (anthropicError) {
+          console.log('Anthropic failed, trying Gemini:', anthropicError.message);
+        }
+      }
+      
+      // Fall back to Gemini if Anthropic failed or wasn't configured
+      if (usedAPI === 'none' && geminiKey && !geminiKey.includes('placeholder')) {
+        try {
+          console.log('Trying Gemini API...');
+          const ai = new GoogleGenAI({ apiKey: geminiKey });
+          
+          const response = await ai.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: [{
+              role: 'user',
+              parts: [{
+                text: systemPrompt
+              }, {
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: base64Data
+                }
+              }]
+            }]
+          });
+          
+          const finalString = typeof response.text === 'function' ? response.text() : response.text;
+          const cleanText = finalString.replace(/```json\n?|```/g, '').trim();
+          data = JSON.parse(cleanText);
+          usedAPI = 'gemini';
+          console.log('✓ Gemini API successful');
+        } catch (geminiError) {
+          console.log('Gemini failed:', geminiError.message);
+        }
+      }
+      
+      // If both APIs failed
+      if (usedAPI === 'none') {
+        throw new Error('Both Anthropic and Gemini APIs failed or are not configured. Please check your API keys in environment variables.');
+      
       // ✨ ENHANCED: System prompt now includes dimensions, weight, material, fragility
       const systemPrompt = isSpicyMode
         ? `You are SpicyLister, a hilarious, high-energy auctioneer with expertise in item valuation AND shipping logistics. 
@@ -576,30 +649,6 @@ export default function App() {
              "fragility": "low"
            }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: systemPrompt },
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ]
-      });
-
-      const finalString = typeof response.text === 'function' ? response.text() : response.text;
-      const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
-
-      let data;
-      try {
-        data = JSON.parse(cleanText);
         // Sanitize numbers
         data.priceLow = Number(data.priceLow) || 0;
         data.priceHigh = Number(data.priceHigh) || 0;
