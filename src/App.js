@@ -573,11 +573,13 @@ export default function App() {
       }
       
       // If both APIs failed
-      if (usedAPI === 'none') {
-        throw new Error('Both Anthropic and Gemini APIs failed or are not configured. Please check your API keys in environment variables.');
-      
-      // ✨ ENHANCED: System prompt now includes dimensions, weight, material, fragility
-      const systemPrompt = isSpicyMode
+if (usedAPI === 'none') {
+  throw new Error('Both Anthropic and Gemini APIs failed or are not configured. Please check your API keys in environment variables.');
+}  // ← ADD THIS CLOSING BRACE
+
+// ✨ ENHANCED: System prompt now includes dimensions, weight, material, fragility
+const systemPrompt = isSpicyMode
+
         ? `You are SpicyLister, a hilarious, high-energy auctioneer with expertise in item valuation AND shipping logistics. 
            Analyze this image for the ${userRegion} market (${userCurrency.currency}).
            
