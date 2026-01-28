@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, 
+import {
+  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream,
   Info, ExternalLink, Ruler, Package, Scale, Crown, Gift, Edit3, X, AlertCircle
 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
 
@@ -460,145 +459,50 @@ export default function App() {
     setLoading(true);
 
     try {
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
-
-      const ai = new GoogleGenAI({ apiKey });
+      // Get base64 data from the compressed image preview
       const base64Data = imagePreview.split(',')[1];
 
-      // ✨ ENHANCED: System prompt now includes dimensions, weight, material, fragility
-      const systemPrompt = isSpicyMode
-        ? `You are SpicyLister, a hilarious, high-energy auctioneer with expertise in item valuation AND shipping logistics. 
-           Analyze this image for the ${userRegion} market (${userCurrency.currency}).
-           
-           1. Assign a "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
-           2. Roast it if it's junk, Hype it if it's valuable. Be British, witty.
-           3. Give a listing title and description.
-           4. Give a price range (low/high).
-           
-           **CRITICAL: Also provide shipping intelligence:**
-           - Estimated dimensions (length, width, height in cm) - be realistic based on common objects
-           - Estimated weight (in grams)
-           - Material composition (plastic/metal/fabric/glass/ceramic/wood/mixed/etc)
-           - Fragility level (low/medium/high)
-           - Confidence scores for dimensions (0-100) and weight (0-100)
-           
-           Return ONLY valid JSON:
-           {
-             "title": "SEO optimized title",
-             "rarity": "Tier Name",
-             "spicyComment": "Roast or hype comment",
-             "description": "Sales description",
-             "category": "eBay Category",
-             "condition": "Condition assessment",
-             "priceLow": 10,
-             "priceHigh": 20,
-             "dimensions": {
-               "length": 15,
-               "width": 10,
-               "height": 5,
-               "confidence": 75
-             },
-             "weight": {
-               "grams": 250,
-               "confidence": 70
-             },
-             "material": "plastic housing with electronic components",
-             "fragility": "medium"
-           }`
-        : `Act as a professional reseller and shipping expert for the ${userRegion} market (${userCurrency.currency}).
-           
-           **Provide both listing AND shipping details:**
-           - Estimated dimensions (length, width, height in cm)
-           - Estimated weight (in grams)
-           - Material composition
-           - Fragility level (low/medium/high)
-           - Confidence scores for dimensions and weight (0-100)
-           
-           Return ONLY valid JSON:
-           {
-             "title": "SEO optimized title",
-             "rarity": "Standard",
-             "spicyComment": "Item analyzed.",
-             "description": "Professional description",
-             "category": "eBay Category",
-             "condition": "Condition assessment",
-             "priceLow": 10,
-             "priceHigh": 20,
-             "dimensions": {
-               "length": 15,
-               "width": 10,
-               "height": 5,
-               "confidence": 75
-             },
-             "weight": {
-               "grams": 250,
-               "confidence": 70
-             },
-             "material": "description of materials",
-             "fragility": "low"
-           }`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: systemPrompt },
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ]
+      // Call the serverless function (API key is kept server-side for security)
+      const response = await fetch('/.netlify/functions/analyze-item', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          images: [{
+            mimeType: 'image/jpeg',
+            data: base64Data
+          }],
+          isSpicyMode: isSpicyMode,
+          region: userRegion
+        })
       });
 
-      const finalString = typeof response.text === 'function' ? response.text() : response.text;
-      const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server returned ${response.status}`);
+      }
 
-      let data;
-      try {
-        data = JSON.parse(cleanText);
-        // Sanitize numbers
-        data.priceLow = Number(data.priceLow) || 0;
-        data.priceHigh = Number(data.priceHigh) || 0;
-        
-        // Ensure dimensions and weight exist with defaults
-        if (!data.dimensions) {
-          data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
-        }
-        if (!data.weight) {
-          data.weight = { grams: 200, confidence: 50 };
-        }
-        if (!data.fragility) {
-          data.fragility = 'medium';
-        }
-        if (!data.material) {
-          data.material = 'Mixed materials';
-        }
-        if (!data.condition) {
-          data.condition = 'Good condition';
-        }
-      } catch (e) {
-        console.error("JSON Parsing failed, using fallback");
-        data = {
-          title: "Item Identified (AI Format Issue)",
-          category: "Misc",
-          description: cleanText.substring(0, 300),
-          condition: "Good condition",
-          priceLow: 0,
-          priceHigh: 0,
-          spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
-          rarity: "Common",
-          dimensions: { length: 15, width: 10, height: 5, confidence: 50 },
-          weight: { grams: 200, confidence: 50 },
-          material: "Unknown",
-          fragility: "medium"
-        };
+      const data = await response.json();
+
+      // Ensure all required fields exist with defaults
+      data.priceLow = Number(data.priceLow) || 0;
+      data.priceHigh = Number(data.priceHigh) || 0;
+
+      if (!data.dimensions) {
+        data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
+      }
+      if (!data.weight) {
+        data.weight = { grams: 200, confidence: 50 };
+      }
+      if (!data.fragility) {
+        data.fragility = 'medium';
+      }
+      if (!data.material) {
+        data.material = 'Mixed materials';
+      }
+      if (!data.condition) {
+        data.condition = 'Good condition';
       }
 
       setResults(data);
@@ -655,9 +559,9 @@ export default function App() {
     } catch (error) {
       console.error(error);
       let msg = "Something went wrong.";
-      if (error.message.includes("404")) msg = "Model not found. The API might have changed.";
-      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
-      if (error.message.includes("API key") || error.message.includes("apiKey")) msg = "API Key issue. Check Netlify.";
+      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed. Try again in a moment.";
+      if (error.message.includes("API")) msg = "API issue. The server might be busy.";
+      if (error.message.includes("network") || error.message.includes("fetch")) msg = "Network error. Check your connection.";
       alert(msg + "\nTechnical detail: " + error.message);
     } finally {
       setLoading(false);
@@ -1307,7 +1211,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
               Support the <strong>Community Comedy Magic Tour</strong>
             </a>
             <p className="text-xs opacity-50 mt-4">
-              SpicyLister v2.2 • Powered by Gemini Flash • No cookies, just vibes 🌶️
+              SpicyLister v2.3 • Powered by Gemini Flash • No cookies, just vibes 🌶️
             </p>
             <p className="text-[10px] opacity-30">
               "World domination through kindness" 💚
