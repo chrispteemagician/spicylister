@@ -310,41 +310,12 @@ const checkMilestones = (count) => {
   return { show: false };
 };
 
-// ✨ NEW: Kudos Award Function (with graceful fallback)
+// ✨ NEW: Kudos Award Function (local-only for now, FeelFamous integration coming soon)
 const awardKudos = async (action, setShowKudosNotification) => {
-  const apiUrl = process.env.REACT_APP_FEELFAMOUS_API_URL;
-  const apiKey = process.env.REACT_APP_FEELFAMOUS_API_KEY;
-  
-  // If not configured, skip silently
-  if (!apiUrl || apiUrl.includes('placeholder')) {
-    console.log('Kudos system not yet configured - earning virtual kudos locally');
-    // Still show the notification for dopamine hit!
-    const { kudos, coins } = KUDOS_ACTIONS[action] || { kudos: 5, coins: 2 };
-    setShowKudosNotification({ kudos, coins });
-    setTimeout(() => setShowKudosNotification(null), 3000);
-    return;
-  }
-  
-  try {
-    const { kudos, coins } = KUDOS_ACTIONS[action];
-    
-    const response = await fetch(`${apiUrl}/kudos/award`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey
-      },
-      body: JSON.stringify({ action, kudos, coins })
-    });
-    
-    if (response.ok) {
-      setShowKudosNotification({ kudos, coins });
-      setTimeout(() => setShowKudosNotification(null), 3000);
-    }
-  } catch (err) {
-    // Fail silently - kudos is optional
-    console.log('Kudos award failed:', err.message);
-  }
+  // Local kudos celebration (FeelFamous integration coming in future update)
+  const { kudos, coins } = KUDOS_ACTIONS[action] || { kudos: 5, coins: 2 };
+  setShowKudosNotification({ kudos, coins });
+  setTimeout(() => setShowKudosNotification(null), 3000);
 };
 
 // =============================================================================
