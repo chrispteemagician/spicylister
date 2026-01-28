@@ -46,14 +46,18 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get API key from environment
-    const apiKey = process.env.GOOGLE_API_KEY;
-    
+    // Get API key from environment (try multiple possible names)
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY;
+
     if (!apiKey) {
+      console.error('No API key found. Available env vars:', Object.keys(process.env).filter(k => k.includes('KEY') || k.includes('API') || k.includes('GEMINI') || k.includes('GOOGLE')));
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'API key not configured' }),
+        body: JSON.stringify({
+          error: 'API key not configured',
+          hint: 'Set GOOGLE_API_KEY in Netlify environment variables'
+        }),
       };
     }
 
@@ -184,9 +188,10 @@ ${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! R
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ 
-          error: 'AI analysis failed', 
-          details: `Gemini API returned ${response.status}` 
+        body: JSON.stringify({
+          error: 'AI analysis failed',
+          details: `Gemini API returned ${response.status}`,
+          geminiError: errorText.substring(0, 200)
         }),
       };
     }
