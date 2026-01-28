@@ -2,6 +2,9 @@
   "name": "spicylister",
   "version": "1.3.0",
   "private": true,
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
     "@google/genai": "^1.30.0",
         "@anthropic-ai/sdk": "^0.32.1",
