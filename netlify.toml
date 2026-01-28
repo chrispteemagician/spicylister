@@ -1,9 +1,11 @@
 [build]
   publish = "build"
   functions = "functions"
+  command = "rm -rf node_modules && npm install && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
+  CI = "false"
 
 [functions]
   node_bundler = "esbuild"
