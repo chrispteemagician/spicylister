@@ -1,5 +1,5 @@
 /**
- * SpicyLister v2.0 - Enhanced Analyze Item Function
+ * SpicyLister v2.3 - Enhanced Analyze Item Function
  * 
  * Now includes:
  * - Dimension estimation (L×W×H in cm)
@@ -173,25 +173,69 @@ ${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! R
       ]
     }];
 
-    // Call Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ contents }),
-    });
+    // Call Gemini API with retry logic for rate limiting
+    // More aggressive retries: 5 attempts with longer waits (2s, 4s, 8s, 16s, 32s)
+    const maxRetries = 5;
+    let response;
+    let lastError;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ contents }),
+        });
+
+        if (response.ok) break;
+
+        // Handle rate limiting (429) or server overload (503) with retry
+        if ((response.status === 429 || response.status === 503) && attempt < maxRetries) {
+          const waitTime = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s, 16s, 32s
+          console.log(`Rate limited (${response.status}), waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+
+        // Non-retryable error
+        const errorText = await response.text();
+        console.error('Gemini API error:', response.status, errorText);
+
+        let userMessage = 'AI analysis failed';
+        if (response.status === 429) {
+          userMessage = 'Too many requests - please wait a moment and try again';
+        } else if (response.status === 403 || response.status === 401) {
+          userMessage = 'API key issue - check Netlify environment variables';
+        }
+
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: userMessage,
+            details: `Gemini API returned ${response.status}`,
+            geminiError: errorText.substring(0, 200)
+          }),
+        };
+      } catch (fetchError) {
+        lastError = fetchError;
+        if (attempt < maxRetries) {
+          const waitTime = Math.pow(2, attempt) * 1000;
+          console.log(`Fetch failed, waiting ${waitTime}ms before retry`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+
+    if (!response || !response.ok) {
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
-          error: 'AI analysis failed',
-          details: `Gemini API returned ${response.status}`,
-          geminiError: errorText.substring(0, 200)
+          error: 'AI analysis failed after retries',
+          details: lastError?.message || 'Unknown error'
         }),
       };
     }
