@@ -454,6 +454,73 @@ export default function App() {
     fetchGlobalCount();
   }, []);
 
+  // Oracle import: detect #oracle= in URL hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#oracle=')) return;
+    try {
+      const encoded = hash.slice(8); // remove '#oracle='
+      const json = decodeURIComponent(escape(atob(encoded)));
+      const oracle = JSON.parse(json);
+      if (oracle.source !== 'oracle') return;
+
+      // Parse price range like "£50-£100" or "£50 - £100"
+      let priceLow = 0, priceHigh = 0;
+      if (oracle.priceRange) {
+        const prices = oracle.priceRange.match(/[\d,.]+/g);
+        if (prices && prices.length >= 2) {
+          priceLow = parseFloat(prices[0].replace(',', ''));
+          priceHigh = parseFloat(prices[1].replace(',', ''));
+        } else if (prices && prices.length === 1) {
+          priceLow = parseFloat(prices[0].replace(',', ''));
+          priceHigh = priceLow;
+        }
+      }
+
+      // Map Oracle condition to SpicyLister format
+      const conditionMap = { 'mint': 'New', 'excellent': 'Excellent', 'very good': 'Very good', 'good': 'Good', 'fair': 'Fair', 'poor': 'Fair' };
+      const rawCondition = (oracle.condition || '').toLowerCase();
+      const condition = conditionMap[rawCondition] || oracle.condition || 'Good';
+
+      // Build SpicyLister results object from Oracle data
+      const oracleResults = {
+        title: oracle.itemName || oracle.title || 'Oracle Import',
+        description: oracle.description || '',
+        condition: condition,
+        category: 'Collectables & Art',
+        rarity: oracle.rarity || 'Uncommon',
+        spicyComment: oracle.era ? `${oracle.era}${oracle.manufacturer ? ' by ' + oracle.manufacturer : ''} — identified by the Magic-Oid Oracle` : 'Identified by the Magic-Oid Oracle',
+        priceLow: priceLow,
+        priceHigh: priceHigh,
+        dimensions: null,
+        weight: null,
+        material: null,
+        fragility: 'medium',
+        recommendedPackaging: null
+      };
+
+      // Create a pre-filled item
+      const oracleItem = {
+        id: Date.now() + Math.random(),
+        file: null,
+        preview: null,
+        status: 'done',
+        results: oracleResults,
+        packaging: null,
+        error: null,
+        oracleImport: true
+      };
+
+      setItems([oracleItem]);
+      setShowGrid(true);
+
+      // Clear the hash
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch (e) {
+      console.log('Oracle import failed:', e);
+    }
+  }, []);
+
   const getRarityStyle = (tier) => {
     return RARITY_TIERS[tier] || RARITY_TIERS['Common'];
   };
@@ -1249,7 +1316,10 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-800">
-                    {items.length} items uploaded
+                    {items.some(i => i.oracleImport)
+                      ? `🔮 ${items.length} item${items.length > 1 ? 's' : ''} from Oracle`
+                      : `${items.length} items uploaded`
+                    }
                   </h2>
                   <p className="text-sm text-gray-500">
                     {items.filter(i => i.status === 'done').length} done
@@ -1320,11 +1390,18 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                         : 'border-gray-200'
                     }`}
                   >
-                    <img
-                      src={item.preview}
-                      alt={`Item ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+                    {item.preview ? (
+                      <img
+                        src={item.preview}
+                        alt={`Item ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-900 text-white">
+                        <span className="text-3xl mb-1">🔮</span>
+                        <span className="text-xs font-bold">Oracle</span>
+                      </div>
+                    )}
 
                     {/* Status Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -1505,6 +1582,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 >
                   <span>&larr;</span> Back to all {items.length} items
                 </button>
+              )}
+
+              {/* Oracle Import Banner */}
+              {items.some(i => i.oracleImport) && !image && (
+                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 border border-purple-200 rounded-2xl p-4 text-center">
+                  <p className="text-sm font-bold text-purple-800">🔮 Imported from Magic-Oid Oracle</p>
+                  <p className="text-xs text-purple-600 mt-1">Add a photo to include it in your eBay listing</p>
+                </div>
               )}
 
               <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
