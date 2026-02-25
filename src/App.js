@@ -415,6 +415,8 @@ export default function App() {
 
   // ✨ NEW: Kudos notification state
   const [showKudosNotification, setShowKudosNotification] = useState(null);
+    // eBay export toast state
+  const [showEbayToast, setShowEbayToast] = useState(false);
 
   // ✨ NEW: Global counter state
   const [globalCount, setGlobalCount] = useState(null);
@@ -1120,6 +1122,8 @@ export default function App() {
     a.download = `spicylister-ebay-ready-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+        setShowEbayToast(true);
+    setTimeout(() => setShowEbayToast(false), 8000);
   };
 
   // BULK: Apply bulk action to all done items
@@ -1284,6 +1288,16 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             <p className="font-bold text-lg">+{showKudosNotification.kudos} Kudos! 🌟</p>
             <p className="text-xs opacity-90">You're helping build the community! 💚</p>
           </div>
+        </div>
+      )}
+
+      {/* eBay Export Toast */}
+      {showEbayToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-md bg-green-700 text-white rounded-2xl shadow-xl px-5 py-4">
+          <p className="font-bold text-base mb-1">🎉 Your eBay file is ready!</p>
+          <p className="text-sm text-green-100 mb-2">Upload it in eBay Seller Hub → Listings → Bulk upload → File Exchange.</p>
+          <p className="text-sm text-green-100 mb-3">Your listings will appear as <strong>drafts</strong> — add photos from your device in Seller Hub, then publish.</p>
+          <a href="https://www.ebay.co.uk/sh/reports/uploads" target="_blank" rel="noreferrer" className="inline-block bg-white text-green-800 font-bold text-sm px-4 py-2 rounded-xl hover:bg-green-50 transition-colors">Open eBay Seller Hub →</a>
         </div>
       )}
 
