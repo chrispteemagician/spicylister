@@ -926,82 +926,30 @@ export default function App() {
     setItems(prev => prev.filter((_, i) => i !== index));
   };
 
-// BULK: Export eBay CSV (68-column GB File Exchange format)
+// BULK: Export eBay Drafts CSV (11-column draft format - live tested Feb 2026)
   const exportCSV = () => {
     const doneItems = items.filter(item => item.status === 'done' && item.results);
     if (doneItems.length === 0) return;
 
-    const INFO_ROW = 'Info,Version=1.0.0,Template=fx_category_template_EBAY_GB';
+    // 4 static INFO rows - exact format confirmed working
+    const INFO_ROW_1 = 'INFO,Version0.0.2,Template eBay-draft-listings-templateGB';
+    const INFO_ROW_2 = 'INFO,-----------';
+    const INFO_ROW_3 = 'INFO,Action and Category ID are required fields. 1 Set Action to Draft 2 Please find the category ID for your listings here https://pages.ebay.com/sellerinformation/news/categorychanges.html';
+    const INFO_ROW_4 = 'INFO,After you\'ve successfully uploaded your draft from the Seller Hub Reports tab, complete your drafts to active listings here https://www.ebay.co.uk/sh/lst/drafts';
 
+    // 11 column headers - exact order from eBay draft template
     const HEADERS = [
       '*Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)',
-      'CustomLabel',
-      '*Category',
-      'StoreCategory',
-      '*Title',
-      'Subtitle',
-      'Relationship',
-      'RelationshipDetails',
-      'ScheduleTime',
-      '*ConditionID',
-      'VAT%',
-      'C:Suitablility',
-      'C:Type',
-      'C:Country of Origin',
-      'C:Theme',
-      'PicURL',
-      'GalleryType',
-      'VideoID',
-      '*Description',
-      '*Format',
-      '*Duration',
-      '*StartPrice',
-      'BuyItNowPrice',
-      'BestOfferEnabled',
-      'BestOfferAutoAcceptPrice',
-      'MinimumBestOfferPrice',
-      '*Quantity',
-      'ImmediatePayRequired',
-      '*Location',
-      'ShippingType',
-      'ShippingService-1:Option',
-      'ShippingService-1:Cost',
-      'ShippingService-2:Option',
-      'ShippingService-2:Cost',
-      '*DispatchTimeMax',
-      'PromotionalShippingDiscount',
-      'ShippingDiscountProfileID',
-      'DomesticRateTable',
-      '*ReturnsAcceptedOption',
-      'ReturnsWithinOption',
-      'RefundOption',
-      'ShippingCostPaidByOption',
-      'AdditionalDetails',
-      'Product Safety Pictograms',
-      'Product Safety Statements',
-      'Product Safety Component',
-      'Regulatory Document Ids',
-      'Manufacturer Name',
-      'Manufacturer AddressLine1',
-      'Manufacturer AddressLine2',
-      'Manufacturer City',
-      'Manufacturer Country',
-      'Manufacturer PostalCode',
-      'Manufacturer StateOrProvince',
-      'Manufacturer Phone',
-      'Manufacturer Email',
-      'Manufacturer ContactURL',
-      'Responsible Person 1',
-      'Responsible Person 1 Type',
-      'Responsible Person 1 AddressLine1',
-      'Responsible Person 1 AddressLine2',
-      'Responsible Person 1 City',
-      'Responsible Person 1 Country',
-      'Responsible Person 1 PostalCode',
-      'Responsible Person 1 StateOrProvince',
-      'Responsible Person 1 Phone',
-      'Responsible Person 1 Email',
-      'Responsible Person 1 ContactURL',
+      'Custom label (SKU)',
+      'Category ID',
+      'Title',
+      'UPC',
+      'Price',
+      'Quantity',
+      'Item photo URL',
+      'Condition ID',
+      'Description',
+      'Format',
     ];
 
     const conditionIdMap = {
@@ -1012,6 +960,7 @@ export default function App() {
       'fair': '5000'
     };
 
+    // CSV escape: wrap in quotes if value contains comma, quote, or newline
     const csvEscape = (value) => {
       if (value === null || value === undefined) return '';
       const str = String(value);
@@ -1019,97 +968,33 @@ export default function App() {
       return `"${str.replace(/"/g, '""')}"`;
     };
 
-    const detectType = (title = '') => {
-      const t = title.toLowerCase();
-      if (t.includes('dvd')) return 'DVDs/ Videos';
-      if (t.includes('book') || t.includes('booklet')) return 'Books/ Instructions';
-      if (t.includes('card') && !t.includes('dvd')) return 'Card Tricks';
-      if (t.includes('coin') && !t.includes('dvd')) return 'Coin Tricks';
-      return 'Equipment/ Apparatus';
-    };
-
     const dataRows = doneItems.map(item => {
       const r = item.results;
       const condKey = mapCondition(r.condition);
       const conditionId = conditionIdMap[condKey] || '3000';
-      const price = r.priceLow || 0.99;
+      const price = (r.priceLow || 0.99).toFixed(2);
 
       const values = [
-        'Add',                                    // *Action
-        '',                                       // CustomLabel
-        '427',                                    // *Category (Magic Tricks & Jokes)
-        '',                                       // StoreCategory
-        (r.title || '').replace(/"/g, '""').substring(0, 80), // *Title
-        '',                                       // Subtitle
-        '',                                       // Relationship
-        '',                                       // RelationshipDetails
-        '',                                       // ScheduleTime
-        conditionId,                              // *ConditionID
-        '',                                       // VAT%
-        'Adults',                                 // C:Suitablility
-        detectType(r.title),                      // C:Type
-        'United Kingdom',                         // C:Country of Origin
-        'Magic',                                  // C:Theme
-        '',                                       // PicURL
-        'Gallery',                                // GalleryType
-        '',                                       // VideoID
-        (r.description || ''),                    // *Description
-        'FixedPrice',                             // *Format
-        'GTC',                                    // *Duration
-        price.toFixed(2),                         // *StartPrice
-        '',                                       // BuyItNowPrice
-        '1',                                      // BestOfferEnabled
-        '',                                       // BestOfferAutoAcceptPrice
-        '',                                       // MinimumBestOfferPrice
-        '1',                                      // *Quantity
-        '1',                                      // ImmediatePayRequired
-        'Chipping Sodbury, South Glos',           // *Location
-        'Flat',                                   // ShippingType
-        'UK_RoyalMailSecondClassStandard',        // ShippingService-1:Option
-        '0.00',                                   // ShippingService-1:Cost
-        '',                                       // ShippingService-2:Option
-        '',                                       // ShippingService-2:Cost
-        '3',                                      // *DispatchTimeMax
-        '',                                       // PromotionalShippingDiscount
-        '',                                       // ShippingDiscountProfileID
-        '',                                       // DomesticRateTable
-        'ReturnsAccepted',                        // *ReturnsAcceptedOption
-        'Days_30',                                // ReturnsWithinOption
-        'MoneyBackOrExchange',                    // RefundOption
-        'Buyer',                                  // ShippingCostPaidByOption
-        '',                                       // AdditionalDetails
-        '',                                       // Product Safety Pictograms
-        '',                                       // Product Safety Statements
-        '',                                       // Product Safety Component
-        '',                                       // Regulatory Document Ids
-        '',                                       // Manufacturer Name
-        '',                                       // Manufacturer AddressLine1
-        '',                                       // Manufacturer AddressLine2
-        '',                                       // Manufacturer City
-        '',                                       // Manufacturer Country
-        '',                                       // Manufacturer PostalCode
-        '',                                       // Manufacturer StateOrProvince
-        '',                                       // Manufacturer Phone
-        '',                                       // Manufacturer Email
-        '',                                       // Manufacturer ContactURL
-        '',                                       // Responsible Person 1
-        '',                                       // Responsible Person 1 Type
-        '',                                       // Responsible Person 1 AddressLine1
-        '',                                       // Responsible Person 1 AddressLine2
-        '',                                       // Responsible Person 1 City
-        '',                                       // Responsible Person 1 Country
-        '',                                       // Responsible Person 1 PostalCode
-        '',                                       // Responsible Person 1 StateOrProvince
-        '',                                       // Responsible Person 1 Phone
-        '',                                       // Responsible Person 1 Email
-        '',                                       // Responsible Person 1 ContactURL
+        'Draft',                                          // *Action
+        '',                                               // Custom label (SKU)
+        '427',                                            // Category ID (Magic Tricks & Jokes)
+        (r.title || '').substring(0, 80),                 // Title (80 char max)
+        '',                                               // UPC
+        price,                                            // Price
+        '1',                                              // Quantity
+        '',                                               // Item photo URL (blank - add in Seller Hub)
+        conditionId,                                      // Condition ID
+        (r.description || ''),                            // Description
+        'FixedPrice',                                     // Format
       ];
-
       return values.map(csvEscape).join(',');
     });
 
     const csvContent = [
-      INFO_ROW,
+      INFO_ROW_1,
+      INFO_ROW_2,
+      INFO_ROW_3,
+      INFO_ROW_4,
       HEADERS.join(','),
       ...dataRows
     ].join('\r\n');
@@ -1119,10 +1004,10 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `spicylister-ebay-ready-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `spicylister-drafts-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-        setShowEbayToast(true);
+    setShowEbayToast(true);
     setTimeout(() => setShowEbayToast(false), 8000);
   };
 
@@ -1294,11 +1179,11 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
       {/* eBay Export Toast */}
       {showEbayToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-md bg-green-700 text-white rounded-2xl shadow-xl px-5 py-4">
-          <p className="font-bold text-base mb-1">🎉 Your eBay file is ready!</p>
-          <p className="text-sm text-green-100 mb-2">Upload it in eBay Seller Hub → Listings → Bulk upload → File Exchange.</p>
-          <p className="text-sm text-green-100 mb-3">Your listings will appear as <strong>drafts</strong> — add photos from your device in Seller Hub, then publish.</p>
-          <a href="https://www.ebay.co.uk/sh/reports/uploads" target="_blank" rel="noreferrer" className="inline-block bg-white text-green-800 font-bold text-sm px-4 py-2 rounded-xl hover:bg-green-50 transition-colors">Open eBay Seller Hub →</a>
-        </div>
+          <p className="font-bold text-base mb-1">🎉 Your eBay drafts are ready!</p>
+              <p className="text-sm text-green-100 mb-2">Upload at eBay Seller Hub → Reports → Upload.</p>
+              <p className="text-sm text-green-100 mb-3">Open each one on your phone to add photos, set shipping and publish.</p>
+              <a href="https://www.ebay.co.uk/sh/reports/uploads" target="_blank" rel="noreferrer" className="inline-block bg-white text-green-800 font-bold text-sm px-4 py-2 rounded-xl hover:bg-green-50 transition-colors">Open eBay Seller Hub →</a>
+            </div>
       )}
 
       {/* ✨ NEW: Upgrade Modal */}
@@ -1632,7 +1517,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     className="w-full py-4 rounded-2xl font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600"
                   >
                     <Package size={22} />
-                    Export eBay CSV ({items.filter(i => i.status === 'done').length} items)
+                    Download eBay Drafts CSV ({items.filter(i => i.status === 'done').length} items)
                   </button>
 
                   {/* Quick Bulk Actions */}
