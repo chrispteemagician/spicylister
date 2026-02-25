@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream, 
+import {
+  Camera, Copy, Check, Coffee, Sparkles, Share2, Trash2, Flame, IceCream,
   Info, ExternalLink, Ruler, Package, Scale, Crown, Gift, Edit3, X, AlertCircle
 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 import { toPng } from 'html-to-image';
 import Confetti from 'react-confetti';
 
@@ -75,6 +74,61 @@ const SAVINGS_PER_LISTING = {
   cost: 3.50 // pounds saved vs listing service
 };
 
+// BULK PROCESSING: Fun waiting messages (rotate during processing)
+const WAITING_MESSAGES = [
+  // Dad jokes
+  { type: 'joke', text: "Why did the eBay seller go to therapy? Too many unresolved listings." },
+  { type: 'joke', text: "What do you call a fake noodle? An impasta. (Like fake designer gear on eBay)" },
+  { type: 'joke', text: "I told my wife I was going to sell everything... She said 'List me first, I'm vintage.'" },
+  { type: 'joke', text: "Why don't scientists trust atoms? Because they make up everything. Like 'mint condition' sellers." },
+  { type: 'joke', text: "What's the difference between a photo of your item and your ex? Your item actually has value." },
+  { type: 'joke', text: "I've got a great joke about postage... but it'll cost you £3.99 delivery." },
+  { type: 'joke', text: "My decluttering is going great. I've sold 3 things and bought 7 on eBay." },
+  { type: 'joke', text: "What did one listing say to the other? 'You're a steal at that price!'" },
+  // QI-style facts
+  { type: 'fact', text: "The most expensive item ever sold on eBay was a yacht for $168 million in 2006." },
+  { type: 'fact', text: "eBay was originally called AuctionWeb and the first item sold was a broken laser pointer for $14.83." },
+  { type: 'fact', text: "There are approximately 1.7 billion listings on eBay at any given time." },
+  { type: 'fact', text: "The word 'vintage' technically means between 20-100 years old. Everything else is just 'used'." },
+  { type: 'fact', text: "Royal Mail delivers to 31 million addresses in the UK. Yours is about to get busier." },
+  { type: 'fact', text: "The average UK household has over £1,000 worth of unused items. You're sitting on gold." },
+  { type: 'fact', text: "eBay's 'Buy It Now' feature wasn't added until 2000 - three years after launch." },
+  { type: 'fact', text: "The most watched eBay category in the UK? Electronics. The most fun? Collectibles." },
+  { type: 'fact', text: "A 2023 study found decluttering reduces cortisol (stress hormone) by up to 25%." },
+  { type: 'fact', text: "In Japan, there's a word 'tsundoku' - buying books and letting them pile up unread. Sound familiar?" },
+  // Top tips
+  { type: 'tip', text: "Top tip: End your auctions on Sunday evenings - that's when most eBay buyers are browsing." },
+  { type: 'tip', text: "Top tip: Include measurements in your listings. Returns drop by 50% when buyers know the size." },
+  { type: 'tip', text: "Top tip: Clean your items before photographing. A quick wipe adds perceived value." },
+  { type: 'tip', text: "Top tip: Natural daylight makes the best product photos. No flash needed." },
+  { type: 'tip', text: "Top tip: Start auctions at 99p for maximum watchers. Trust the market." },
+  { type: 'tip', text: "Top tip: Bundle similar items together. '5 books for £12' sells faster than 5 separate listings." },
+  { type: 'tip', text: "Top tip: Mention brand names in your title. Buyers search for brands, not descriptions." },
+  { type: 'tip', text: "Top tip: Ship within 24 hours for top-rated seller status. Speed = good reviews." },
+  { type: 'tip', text: "Top tip: Reuse packaging from your own deliveries. Free, eco-friendly, and it works." },
+  { type: 'tip', text: "Top tip: Take photos on a white background. Even a bedsheet works." },
+  // Encouragement
+  { type: 'hype', text: "You're literally making money while sitting down. This is the dream." },
+  { type: 'hype', text: "Every item you list is space reclaimed and money earned. Double win." },
+  { type: 'hype', text: "Somewhere out there, someone is searching for exactly what you're selling right now." },
+  { type: 'hype', text: "You've got this. The hardest part was taking the photos. AI's got the rest." },
+  { type: 'hype', text: "Fun fact: You're faster than 99% of eBay sellers right now. They're still writing titles." },
+  { type: 'hype', text: "Your clutter is someone else's treasure. And you're about to find out how much treasure." },
+  { type: 'hype', text: "Remember: done is better than perfect. A listed item sells. An unlisted one doesn't." },
+  { type: 'hype', text: "This is the bit where normal people give up. But you? You've got SpicyLister." },
+];
+
+const getWaitingMessage = () => {
+  return WAITING_MESSAGES[Math.floor(Math.random() * WAITING_MESSAGES.length)];
+};
+
+const MESSAGE_TYPE_EMOJI = {
+  joke: '😂',
+  fact: '🧠',
+  tip: '💡',
+  hype: '🔥'
+};
+
 // ✨ NEW: Reward Suggestions (dopamine boosters!)
 const REWARDS = [
   '☕ A nice brew and biscuit',
@@ -101,15 +155,18 @@ const KUDOS_ACTIONS = {
   shared_tip: { kudos: 5, coins: 0 }
 };
 
-// ✨ NEW: Pro Tier Configuration
+// ✨ Pro Tier Configuration - Early Adopter Pricing
 const TIER_LIMITS = {
   free: {
     listingsPerMonth: 5,
     features: ['Single photo', 'Basic AI', 'Packaging recommendations']
   },
   pro: {
-    price: 4.99,
+    price: 4.95,
+    regularPrice: 9.90,
     listingsPerMonth: 200,
+    founderSlots: 1000,
+    stripeLink: 'https://buy.stripe.com/aFabJ1fJ10Vw6zT89NfrW00',
     features: [
       'Video assessment',
       'Batch processing (10+ items)',
@@ -311,41 +368,12 @@ const checkMilestones = (count) => {
   return { show: false };
 };
 
-// ✨ NEW: Kudos Award Function (with graceful fallback)
+// ✨ NEW: Kudos Award Function (local-only for now, FeelFamous integration coming soon)
 const awardKudos = async (action, setShowKudosNotification) => {
-  const apiUrl = process.env.REACT_APP_FEELFAMOUS_API_URL;
-  const apiKey = process.env.REACT_APP_FEELFAMOUS_API_KEY;
-  
-  // If not configured, skip silently
-  if (!apiUrl || apiUrl.includes('placeholder')) {
-    console.log('Kudos system not yet configured - earning virtual kudos locally');
-    // Still show the notification for dopamine hit!
-    const { kudos, coins } = KUDOS_ACTIONS[action] || { kudos: 5, coins: 2 };
-    setShowKudosNotification({ kudos, coins });
-    setTimeout(() => setShowKudosNotification(null), 3000);
-    return;
-  }
-  
-  try {
-    const { kudos, coins } = KUDOS_ACTIONS[action];
-    
-    const response = await fetch(`${apiUrl}/kudos/award`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey
-      },
-      body: JSON.stringify({ action, kudos, coins })
-    });
-    
-    if (response.ok) {
-      setShowKudosNotification({ kudos, coins });
-      setTimeout(() => setShowKudosNotification(null), 3000);
-    }
-  } catch (err) {
-    // Fail silently - kudos is optional
-    console.log('Kudos award failed:', err.message);
-  }
+  // Local kudos celebration (FeelFamous integration coming in future update)
+  const { kudos, coins } = KUDOS_ACTIONS[action] || { kudos: 5, coins: 2 };
+  setShowKudosNotification({ kudos, coins });
+  setTimeout(() => setShowKudosNotification(null), 3000);
 };
 
 // =============================================================================
@@ -391,6 +419,14 @@ export default function App() {
   // ✨ NEW: Global counter state
   const [globalCount, setGlobalCount] = useState(null);
 
+  // BULK MODE state
+  const [items, setItems] = useState([]);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [processProgress, setProcessProgress] = useState({ current: 0, total: 0 });
+  const [showGrid, setShowGrid] = useState(false);
+  const [bulkContext, setBulkContext] = useState('');
+  const [waitingMessage, setWaitingMessage] = useState(null);
+
   const resultCardRef = useRef(null);
   const userRegion = detectUserRegion();
   const userCurrency = GLOBAL_REGIONS[userRegion];
@@ -418,13 +454,85 @@ export default function App() {
     fetchGlobalCount();
   }, []);
 
+  // Oracle import: detect #oracle= in URL hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#oracle=')) return;
+    try {
+      const encoded = hash.slice(8); // remove '#oracle='
+      const json = decodeURIComponent(escape(atob(encoded)));
+      const oracle = JSON.parse(json);
+      if (oracle.source !== 'oracle') return;
+
+      // Parse price range like "£50-£100" or "£50 - £100"
+      let priceLow = 0, priceHigh = 0;
+      if (oracle.priceRange) {
+        const prices = oracle.priceRange.match(/[\d,.]+/g);
+        if (prices && prices.length >= 2) {
+          priceLow = parseFloat(prices[0].replace(',', ''));
+          priceHigh = parseFloat(prices[1].replace(',', ''));
+        } else if (prices && prices.length === 1) {
+          priceLow = parseFloat(prices[0].replace(',', ''));
+          priceHigh = priceLow;
+        }
+      }
+
+      // Map Oracle condition to SpicyLister format
+      const conditionMap = { 'mint': 'New', 'excellent': 'Excellent', 'very good': 'Very good', 'good': 'Good', 'fair': 'Fair', 'poor': 'Fair' };
+      const rawCondition = (oracle.condition || '').toLowerCase();
+      const condition = conditionMap[rawCondition] || oracle.condition || 'Good';
+
+      // Build SpicyLister results object from Oracle data
+      const oracleResults = {
+        title: oracle.itemName || oracle.title || 'Oracle Import',
+        description: oracle.description || '',
+        condition: condition,
+        category: 'Collectables & Art',
+        rarity: oracle.rarity || 'Uncommon',
+        spicyComment: oracle.era ? `${oracle.era}${oracle.manufacturer ? ' by ' + oracle.manufacturer : ''} — identified by the Magic-Oid Oracle` : 'Identified by the Magic-Oid Oracle',
+        priceLow: priceLow,
+        priceHigh: priceHigh,
+        dimensions: null,
+        weight: null,
+        material: null,
+        fragility: 'medium',
+        recommendedPackaging: null
+      };
+
+      // Create a pre-filled item
+      const oracleItem = {
+        id: Date.now() + Math.random(),
+        file: null,
+        preview: null,
+        status: 'done',
+        results: oracleResults,
+        packaging: null,
+        error: null,
+        oracleImport: true
+      };
+
+      setItems([oracleItem]);
+      setShowGrid(true);
+
+      // Clear the hash
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch (e) {
+      console.log('Oracle import failed:', e);
+    }
+  }, []);
+
   const getRarityStyle = (tier) => {
     return RARITY_TIERS[tier] || RARITY_TIERS['Common'];
   };
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // Single file: existing flow
+    if (files.length === 1) {
+      const file = files[0];
+      if (!file.type.startsWith('image/')) return;
       setImage(file);
       const compressed = await compressImage(file);
       setImagePreview(compressed);
@@ -437,7 +545,32 @@ export default function App() {
       setEditingDimensions(false);
       setEditedDimensions(null);
       setHasOwnPackaging(false);
+      setItems([]);
+      setShowGrid(false);
+      return;
     }
+
+    // Multiple files: bulk mode
+    const newItems = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      const compressed = await compressImage(file);
+      newItems.push({
+        id: Date.now() + Math.random(),
+        file,
+        preview: compressed,
+        status: 'pending',
+        results: null,
+        packaging: null,
+        error: null
+      });
+    }
+    setItems(newItems);
+    setShowGrid(true);
+    setImage(null);
+    setImagePreview(null);
+    setResults(null);
+    setShowConfetti(false);
   };
 
   const resetApp = () => {
@@ -453,6 +586,12 @@ export default function App() {
     setEditedDimensions(null);
     setHasOwnPackaging(false);
     setDimensionWarning(null);
+    setItems([]);
+    setShowGrid(false);
+    setBulkProcessing(false);
+    setProcessProgress({ current: 0, total: 0 });
+    setBulkContext('');
+    setWaitingMessage(null);
   };
 
   const analyzeItem = async () => {
@@ -460,145 +599,50 @@ export default function App() {
     setLoading(true);
 
     try {
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      if (!apiKey) throw new Error("Missing API Key. Please check Netlify settings.");
-
-      const ai = new GoogleGenAI({ apiKey });
+      // Get base64 data from the compressed image preview
       const base64Data = imagePreview.split(',')[1];
 
-      // ✨ ENHANCED: System prompt now includes dimensions, weight, material, fragility
-      const systemPrompt = isSpicyMode
-        ? `You are SpicyLister, a hilarious, high-energy auctioneer with expertise in item valuation AND shipping logistics. 
-           Analyze this image for the ${userRegion} market (${userCurrency.currency}).
-           
-           1. Assign a "Rarity Tier" (Common, Uncommon, Rare, Epic, Legendary, God-Tier).
-           2. Roast it if it's junk, Hype it if it's valuable. Be British, witty.
-           3. Give a listing title and description.
-           4. Give a price range (low/high).
-           
-           **CRITICAL: Also provide shipping intelligence:**
-           - Estimated dimensions (length, width, height in cm) - be realistic based on common objects
-           - Estimated weight (in grams)
-           - Material composition (plastic/metal/fabric/glass/ceramic/wood/mixed/etc)
-           - Fragility level (low/medium/high)
-           - Confidence scores for dimensions (0-100) and weight (0-100)
-           
-           Return ONLY valid JSON:
-           {
-             "title": "SEO optimized title",
-             "rarity": "Tier Name",
-             "spicyComment": "Roast or hype comment",
-             "description": "Sales description",
-             "category": "eBay Category",
-             "condition": "Condition assessment",
-             "priceLow": 10,
-             "priceHigh": 20,
-             "dimensions": {
-               "length": 15,
-               "width": 10,
-               "height": 5,
-               "confidence": 75
-             },
-             "weight": {
-               "grams": 250,
-               "confidence": 70
-             },
-             "material": "plastic housing with electronic components",
-             "fragility": "medium"
-           }`
-        : `Act as a professional reseller and shipping expert for the ${userRegion} market (${userCurrency.currency}).
-           
-           **Provide both listing AND shipping details:**
-           - Estimated dimensions (length, width, height in cm)
-           - Estimated weight (in grams)
-           - Material composition
-           - Fragility level (low/medium/high)
-           - Confidence scores for dimensions and weight (0-100)
-           
-           Return ONLY valid JSON:
-           {
-             "title": "SEO optimized title",
-             "rarity": "Standard",
-             "spicyComment": "Item analyzed.",
-             "description": "Professional description",
-             "category": "eBay Category",
-             "condition": "Condition assessment",
-             "priceLow": 10,
-             "priceHigh": 20,
-             "dimensions": {
-               "length": 15,
-               "width": 10,
-               "height": 5,
-               "confidence": 75
-             },
-             "weight": {
-               "grams": 250,
-               "confidence": 70
-             },
-             "material": "description of materials",
-             "fragility": "low"
-           }`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: systemPrompt },
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ]
+      // Call the serverless function (API key is kept server-side for security)
+      const response = await fetch('/.netlify/functions/analyze-item', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          images: [{
+            mimeType: 'image/jpeg',
+            data: base64Data
+          }],
+          isSpicyMode: isSpicyMode,
+          region: userRegion
+        })
       });
 
-      const finalString = typeof response.text === 'function' ? response.text() : response.text;
-      const cleanText = finalString.replace(/```json\n?|```/g, "").trim();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server returned ${response.status}`);
+      }
 
-      let data;
-      try {
-        data = JSON.parse(cleanText);
-        // Sanitize numbers
-        data.priceLow = Number(data.priceLow) || 0;
-        data.priceHigh = Number(data.priceHigh) || 0;
-        
-        // Ensure dimensions and weight exist with defaults
-        if (!data.dimensions) {
-          data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
-        }
-        if (!data.weight) {
-          data.weight = { grams: 200, confidence: 50 };
-        }
-        if (!data.fragility) {
-          data.fragility = 'medium';
-        }
-        if (!data.material) {
-          data.material = 'Mixed materials';
-        }
-        if (!data.condition) {
-          data.condition = 'Good condition';
-        }
-      } catch (e) {
-        console.error("JSON Parsing failed, using fallback");
-        data = {
-          title: "Item Identified (AI Format Issue)",
-          category: "Misc",
-          description: cleanText.substring(0, 300),
-          condition: "Good condition",
-          priceLow: 0,
-          priceHigh: 0,
-          spicyComment: "I see the item, but my brain got scrambled formatting the listing. Here is the raw info!",
-          rarity: "Common",
-          dimensions: { length: 15, width: 10, height: 5, confidence: 50 },
-          weight: { grams: 200, confidence: 50 },
-          material: "Unknown",
-          fragility: "medium"
-        };
+      const data = await response.json();
+
+      // Ensure all required fields exist with defaults
+      data.priceLow = Number(data.priceLow) || 0;
+      data.priceHigh = Number(data.priceHigh) || 0;
+
+      if (!data.dimensions) {
+        data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
+      }
+      if (!data.weight) {
+        data.weight = { grams: 200, confidence: 50 };
+      }
+      if (!data.fragility) {
+        data.fragility = 'medium';
+      }
+      if (!data.material) {
+        data.material = 'Mixed materials';
+      }
+      if (!data.condition) {
+        data.condition = 'Good condition';
       }
 
       setResults(data);
@@ -655,13 +699,349 @@ export default function App() {
     } catch (error) {
       console.error(error);
       let msg = "Something went wrong.";
-      if (error.message.includes("404")) msg = "Model not found. The API might have changed.";
-      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed.";
-      if (error.message.includes("API key") || error.message.includes("apiKey")) msg = "API Key issue. Check Netlify.";
+      if (error.message.includes("429")) msg = "Too many requests! The AI is overwhelmed. Try again in a moment.";
+      if (error.message.includes("API")) msg = "API issue. The server might be busy.";
+      if (error.message.includes("network") || error.message.includes("fetch")) msg = "Network error. Check your connection.";
       alert(msg + "\nTechnical detail: " + error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // ==========================================================================
+  // BULK PROCESSING
+  // ==========================================================================
+
+  const processAllItems = async () => {
+    if (items.length === 0) return;
+    setBulkProcessing(true);
+    setProcessProgress({ current: 0, total: items.length });
+    setWaitingMessage(getWaitingMessage());
+
+    let delay = 4000; // Start with 4s between items (safe for 15 RPM)
+    let consecutiveErrors = 0;
+
+    // Rotate fun messages every few seconds
+    const messageInterval = setInterval(() => {
+      setWaitingMessage(getWaitingMessage());
+    }, 8000);
+
+    for (let i = 0; i < items.length; i++) {
+      // Skip already-done items
+      if (items[i].status === 'done') {
+        setProcessProgress({ current: i + 1, total: items.length });
+        continue;
+      }
+
+      setItems(prev => prev.map((item, idx) =>
+        idx === i ? { ...item, status: 'processing' } : item
+      ));
+      setProcessProgress({ current: i + 1, total: items.length });
+
+      try {
+        const base64Data = items[i].preview.split(',')[1];
+        const response = await fetch('/.netlify/functions/analyze-item', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            images: [{ mimeType: 'image/jpeg', data: base64Data }],
+            isSpicyMode: isSpicyMode,
+            region: userRegion,
+            extraInfo: bulkContext || undefined
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = errorData.error || `Server returned ${response.status}`;
+
+          // Dynamic backoff on rate limits
+          if (response.status === 429 || errorMsg.includes('Too many requests')) {
+            consecutiveErrors++;
+            delay = Math.min(delay * 2, 30000); // Double delay, max 30s
+            setWaitingMessage({
+              type: 'tip',
+              text: `Slowing down to avoid rate limits... (${Math.round(delay / 1000)}s between items)`
+            });
+            // Don't throw - retry this item after backoff
+            await new Promise(r => setTimeout(r, delay));
+            i--; // Retry this index
+            continue;
+          }
+
+          throw new Error(errorMsg);
+        }
+
+        const data = await response.json();
+        data.priceLow = Number(data.priceLow) || 0;
+        data.priceHigh = Number(data.priceHigh) || 0;
+        if (!data.dimensions) data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
+        if (!data.weight) data.weight = { grams: 200, confidence: 50 };
+        if (!data.fragility) data.fragility = 'medium';
+        if (!data.material) data.material = 'Mixed materials';
+        if (!data.condition) data.condition = 'Good condition';
+
+        const packagingRec = recommendPackaging(data.dimensions, data.weight, data.fragility);
+
+        setItems(prev => prev.map((item, idx) =>
+          idx === i ? { ...item, status: 'done', results: data, packaging: packagingRec } : item
+        ));
+
+        // Success - gradually reduce delay back to normal
+        consecutiveErrors = 0;
+        if (delay > 4000) {
+          delay = Math.max(delay - 2000, 4000);
+        }
+
+        // Wait between items
+        if (i < items.length - 1) {
+          await new Promise(r => setTimeout(r, delay));
+        }
+      } catch (err) {
+        console.error(`Error processing item ${i}:`, err);
+        consecutiveErrors++;
+
+        // If too many consecutive errors, increase delay
+        if (consecutiveErrors >= 3) {
+          delay = Math.min(delay * 2, 30000);
+          setWaitingMessage({
+            type: 'tip',
+            text: `Hit a few bumps - taking it easy... (${Math.round(delay / 1000)}s between items)`
+          });
+        }
+
+        setItems(prev => prev.map((item, idx) =>
+          idx === i ? { ...item, status: 'error', error: err.message } : item
+        ));
+
+        // Still wait before next item even on error
+        if (i < items.length - 1) {
+          await new Promise(r => setTimeout(r, delay));
+        }
+      }
+    }
+
+    clearInterval(messageInterval);
+    setBulkProcessing(false);
+    setWaitingMessage(null);
+
+    // Update savings for all successful items
+    const doneCount = items.filter(it => it.results).length;
+    if (doneCount > 0) {
+      const saved = JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
+      saved.count += doneCount;
+      saved.time += doneCount * SAVINGS_PER_LISTING.time;
+      saved.cost += doneCount * SAVINGS_PER_LISTING.cost;
+      localStorage.setItem('spicylister_savings', JSON.stringify(saved));
+      setCurrentSavings(saved);
+      setCurrentReward(getRandomReward());
+    }
+
+    // Increment global counter for all done items
+    try {
+      for (let j = 0; j < doneCount; j++) {
+        await fetch('/.netlify/functions/counter', { method: 'POST' });
+      }
+      const counterRes = await fetch('/.netlify/functions/counter');
+      const counterData = await counterRes.json();
+      setGlobalCount(counterData.count);
+    } catch (err) {
+      console.log('Could not update global count:', err);
+    }
+  };
+
+  // BULK: Retry a single failed item
+  const retryItem = async (index) => {
+    setItems(prev => prev.map((item, i) =>
+      i === index ? { ...item, status: 'processing', error: null } : item
+    ));
+
+    try {
+      const base64Data = items[index].preview.split(',')[1];
+      const response = await fetch('/.netlify/functions/analyze-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: [{ mimeType: 'image/jpeg', data: base64Data }],
+          isSpicyMode: isSpicyMode,
+          region: userRegion,
+          extraInfo: bulkContext || undefined
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      data.priceLow = Number(data.priceLow) || 0;
+      data.priceHigh = Number(data.priceHigh) || 0;
+      if (!data.dimensions) data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
+      if (!data.weight) data.weight = { grams: 200, confidence: 50 };
+      if (!data.fragility) data.fragility = 'medium';
+      if (!data.material) data.material = 'Mixed materials';
+      if (!data.condition) data.condition = 'Good condition';
+
+      const packagingRec = recommendPackaging(data.dimensions, data.weight, data.fragility);
+
+      setItems(prev => prev.map((item, idx) =>
+        idx === index ? { ...item, status: 'done', results: data, packaging: packagingRec } : item
+      ));
+    } catch (err) {
+      setItems(prev => prev.map((item, idx) =>
+        idx === index ? { ...item, status: 'error', error: err.message } : item
+      ));
+    }
+  };
+
+  // BULK: View item detail from grid
+  const viewItemDetail = (index) => {
+    const item = items[index];
+    if (!item.results) return;
+    setImage(item.file);
+    setImagePreview(item.preview);
+    setResults(item.results);
+    setPackaging(item.packaging);
+    setEditedDimensions(item.results.dimensions);
+    setShowGrid(false);
+  };
+
+  // BULK: Back to grid from detail view
+  const backToGrid = () => {
+    setImage(null);
+    setImagePreview(null);
+    setResults(null);
+    setPackaging(null);
+    setEditingDimensions(false);
+    setEditedDimensions(null);
+    setHasOwnPackaging(false);
+    setShowGrid(true);
+  };
+
+  // BULK: Remove item from grid
+  const removeItem = (index) => {
+    setItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // BULK: Export eBay CSV
+  const exportCSV = () => {
+    const doneItems = items.filter(item => item.status === 'done' && item.results);
+    if (doneItems.length === 0) return;
+
+    // 4 static INFO rows - exact format confirmed working
+    const INFO_ROW_1 = '#INFO,Version=0.0.2,Template= eBay-draft-listings-template_GB';
+    const INFO_ROW_2 = '#INFO,Action and Category ID are required fields. 1 Set Action to Draft 2 Please find the category ID for your listings here https://pages.ebay.com/sellerinformation/news/categorychanges.html';
+    const INFO_ROW_3 = '#INFO,After you\'ve successfully uploaded your draft from the Seller Hub Reports tab, complete your drafts to active listings here https://www.ebay.co.uk/sh/lst/drafts';
+    const INFO_ROW_4 = '#INFO';
+
+    // Header row for eBay draft template
+    const headers = [
+      'Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)',
+      'Custom label (SKU)',
+      'Category ID',
+      'Title',
+      'UPC',
+      'Price',
+      'Quantity',
+      'Item photo URL',
+      'Condition ID',
+      'Description',
+      'Format'
+    ];
+
+    const conditionIdMap = {
+      'new': '1000',
+      'like-new': '3000',
+      'excellent': '3000',
+      'good': '4000',
+      'fair': '5000'
+    };
+
+    const rows = doneItems.map(item => {
+      const r = item.results;
+      const condKey = mapCondition(r.condition);
+      const conditionId = conditionIdMap[condKey] || '3000';
+      const cleanDesc = (r.description || '').replace(/"/g, '""');
+      const cleanTitle = (r.title || '').replace(/"/g, '""').substring(0, 80);
+      const price = r.priceLow || 0.99;
+
+      return [
+        'Draft',
+        '', // Custom label (SKU) - blank
+        '427', // Category ID - default to collectibles
+        cleanTitle,
+        '', // UPC - blank
+        price.toFixed(2),
+        '1',
+        '', // Item photo URL - blank
+        conditionId,
+        cleanDesc,
+        'FixedPrice'
+      ];
+    });
+
+    // Build CSV with UTF-8 BOM, INFO rows, header, and data rows
+    const BOM = '\uFEFF';
+    const csvLines = [
+      INFO_ROW_1,
+      INFO_ROW_2,
+      INFO_ROW_3,
+      INFO_ROW_4,
+      headers.join(','),
+      ...rows.map(row => row.map(cell => {
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr}"`;
+        }
+        return cellStr;
+      }).join(','))
+    ];
+    
+    const csvContent = BOM + csvLines.join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `spicylister-bulk-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // BULK: Apply bulk action to all done items
+  const applyBulkCondition = (condition) => {
+    setItems(prev => prev.map(item =>
+      item.status === 'done' && item.results
+        ? { ...item, results: { ...item.results, condition } }
+        : item
+    ));
+  };
+
+  const applyBulkNote = (note) => {
+    if (!note.trim()) return;
+    setItems(prev => prev.map(item =>
+      item.status === 'done' && item.results
+        ? { ...item, results: { ...item.results, description: item.results.description + '\n\n' + note } }
+        : item
+    ));
+  };
+
+  const applyPriceAdjust = (percent) => {
+    const multiplier = 1 + (percent / 100);
+    setItems(prev => prev.map(item =>
+      item.status === 'done' && item.results
+        ? {
+            ...item,
+            results: {
+              ...item.results,
+              priceLow: Math.round(item.results.priceLow * multiplier * 100) / 100,
+              priceHigh: Math.round(item.results.priceHigh * multiplier * 100) / 100
+            }
+          }
+        : item
+    ));
   };
 
   // ✨ NEW: Enhanced Store Integration with full shipping data
@@ -809,7 +1189,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             <div className="text-center">
               <h2 className="text-2xl font-black text-gray-800 mb-2">✨ You're on fire!</h2>
               <p className="text-gray-600 mb-4">You've created {listingCount} listings this month!</p>
-              
+
               <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-4 rounded-2xl mb-4 text-left">
                 <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                   <Crown className="text-yellow-500" size={20} />
@@ -823,12 +1203,23 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   <li>💬 Priority support</li>
                 </ul>
               </div>
-              
-              <button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors">
-                Upgrade to Pro - £4.99/month
-              </button>
-              
-              <button 
+
+              <div className="bg-green-50 p-3 rounded-xl mb-4 border border-green-200">
+                <p className="text-xs text-green-700 font-bold uppercase tracking-wider">🎉 Early Adopter Pricing</p>
+                <p className="text-green-800 text-sm">First 1000 Founder Villagers get <strong>half price forever</strong></p>
+              </div>
+
+              <a
+                href={TIER_LIMITS.pro.stripeLink}
+                target="_blank"
+                rel="noreferrer"
+                className="block w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors text-center"
+              >
+                Become a Founder Villager - £4.95/month
+              </a>
+              <p className="text-xs text-gray-400 mb-3">Regular price £9.90/month after first 1000</p>
+
+              <button
                 onClick={() => setShowUpgradeModal(false)}
                 className="text-gray-500 text-sm hover:text-gray-700"
               >
@@ -888,7 +1279,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
         {/* MAIN CARD */}
         <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-orange-100">
 
-          {!image && (
+          {!image && !showGrid && (
             <div className="flex flex-col items-center justify-center w-full py-8">
               <Camera className="w-16 h-16 mb-4 text-orange-300" />
               <p className="font-bold text-xl mb-2 text-gray-700">📸 Snap Something to Sell!</p>
@@ -904,13 +1295,13 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 <label className="flex-1 bg-white border-2 border-orange-300 text-orange-600 py-4 px-4 rounded-2xl font-bold text-center cursor-pointer hover:bg-orange-50 transition-all shadow-md hover:scale-[1.02] active:scale-95">
                   <span className="text-2xl block mb-1">🖼️</span>
                   Gallery
-                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                 </label>
               </div>
             </div>
           )}
 
-          {image && !results && (
+          {image && !results && !showGrid && (
             <div className="space-y-6">
               <div className="relative rounded-2xl overflow-hidden aspect-square shadow-inner bg-gray-100 border-2 border-orange-100">
                 <img src={imagePreview} alt="Item" className="w-full h-full object-contain" />
@@ -939,8 +1330,288 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             </div>
           )}
 
-          {results && (
+          {/* BULK GRID VIEW */}
+          {showGrid && items.length > 0 && (
+            <div className="space-y-4">
+              {/* Bulk Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    {items.some(i => i.oracleImport)
+                      ? `🔮 ${items.length} item${items.length > 1 ? 's' : ''} from Oracle`
+                      : `${items.length} items uploaded`
+                    }
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    {items.filter(i => i.status === 'done').length} done
+                    {items.filter(i => i.status === 'error').length > 0 && (
+                      <span className="text-red-500 ml-2">
+                        {items.filter(i => i.status === 'error').length} failed
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <button
+                  onClick={resetApp}
+                  className="text-gray-400 hover:text-red-500 p-2"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Progress Bar + Fun Messages */}
+              {bulkProcessing && (
+                <div className="bg-orange-50 p-4 rounded-2xl border border-orange-200 space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-orange-700">
+                      Processing {processProgress.current} of {processProgress.total}...
+                    </span>
+                    <span className="text-xs text-orange-500">
+                      {Math.round((processProgress.current / processProgress.total) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-orange-200 rounded-full h-3">
+                    <div
+                      className="bg-gradient-to-r from-orange-400 to-red-500 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${(processProgress.current / processProgress.total) * 100}%` }}
+                    ></div>
+                  </div>
+
+                  {/* Fun waiting message */}
+                  {waitingMessage && (
+                    <div className="bg-white p-4 rounded-xl border border-orange-100 text-center transition-all">
+                      <span className="text-2xl block mb-2">{MESSAGE_TYPE_EMOJI[waitingMessage.type] || '✨'}</span>
+                      <p className="text-sm text-gray-700 leading-relaxed font-medium">
+                        {waitingMessage.text}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-wider">
+                        {waitingMessage.type === 'joke' && 'Dad Joke Break'}
+                        {waitingMessage.type === 'fact' && 'Did You Know?'}
+                        {waitingMessage.type === 'tip' && 'Seller Pro Tip'}
+                        {waitingMessage.type === 'hype' && 'You Got This'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Items Grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    onClick={() => item.status === 'done' ? viewItemDetail(index) : null}
+                    className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all ${
+                      item.status === 'done'
+                        ? 'border-green-400 cursor-pointer hover:scale-[1.03] hover:shadow-md'
+                        : item.status === 'processing'
+                        ? 'border-orange-400 animate-pulse'
+                        : item.status === 'error'
+                        ? 'border-red-400'
+                        : 'border-gray-200'
+                    }`}
+                  >
+                    {item.preview ? (
+                      <img
+                        src={item.preview}
+                        alt={`Item ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-900 text-white">
+                        <span className="text-3xl mb-1">🔮</span>
+                        <span className="text-xs font-bold">Oracle</span>
+                      </div>
+                    )}
+
+                    {/* Status Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {item.status === 'done' && (
+                        <div className="bg-green-500 text-white rounded-full p-1.5 shadow-lg">
+                          <Check size={16} />
+                        </div>
+                      )}
+                      {item.status === 'processing' && (
+                        <div className="bg-white rounded-full p-2 shadow-lg">
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-500 border-t-transparent"></div>
+                        </div>
+                      )}
+                      {item.status === 'error' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); retryItem(index); }}
+                          className="bg-red-500 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600"
+                        >
+                          <AlertCircle size={16} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Price badge for done items */}
+                    {item.status === 'done' && item.results && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 text-center">
+                        {userCurrency.symbol}{item.results.priceLow}-{item.results.priceHigh}
+                      </div>
+                    )}
+
+                    {/* Remove button */}
+                    {!bulkProcessing && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeItem(index); }}
+                        className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-0.5 hover:bg-opacity-80"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Extra Context Box */}
+              {!bulkProcessing && items.some(i => i.status === 'pending') && (
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                  <label className="text-xs font-bold uppercase text-gray-500 tracking-wider block mb-2">
+                    Extra context (optional)
+                  </label>
+                  <textarea
+                    value={bulkContext}
+                    onChange={(e) => setBulkContext(e.target.value)}
+                    placeholder="e.g. These are all books, from a smoke-free home, bought in 2020..."
+                    className="w-full p-3 border border-gray-200 rounded-xl text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300"
+                    rows={2}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">This info helps the AI write better descriptions for all items</p>
+                </div>
+              )}
+
+              {/* Generate All Button */}
+              {!bulkProcessing && items.some(i => i.status === 'pending') && (
+                <button
+                  onClick={processAllItems}
+                  className="w-full py-5 rounded-2xl font-bold text-xl text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 bg-gradient-to-r from-orange-400 to-red-500"
+                >
+                  <Sparkles size={24} />
+                  {isSpicyMode
+                    ? `Generate ${items.filter(i => i.status === 'pending').length} Spicy Listings`
+                    : `Generate ${items.filter(i => i.status === 'pending').length} Listings`
+                  }
+                </button>
+              )}
+
+              {/* Bulk Actions (when items are done) */}
+              {items.some(i => i.status === 'done') && !bulkProcessing && (
+                <div className="space-y-3">
+                  {/* CSV Export - Primary Action */}
+                  <button
+                    onClick={exportCSV}
+                    className="w-full py-4 rounded-2xl font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600"
+                  >
+                    <Package size={22} />
+                    Export eBay CSV ({items.filter(i => i.status === 'done').length} items)
+                  </button>
+
+                  {/* Quick Bulk Actions */}
+                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+                    <p className="text-xs font-bold uppercase text-gray-500 tracking-wider">Bulk Actions</p>
+
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => applyBulkCondition('Excellent condition')}
+                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
+                      >
+                        All "Excellent"
+                      </button>
+                      <button
+                        onClick={() => applyBulkCondition('Very good condition')}
+                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
+                      >
+                        All "Very Good"
+                      </button>
+                      <button
+                        onClick={() => applyBulkCondition('Good condition')}
+                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
+                      >
+                        All "Good"
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => applyPriceAdjust(10)}
+                        className="flex-1 bg-green-50 border border-green-200 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-100"
+                      >
+                        Prices +10%
+                      </button>
+                      <button
+                        onClick={() => applyPriceAdjust(-10)}
+                        className="flex-1 bg-red-50 border border-red-200 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100"
+                      >
+                        Prices -10%
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => applyBulkNote('From a smoke-free, pet-free home.')}
+                        className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
+                      >
+                        + Smoke-free home
+                      </button>
+                      <button
+                        onClick={() => applyBulkNote('Happy to combine postage on multiple items.')}
+                        className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
+                      >
+                        + Combine postage
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-2xl border-2 border-green-200 text-center">
+                    <p className="text-sm text-green-700 mb-1">Total estimated value</p>
+                    <p className="text-3xl font-black text-green-600">
+                      {userCurrency.symbol}
+                      {items.filter(i => i.results).reduce((sum, i) => sum + (i.results.priceLow || 0), 0).toFixed(0)}
+                      {' - '}
+                      {items.filter(i => i.results).reduce((sum, i) => sum + (i.results.priceHigh || 0), 0).toFixed(0)}
+                    </p>
+                    <p className="text-xs text-green-600 mt-2">
+                      Time saved: ~{items.filter(i => i.results).length * SAVINGS_PER_LISTING.time} minutes
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* All Done Celebration */}
+              {!bulkProcessing && items.length > 0 && items.every(i => i.status === 'done' || i.status === 'error') && items.some(i => i.status === 'done') && (
+                <div className="text-center p-4">
+                  <p className="text-sm text-gray-500">
+                    Click any item to view/edit details. Export CSV to upload to eBay File Exchange.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {results && !showGrid && (
             <div className="space-y-6">
+
+              {/* Back to Grid button (when viewing from bulk) */}
+              {items.length > 0 && (
+                <button
+                  onClick={backToGrid}
+                  className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium text-sm mb-2"
+                >
+                  <span>&larr;</span> Back to all {items.length} items
+                </button>
+              )}
+
+              {/* Oracle Import Banner */}
+              {items.some(i => i.oracleImport) && !image && (
+                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 border border-purple-200 rounded-2xl p-4 text-center">
+                  <p className="text-sm font-bold text-purple-800">🔮 Imported from Magic-Oid Oracle</p>
+                  <p className="text-xs text-purple-600 mt-1">Add a photo to include it in your eBay listing</p>
+                </div>
+              )}
 
               <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
                 {isSpicyMode && (
@@ -1218,20 +1889,22 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 </div>
               )}
 
-              {/* ✨ NEW: Pro Tier Teaser (shows after 3 listings) */}
+              {/* Pro Tier Teaser (shows after 3 listings) */}
               {!isPro && listingCount >= 3 && listingCount < TIER_LIMITS.free.listingsPerMonth && (
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-2xl border border-yellow-200 flex items-center gap-3">
                   <Crown size={24} className="text-yellow-500 flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="font-bold text-gray-800">SpicyLister Pro</p>
-                    <p className="text-sm text-gray-600">Video assessment, batch processing & more</p>
+                    <p className="font-bold text-gray-800">Become a Founder Villager</p>
+                    <p className="text-sm text-gray-600">Half price forever for first 1000</p>
                   </div>
-                  <button 
-                    onClick={() => setShowUpgradeModal(true)}
+                  <a
+                    href={TIER_LIMITS.pro.stripeLink}
+                    target="_blank"
+                    rel="noreferrer"
                     className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm hover:from-yellow-500 hover:to-orange-600 transition-colors whitespace-nowrap"
                   >
-                    £4.99/mo
-                  </button>
+                    £4.95/mo
+                  </a>
                 </div>
               )}
             </div>
@@ -1258,14 +1931,24 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             <p className="text-lg font-black text-gray-800 mb-1">
               Made with 🧠✨ by <span className="text-purple-600">AuDHD</span> Chris P Tee
             </p>
-            <a 
-              href="https://www.tiktok.com/@chrispteemagician" 
-              target="_blank" 
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-gray-800 transition-colors mt-2"
-            >
-              <span>🎵</span> @chrispteemagician on TikTok
-            </a>
+            <div className="flex flex-wrap justify-center gap-2 mt-2">
+              <a
+                href="https://www.tiktok.com/@chrispteemagician"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-gray-800 transition-colors"
+              >
+                <span>🎵</span> @chrispteemagician
+              </a>
+              <a
+                href="https://www.instagram.com/spicylister"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-opacity"
+              >
+                <span>📸</span> @spicylister
+              </a>
+            </div>
           </div>
 
           {/* Coffeeware Section */}
@@ -1276,7 +1959,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             <p className="text-sm text-gray-600 mb-4">
               Free to use forever. If it helps you, pay it forward! 💚
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
               <a
                 href="https://ko-fi.com/zoom"
@@ -1295,10 +1978,61 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 ☕ Buy Me a Coffee
               </a>
             </div>
-            
+
             <p className="text-sm font-bold text-green-600 bg-green-50 py-2 px-4 rounded-full inline-block">
               🎁 I'll Pay it Forward & You Get the Kudos!
             </p>
+          </div>
+
+          {/* Chris P Tee's Recommendations */}
+          <div className="bg-white px-6 py-5 rounded-3xl shadow-md border-2 border-gray-200">
+            <h3 className="text-lg font-black text-gray-800 mb-4">📚 Chris P Tee Recommends</h3>
+
+            {/* Your Books - Featured */}
+            <div className="bg-yellow-50 p-4 rounded-2xl border-2 border-yellow-300 mb-4">
+              <p className="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2">✨ My Books</p>
+              <div className="space-y-2 text-sm">
+                <a href="https://amzn.to/3NPNm8q" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
+                  📖 The Stress Free Guide to Kids Magic Parties
+                </a>
+                <a href="https://amzn.eu/d/5JsR1XH" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
+                  📖 Modern Entertainer Insights
+                </a>
+                <a href="https://amzn.to/3NITj7f" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
+                  📖 More Performer Wisdom
+                </a>
+              </div>
+            </div>
+
+            {/* Coffee Gear - Featured */}
+            <div className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-300 mb-4">
+              <p className="text-xs font-bold text-orange-700 uppercase tracking-wider mb-2">☕ My Coffee Gear (10+ Years Use)</p>
+              <p className="text-xs text-orange-600 mb-2 italic">"ADHD + Coffee = Functional Human"</p>
+              <div className="space-y-2 text-sm">
+                <a href="https://amzn.to/3LLjx8x" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
+                  ⏰ Bedside Alarm Clock Coffee Maker (on my bedside NOW)
+                </a>
+                <a href="https://amzn.to/4kcn4cr" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
+                  🏆 Aeropress Classic (10 years old, good as new)
+                </a>
+                <a href="https://amzn.to/45GzK5B" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
+                  ♻️ Reusable Metal Filter (no more paper!)
+                </a>
+                <a href="https://amzn.to/4bvlRee" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
+                  🇮🇹 Bialetti Moka Pot (bulletproof Italian coffee)
+                </a>
+              </div>
+            </div>
+
+            {/* Bristol Rave Book */}
+            <div className="bg-purple-50 p-4 rounded-2xl border-2 border-purple-300">
+              <p className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-2">🎵 From a TikTok Friend</p>
+              <a href="https://amzn.to/4q6XLd9" target="_blank" rel="noreferrer" className="block text-sm text-gray-700 hover:text-purple-600">
+                📖 Rave & Glowgadgets: Bristol 1999-2003 - We were BOTH there!
+              </a>
+            </div>
+
+            <p className="text-xs text-gray-400 mt-3 text-center">Affiliate links support SpicyLister 💚</p>
           </div>
 
           {/* Community Links */}
@@ -1307,7 +2041,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
               Support the <strong>Community Comedy Magic Tour</strong>
             </a>
             <p className="text-xs opacity-50 mt-4">
-              SpicyLister v2.2 • Powered by Gemini Flash • No cookies, just vibes 🌶️
+              SpicyLister v2.4 • Powered by Gemini Flash • No cookies, just vibes 🌶️
             </p>
             <p className="text-[10px] opacity-30">
               "World domination through kindness" 💚
