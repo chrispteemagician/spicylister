@@ -924,24 +924,82 @@ export default function App() {
     setItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  // BULK: Export eBay CSV
+// BULK: Export eBay CSV (68-column GB File Exchange format)
   const exportCSV = () => {
     const doneItems = items.filter(item => item.status === 'done' && item.results);
     if (doneItems.length === 0) return;
 
-    const headers = [
-      '*Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193)',
+    const INFO_ROW = 'Info,Version=1.0.0,Template=fx_category_template_EBAY_GB';
+
+    const HEADERS = [
+      '*Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)',
+      'CustomLabel',
+      '*Category',
+      'StoreCategory',
       '*Title',
+      'Subtitle',
+      'Relationship',
+      'RelationshipDetails',
+      'ScheduleTime',
       '*ConditionID',
-      '*C:Condition',
-      'Description',
-      '*StartPrice',
-      '*Quantity',
+      'VAT%',
+      'C:Suitablility',
+      'C:Type',
+      'C:Country of Origin',
+      'C:Theme',
+      'PicURL',
+      'GalleryType',
+      'VideoID',
+      '*Description',
       '*Format',
       '*Duration',
+      '*StartPrice',
+      'BuyItNowPrice',
+      'BestOfferEnabled',
+      'BestOfferAutoAcceptPrice',
+      'MinimumBestOfferPrice',
+      '*Quantity',
+      'ImmediatePayRequired',
+      '*Location',
       'ShippingType',
       'ShippingService-1:Option',
-      'ShippingService-1:Cost'
+      'ShippingService-1:Cost',
+      'ShippingService-2:Option',
+      'ShippingService-2:Cost',
+      '*DispatchTimeMax',
+      'PromotionalShippingDiscount',
+      'ShippingDiscountProfileID',
+      'DomesticRateTable',
+      '*ReturnsAcceptedOption',
+      'ReturnsWithinOption',
+      'RefundOption',
+      'ShippingCostPaidByOption',
+      'AdditionalDetails',
+      'Product Safety Pictograms',
+      'Product Safety Statements',
+      'Product Safety Component',
+      'Regulatory Document Ids',
+      'Manufacturer Name',
+      'Manufacturer AddressLine1',
+      'Manufacturer AddressLine2',
+      'Manufacturer City',
+      'Manufacturer Country',
+      'Manufacturer PostalCode',
+      'Manufacturer StateOrProvince',
+      'Manufacturer Phone',
+      'Manufacturer Email',
+      'Manufacturer ContactURL',
+      'Responsible Person 1',
+      'Responsible Person 1 Type',
+      'Responsible Person 1 AddressLine1',
+      'Responsible Person 1 AddressLine2',
+      'Responsible Person 1 City',
+      'Responsible Person 1 Country',
+      'Responsible Person 1 PostalCode',
+      'Responsible Person 1 StateOrProvince',
+      'Responsible Person 1 Phone',
+      'Responsible Person 1 Email',
+      'Responsible Person 1 ContactURL',
     ];
 
     const conditionIdMap = {
@@ -952,39 +1010,114 @@ export default function App() {
       'fair': '5000'
     };
 
-    const rows = doneItems.map(item => {
+    const csvEscape = (value) => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      if (!/[",\n\r]/.test(str)) return str;
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
+    const detectType = (title = '') => {
+      const t = title.toLowerCase();
+      if (t.includes('dvd')) return 'DVDs/ Videos';
+      if (t.includes('book') || t.includes('booklet')) return 'Books/ Instructions';
+      if (t.includes('card') && !t.includes('dvd')) return 'Card Tricks';
+      if (t.includes('coin') && !t.includes('dvd')) return 'Coin Tricks';
+      return 'Equipment/ Apparatus';
+    };
+
+    const dataRows = doneItems.map(item => {
       const r = item.results;
       const condKey = mapCondition(r.condition);
       const conditionId = conditionIdMap[condKey] || '3000';
-      const cleanDesc = (r.description || '').replace(/"/g, '""');
-      const cleanTitle = (r.title || '').replace(/"/g, '""').substring(0, 80);
       const price = r.priceLow || 0.99;
 
-      return [
-        'Add',
-        cleanTitle,
-        conditionId,
-        r.condition || 'Good condition',
-        cleanDesc,
-        price.toFixed(2),
-        '1',
-        'FixedPrice',
-        'GTC',
-        'Flat',
-        'UK_RoyalMailSecondClassStandard',
-        '0.00'
+      const values = [
+        'Add',                                    // *Action
+        '',                                       // CustomLabel
+        '427',                                    // *Category (Magic Tricks & Jokes)
+        '',                                       // StoreCategory
+        (r.title || '').replace(/"/g, '""').substring(0, 80), // *Title
+        '',                                       // Subtitle
+        '',                                       // Relationship
+        '',                                       // RelationshipDetails
+        '',                                       // ScheduleTime
+        conditionId,                              // *ConditionID
+        '',                                       // VAT%
+        'Adults',                                 // C:Suitablility
+        detectType(r.title),                      // C:Type
+        'United Kingdom',                         // C:Country of Origin
+        'Magic',                                  // C:Theme
+        '',                                       // PicURL
+        'Gallery',                                // GalleryType
+        '',                                       // VideoID
+        (r.description || ''),                    // *Description
+        'FixedPrice',                             // *Format
+        'GTC',                                    // *Duration
+        price.toFixed(2),                         // *StartPrice
+        '',                                       // BuyItNowPrice
+        '1',                                      // BestOfferEnabled
+        '',                                       // BestOfferAutoAcceptPrice
+        '',                                       // MinimumBestOfferPrice
+        '1',                                      // *Quantity
+        '1',                                      // ImmediatePayRequired
+        'Chipping Sodbury, South Glos',           // *Location
+        'Flat',                                   // ShippingType
+        'UK_RoyalMailSecondClassStandard',        // ShippingService-1:Option
+        '0.00',                                   // ShippingService-1:Cost
+        '',                                       // ShippingService-2:Option
+        '',                                       // ShippingService-2:Cost
+        '3',                                      // *DispatchTimeMax
+        '',                                       // PromotionalShippingDiscount
+        '',                                       // ShippingDiscountProfileID
+        '',                                       // DomesticRateTable
+        'ReturnsAccepted',                        // *ReturnsAcceptedOption
+        'Days_30',                                // ReturnsWithinOption
+        'MoneyBackOrExchange',                    // RefundOption
+        'Buyer',                                  // ShippingCostPaidByOption
+        '',                                       // AdditionalDetails
+        '',                                       // Product Safety Pictograms
+        '',                                       // Product Safety Statements
+        '',                                       // Product Safety Component
+        '',                                       // Regulatory Document Ids
+        '',                                       // Manufacturer Name
+        '',                                       // Manufacturer AddressLine1
+        '',                                       // Manufacturer AddressLine2
+        '',                                       // Manufacturer City
+        '',                                       // Manufacturer Country
+        '',                                       // Manufacturer PostalCode
+        '',                                       // Manufacturer StateOrProvince
+        '',                                       // Manufacturer Phone
+        '',                                       // Manufacturer Email
+        '',                                       // Manufacturer ContactURL
+        '',                                       // Responsible Person 1
+        '',                                       // Responsible Person 1 Type
+        '',                                       // Responsible Person 1 AddressLine1
+        '',                                       // Responsible Person 1 AddressLine2
+        '',                                       // Responsible Person 1 City
+        '',                                       // Responsible Person 1 Country
+        '',                                       // Responsible Person 1 PostalCode
+        '',                                       // Responsible Person 1 StateOrProvince
+        '',                                       // Responsible Person 1 Phone
+        '',                                       // Responsible Person 1 Email
+        '',                                       // Responsible Person 1 ContactURL
       ];
+
+      return values.map(csvEscape).join(',');
     });
 
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
+    const csvContent = [
+      INFO_ROW,
+      HEADERS.join(','),
+      ...dataRows
+    ].join('\r\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `spicylister-bulk-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `spicylister-ebay-ready-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
