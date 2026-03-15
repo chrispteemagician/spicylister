@@ -28,7 +28,6 @@ const GLOBAL_REGIONS = {
   'EU': { currency: 'EUR', symbol: '€' }
 };
 
-// ✨ NEW: SpicyLister Branded Packaging Sizes
 const SPICYLISTER_PACKAGING = {
   'large-letter': {
     dimensions: '24×16×3cm',
@@ -68,15 +67,12 @@ const SPICYLISTER_PACKAGING = {
   }
 };
 
-// ✨ NEW: Savings Calculator Constants
 const SAVINGS_PER_LISTING = {
-  time: 18, // minutes saved vs manual listing
-  cost: 3.50 // pounds saved vs listing service
+  time: 18,
+  cost: 3.50
 };
 
-// BULK PROCESSING: Fun waiting messages (rotate during processing)
 const WAITING_MESSAGES = [
-  // Dad jokes
   { type: 'joke', text: "Why did the eBay seller go to therapy? Too many unresolved listings." },
   { type: 'joke', text: "What do you call a fake noodle? An impasta. (Like fake designer gear on eBay)" },
   { type: 'joke', text: "I told my wife I was going to sell everything... She said 'List me first, I'm vintage.'" },
@@ -85,7 +81,6 @@ const WAITING_MESSAGES = [
   { type: 'joke', text: "I've got a great joke about postage... but it'll cost you £3.99 delivery." },
   { type: 'joke', text: "My decluttering is going great. I've sold 3 things and bought 7 on eBay." },
   { type: 'joke', text: "What did one listing say to the other? 'You're a steal at that price!'" },
-  // QI-style facts
   { type: 'fact', text: "The most expensive item ever sold on eBay was a yacht for $168 million in 2006." },
   { type: 'fact', text: "eBay was originally called AuctionWeb and the first item sold was a broken laser pointer for $14.83." },
   { type: 'fact', text: "There are approximately 1.7 billion listings on eBay at any given time." },
@@ -96,7 +91,6 @@ const WAITING_MESSAGES = [
   { type: 'fact', text: "The most watched eBay category in the UK? Electronics. The most fun? Collectibles." },
   { type: 'fact', text: "A 2023 study found decluttering reduces cortisol (stress hormone) by up to 25%." },
   { type: 'fact', text: "In Japan, there's a word 'tsundoku' - buying books and letting them pile up unread. Sound familiar?" },
-  // Top tips
   { type: 'tip', text: "Top tip: End your auctions on Sunday evenings - that's when most eBay buyers are browsing." },
   { type: 'tip', text: "Top tip: Include measurements in your listings. Returns drop by 50% when buyers know the size." },
   { type: 'tip', text: "Top tip: Clean your items before photographing. A quick wipe adds perceived value." },
@@ -107,7 +101,6 @@ const WAITING_MESSAGES = [
   { type: 'tip', text: "Top tip: Ship within 24 hours for top-rated seller status. Speed = good reviews." },
   { type: 'tip', text: "Top tip: Reuse packaging from your own deliveries. Free, eco-friendly, and it works." },
   { type: 'tip', text: "Top tip: Take photos on a white background. Even a bedsheet works." },
-  // Encouragement
   { type: 'hype', text: "You're literally making money while sitting down. This is the dream." },
   { type: 'hype', text: "Every item you list is space reclaimed and money earned. Double win." },
   { type: 'hype', text: "Somewhere out there, someone is searching for exactly what you're selling right now." },
@@ -129,7 +122,6 @@ const MESSAGE_TYPE_EMOJI = {
   hype: '🔥'
 };
 
-// ✨ NEW: Reward Suggestions (dopamine boosters!)
 const REWARDS = [
   '☕ A nice brew and biscuit',
   '🚶 A 20-minute walk in fresh air',
@@ -147,7 +139,6 @@ const REWARDS = [
   '🍫 Treat yourself to something nice'
 ];
 
-// ✨ NEW: Kudos Actions (for future FeelFamous integration)
 const KUDOS_ACTIONS = {
   listing_created: { kudos: 5, coins: 2 },
   item_sold: { kudos: 10, coins: 5 },
@@ -155,7 +146,6 @@ const KUDOS_ACTIONS = {
   shared_tip: { kudos: 5, coins: 0 }
 };
 
-// ✨ Pro Tier Configuration - Early Adopter Pricing
 const TIER_LIMITS = {
   free: {
     listingsPerMonth: 5,
@@ -219,7 +209,6 @@ const compressImage = (file) => {
   });
 };
 
-// ✨ NEW: Category Mapping for Store Integration
 const CATEGORY_MAP = {
   'Electronics': 'Electronics',
   'Electronics > Phones': 'Electronics',
@@ -240,7 +229,6 @@ const mapCategory = (category) => {
   if (CATEGORY_MAP[category]) return CATEGORY_MAP[category];
   const mainCategory = category.split('>')[0].trim();
   if (CATEGORY_MAP[mainCategory]) return CATEGORY_MAP[mainCategory];
-  // Fuzzy match
   const lowerCat = category.toLowerCase();
   if (lowerCat.includes('electronic') || lowerCat.includes('phone') || lowerCat.includes('computer')) return 'Electronics';
   if (lowerCat.includes('fashion') || lowerCat.includes('cloth') || lowerCat.includes('shoe')) return 'Fashion';
@@ -251,7 +239,6 @@ const mapCategory = (category) => {
   return 'Other';
 };
 
-// ✨ NEW: Condition Mapping for Store Integration
 const CONDITION_MAP = {
   'New with tags': 'new',
   'New': 'new',
@@ -277,7 +264,6 @@ const mapCondition = (condition) => {
   return 'good';
 };
 
-// ✨ NEW: Smart Packaging Recommendation
 const recommendPackaging = (dimensions, weight, fragility) => {
   if (!dimensions || !weight) {
     return {
@@ -290,29 +276,22 @@ const recommendPackaging = (dimensions, weight, fragility) => {
 
   const { length, width, height } = dimensions;
   const weightGrams = weight.grams || weight;
-
-  // Add safety padding (3cm)
   const paddedLength = length + 3;
   const paddedWidth = width + 3;
   const paddedHeight = height + 3;
-
-  // Determine smallest fitting package
   let recommended = 'large-parcel';
   let reasoning = 'Fits safely with protective padding';
-
   const packagingOrder = ['large-letter', 'small-parcel', 'medium-parcel', 'large-parcel'];
 
   for (const size of packagingOrder) {
     const pkg = SPICYLISTER_PACKAGING[size];
     const max = pkg.maxDimensions;
-    
     if (paddedLength <= max.length && paddedWidth <= max.width && paddedHeight <= max.height && weightGrams <= pkg.maxWeight) {
       recommended = size;
       break;
     }
   }
 
-  // If high fragility, go up one size for extra protection
   if (fragility === 'high') {
     const currentIndex = packagingOrder.indexOf(recommended);
     if (currentIndex < packagingOrder.length - 1 && recommended !== 'large-parcel') {
@@ -321,7 +300,6 @@ const recommendPackaging = (dimensions, weight, fragility) => {
     }
   }
 
-  // Build alternatives list
   const currentIndex = packagingOrder.indexOf(recommended);
   const alternatives = [];
   if (currentIndex < packagingOrder.length - 1) {
@@ -336,7 +314,6 @@ const recommendPackaging = (dimensions, weight, fragility) => {
   };
 };
 
-// ✨ NEW: Savings Calculator
 const calculateSavings = () => {
   const saved = JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
   saved.count += 1;
@@ -350,12 +327,10 @@ const getCumulativeSavings = () => {
   return JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
 };
 
-// ✨ NEW: Random Reward Suggestion
 const getRandomReward = () => {
   return REWARDS[Math.floor(Math.random() * REWARDS.length)];
 };
 
-// ✨ NEW: Milestone Checker
 const checkMilestones = (count) => {
   const milestones = [1, 5, 10, 25, 50, 100];
   if (milestones.includes(count)) {
@@ -368,9 +343,7 @@ const checkMilestones = (count) => {
   return { show: false };
 };
 
-// ✨ NEW: Kudos Award Function (local-only for now, FeelFamous integration coming soon)
 const awardKudos = async (action, setShowKudosNotification) => {
-  // Local kudos celebration (FeelFamous integration coming in future update)
   const { kudos, coins } = KUDOS_ACTIONS[action] || { kudos: 5, coins: 2 };
   setShowKudosNotification({ kudos, coins });
   setTimeout(() => setShowKudosNotification(null), 3000);
@@ -381,7 +354,6 @@ const awardKudos = async (action, setShowKudosNotification) => {
 // =============================================================================
 
 export default function App() {
-  // Existing state
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -390,38 +362,23 @@ export default function App() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [copiedSection, setCopiedSection] = useState(null);
   const [copiedStore, setCopiedStore] = useState(false);
-
-  // ✨ NEW: Dimension editing state
   const [editingDimensions, setEditingDimensions] = useState(false);
   const [editedDimensions, setEditedDimensions] = useState(null);
   const [dimensionWarning, setDimensionWarning] = useState(null);
-
-  // ✨ NEW: Packaging state
   const [packaging, setPackaging] = useState(null);
   const [hasOwnPackaging, setHasOwnPackaging] = useState(false);
-
-  // ✨ NEW: Savings & Rewards state
   const [currentSavings, setCurrentSavings] = useState(null);
   const [currentReward, setCurrentReward] = useState(null);
   const [milestone, setMilestone] = useState(null);
-
-  // ✨ NEW: Pro tier state
   const [isPro, setIsPro] = useState(false);
   const [listingCount, setListingCount] = useState(() => {
     const saved = localStorage.getItem('spicylister_count');
     return saved ? parseInt(saved) : 0;
   });
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-
-  // ✨ NEW: Kudos notification state
   const [showKudosNotification, setShowKudosNotification] = useState(null);
-    // eBay export toast state
   const [showEbayToast, setShowEbayToast] = useState(false);
-
-  // ✨ NEW: Global counter state
   const [globalCount, setGlobalCount] = useState(null);
-
-  // BULK MODE state
   const [items, setItems] = useState([]);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [processProgress, setProcessProgress] = useState({ current: 0, total: 0 });
@@ -433,7 +390,6 @@ export default function App() {
   const userRegion = detectUserRegion();
   const userCurrency = GLOBAL_REGIONS[userRegion];
 
-  // Load cumulative savings on mount
   useEffect(() => {
     const saved = getCumulativeSavings();
     if (saved.count > 0) {
@@ -441,7 +397,6 @@ export default function App() {
     }
   }, []);
 
-  // ✨ NEW: Fetch global counter on mount
   useEffect(() => {
     const fetchGlobalCount = async () => {
       try {
@@ -456,17 +411,15 @@ export default function App() {
     fetchGlobalCount();
   }, []);
 
-  // Oracle import: detect #oracle= in URL hash
   useEffect(() => {
     const hash = window.location.hash;
     if (!hash.startsWith('#oracle=')) return;
     try {
-      const encoded = hash.slice(8); // remove '#oracle='
+      const encoded = hash.slice(8);
       const json = decodeURIComponent(escape(atob(encoded)));
       const oracle = JSON.parse(json);
       if (oracle.source !== 'oracle') return;
 
-      // Parse price range like "£50-£100" or "£50 - £100"
       let priceLow = 0, priceHigh = 0;
       if (oracle.priceRange) {
         const prices = oracle.priceRange.match(/[\d,.]+/g);
@@ -479,12 +432,10 @@ export default function App() {
         }
       }
 
-      // Map Oracle condition to SpicyLister format
       const conditionMap = { 'mint': 'New', 'excellent': 'Excellent', 'very good': 'Very good', 'good': 'Good', 'fair': 'Fair', 'poor': 'Fair' };
       const rawCondition = (oracle.condition || '').toLowerCase();
       const condition = conditionMap[rawCondition] || oracle.condition || 'Good';
 
-      // Build SpicyLister results object from Oracle data
       const oracleResults = {
         title: oracle.itemName || oracle.title || 'Oracle Import',
         description: oracle.description || '',
@@ -501,7 +452,6 @@ export default function App() {
         recommendedPackaging: null
       };
 
-      // Create a pre-filled item
       const oracleItem = {
         id: Date.now() + Math.random(),
         file: null,
@@ -515,8 +465,6 @@ export default function App() {
 
       setItems([oracleItem]);
       setShowGrid(true);
-
-      // Clear the hash
       window.history.replaceState(null, '', window.location.pathname);
     } catch (e) {
       console.log('Oracle import failed:', e);
@@ -531,7 +479,6 @@ export default function App() {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Single file: existing flow
     if (files.length === 1) {
       const file = files[0];
       if (!file.type.startsWith('image/')) return;
@@ -552,7 +499,6 @@ export default function App() {
       return;
     }
 
-    // Multiple files: bulk mode
     const newItems = [];
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
@@ -601,20 +547,12 @@ export default function App() {
     setLoading(true);
 
     try {
-      // Get base64 data from the compressed image preview
       const base64Data = imagePreview.split(',')[1];
-
-      // Call the serverless function (API key is kept server-side for security)
       const response = await fetch('/.netlify/functions/analyze-item', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          images: [{
-            mimeType: 'image/jpeg',
-            data: base64Data
-          }],
+          images: [{ mimeType: 'image/jpeg', data: base64Data }],
           isSpicyMode: isSpicyMode,
           region: userRegion
         })
@@ -626,53 +564,34 @@ export default function App() {
       }
 
       const data = await response.json();
-
-      // Ensure all required fields exist with defaults
       data.priceLow = Number(data.priceLow) || 0;
       data.priceHigh = Number(data.priceHigh) || 0;
 
-      if (!data.dimensions) {
-        data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
-      }
-      if (!data.weight) {
-        data.weight = { grams: 200, confidence: 50 };
-      }
-      if (!data.fragility) {
-        data.fragility = 'medium';
-      }
-      if (!data.material) {
-        data.material = 'Mixed materials';
-      }
-      if (!data.condition) {
-        data.condition = 'Good condition';
-      }
+      if (!data.dimensions) data.dimensions = { length: 15, width: 10, height: 5, confidence: 50 };
+      if (!data.weight) data.weight = { grams: 200, confidence: 50 };
+      if (!data.fragility) data.fragility = 'medium';
+      if (!data.material) data.material = 'Mixed materials';
+      if (!data.condition) data.condition = 'Good condition';
 
       setResults(data);
       setEditedDimensions(data.dimensions);
 
-      // ✨ NEW: Calculate packaging recommendation
       const packagingRec = recommendPackaging(data.dimensions, data.weight, data.fragility);
       setPackaging(packagingRec);
 
-      // ✨ NEW: Calculate and display savings
       const savings = calculateSavings();
       setCurrentSavings(savings);
       setCurrentReward(getRandomReward());
 
-      // ✨ NEW: Increment listing count and check for milestones
       const newCount = listingCount + 1;
       setListingCount(newCount);
       localStorage.setItem('spicylister_count', newCount.toString());
-      
-      const milestoneCheck = checkMilestones(newCount);
-      if (milestoneCheck.show) {
-        setMilestone(milestoneCheck);
-      }
 
-      // ✨ NEW: Award kudos
+      const milestoneCheck = checkMilestones(newCount);
+      if (milestoneCheck.show) setMilestone(milestoneCheck);
+
       await awardKudos('listing_created', setShowKudosNotification);
 
-      // ✨ NEW: Increment global counter
       try {
         const response = await fetch('/.netlify/functions/counter', { method: 'POST' });
         const data = await response.json();
@@ -681,19 +600,16 @@ export default function App() {
         console.log('Could not increment global count:', err);
       }
 
-      // Confetti for high-value or rare items
       if (isSpicyMode && (data.priceHigh > 50 || ['Rare', 'Legendary', 'God-Tier', 'Epic'].includes(data.rarity))) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 5000);
       }
 
-      // Also confetti for milestones
       if (milestoneCheck.confetti) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 5000);
       }
 
-      // ✨ NEW: Check if free tier limit reached
       if (!isPro && newCount >= TIER_LIMITS.free.listingsPerMonth) {
         setTimeout(() => setShowUpgradeModal(true), 2000);
       }
@@ -720,16 +636,14 @@ export default function App() {
     setProcessProgress({ current: 0, total: items.length });
     setWaitingMessage(getWaitingMessage());
 
-    let delay = 4000; // Start with 4s between items (safe for 15 RPM)
+    let delay = 4000;
     let consecutiveErrors = 0;
 
-    // Rotate fun messages every few seconds
     const messageInterval = setInterval(() => {
       setWaitingMessage(getWaitingMessage());
     }, 8000);
 
     for (let i = 0; i < items.length; i++) {
-      // Skip already-done items
       if (items[i].status === 'done') {
         setProcessProgress({ current: i + 1, total: items.length });
         continue;
@@ -757,17 +671,15 @@ export default function App() {
           const errorData = await response.json().catch(() => ({}));
           const errorMsg = errorData.error || `Server returned ${response.status}`;
 
-          // Dynamic backoff on rate limits
           if (response.status === 429 || errorMsg.includes('Too many requests')) {
             consecutiveErrors++;
-            delay = Math.min(delay * 2, 30000); // Double delay, max 30s
+            delay = Math.min(delay * 2, 30000);
             setWaitingMessage({
               type: 'tip',
               text: `Slowing down to avoid rate limits... (${Math.round(delay / 1000)}s between items)`
             });
-            // Don't throw - retry this item after backoff
             await new Promise(r => setTimeout(r, delay));
-            i--; // Retry this index
+            i--;
             continue;
           }
 
@@ -789,13 +701,9 @@ export default function App() {
           idx === i ? { ...item, status: 'done', results: data, packaging: packagingRec } : item
         ));
 
-        // Success - gradually reduce delay back to normal
         consecutiveErrors = 0;
-        if (delay > 4000) {
-          delay = Math.max(delay - 2000, 4000);
-        }
+        if (delay > 4000) delay = Math.max(delay - 2000, 4000);
 
-        // Wait between items
         if (i < items.length - 1) {
           await new Promise(r => setTimeout(r, delay));
         }
@@ -803,7 +711,6 @@ export default function App() {
         console.error(`Error processing item ${i}:`, err);
         consecutiveErrors++;
 
-        // If too many consecutive errors, increase delay
         if (consecutiveErrors >= 3) {
           delay = Math.min(delay * 2, 30000);
           setWaitingMessage({
@@ -816,7 +723,6 @@ export default function App() {
           idx === i ? { ...item, status: 'error', error: err.message } : item
         ));
 
-        // Still wait before next item even on error
         if (i < items.length - 1) {
           await new Promise(r => setTimeout(r, delay));
         }
@@ -827,7 +733,6 @@ export default function App() {
     setBulkProcessing(false);
     setWaitingMessage(null);
 
-    // Update savings for all successful items
     const doneCount = items.filter(it => it.results).length;
     if (doneCount > 0) {
       const saved = JSON.parse(localStorage.getItem('spicylister_savings') || '{"count": 0, "time": 0, "cost": 0}');
@@ -839,7 +744,6 @@ export default function App() {
       setCurrentReward(getRandomReward());
     }
 
-    // Increment global counter for all done items
     try {
       for (let j = 0; j < doneCount; j++) {
         await fetch('/.netlify/functions/counter', { method: 'POST' });
@@ -852,7 +756,6 @@ export default function App() {
     }
   };
 
-  // BULK: Retry a single failed item
   const retryItem = async (index) => {
     setItems(prev => prev.map((item, i) =>
       i === index ? { ...item, status: 'processing', error: null } : item
@@ -897,7 +800,6 @@ export default function App() {
     }
   };
 
-  // BULK: View item detail from grid
   const viewItemDetail = (index) => {
     const item = items[index];
     if (!item.results) return;
@@ -909,7 +811,6 @@ export default function App() {
     setShowGrid(false);
   };
 
-  // BULK: Back to grid from detail view
   const backToGrid = () => {
     setImage(null);
     setImagePreview(null);
@@ -921,23 +822,19 @@ export default function App() {
     setShowGrid(true);
   };
 
-  // BULK: Remove item from grid
   const removeItem = (index) => {
     setItems(prev => prev.filter((_, i) => i !== index));
   };
 
-// BULK: Export eBay Drafts CSV (11-column draft format - live tested Feb 2026)
   const exportCSV = () => {
     const doneItems = items.filter(item => item.status === 'done' && item.results);
     if (doneItems.length === 0) return;
 
-    // 4 static INFO rows - exact format confirmed working
     const INFO_ROW_1 = 'INFO,Version0.0.2,Template eBay-draft-listings-templateGB';
     const INFO_ROW_2 = 'INFO,-----------';
     const INFO_ROW_3 = 'INFO,Action and Category ID are required fields. 1 Set Action to Draft 2 Please find the category ID for your listings here https://pages.ebay.com/sellerinformation/news/categorychanges.html';
     const INFO_ROW_4 = 'INFO,After you\'ve successfully uploaded your draft from the Seller Hub Reports tab, complete your drafts to active listings here https://www.ebay.co.uk/sh/lst/drafts';
 
-    // 11 column headers - exact order from eBay draft template
     const HEADERS = [
       '*Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)',
       'Custom label (SKU)',
@@ -960,7 +857,6 @@ export default function App() {
       'fair': '5000'
     };
 
-    // CSV escape: wrap in quotes if value contains comma, quote, or newline
     const csvEscape = (value) => {
       if (value === null || value === undefined) return '';
       const str = String(value);
@@ -975,17 +871,17 @@ export default function App() {
       const price = (r.priceLow || 0.99).toFixed(2);
 
       const values = [
-        'Draft',                                          // *Action
-        '',                                               // Custom label (SKU)
-        '427',                                            // Category ID (Magic Tricks & Jokes)
-        (r.title || '').substring(0, 80),                 // Title (80 char max)
-        '',                                               // UPC
-        price,                                            // Price
-        '1',                                              // Quantity
-        '',                                               // Item photo URL (blank - add in Seller Hub)
-        conditionId,                                      // Condition ID
-        (r.description || ''),                            // Description
-        'FixedPrice',                                     // Format
+        'Draft',
+        '',
+        '427',
+        (r.title || '').substring(0, 80),
+        '',
+        price,
+        '1',
+        '',
+        conditionId,
+        (r.description || ''),
+        'FixedPrice',
       ];
       return values.map(csvEscape).join(',');
     });
@@ -1011,7 +907,6 @@ export default function App() {
     setTimeout(() => setShowEbayToast(false), 8000);
   };
 
-  // BULK: Apply bulk action to all done items
   const applyBulkCondition = (condition) => {
     setItems(prev => prev.map(item =>
       item.status === 'done' && item.results
@@ -1045,28 +940,22 @@ export default function App() {
     ));
   };
 
-  // ✨ NEW: Enhanced Store Integration with full shipping data
   const sendToStore = () => {
     if (!results) return;
-    
     const dimensions = editedDimensions || results.dimensions;
-    
     const storeData = {
       title: results.title,
       description: results.description,
       category: mapCategory(results.category),
-      priceGbp: Math.round(results.priceLow * 100), // Convert £ to pence
+      priceGbp: Math.round(results.priceLow * 100),
       condition: mapCondition(results.condition),
-      
-      // Shipping data
       dimensions: `${dimensions.length}x${dimensions.width}x${dimensions.height}`,
       weight: results.weight.grams,
       recommendedPackaging: packaging?.recommended || 'small-parcel',
       packagingPrice: packaging?.details?.price || 1.20,
       shippingMethod: 'royal-mail-48-tracked',
-      shippingCost: 500 // £5 flat rate in pence (Fiver Flat Rate!)
+      shippingCost: 500
     };
-    
     const encoded = encodeURIComponent(JSON.stringify(storeData));
     window.open(`https://spicylisterstore.manus.space/list?import=${encoded}`, '_blank');
   };
@@ -1104,7 +993,7 @@ CATEGORY: ${results.category}
 DIMENSIONS: ${dimensions.length}×${dimensions.width}×${dimensions.height}cm
 WEIGHT: ~${results.weight.grams}g
 PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
-    
+
     try {
       await navigator.clipboard.writeText(storeText);
       setCopiedStore(true);
@@ -1114,18 +1003,15 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
     }
   };
 
-  // ✨ NEW: Dimension editing handlers
   const handleDimensionChange = (field, value) => {
     const numValue = parseInt(value) || 0;
     const newDimensions = { ...editedDimensions, [field]: numValue };
     setEditedDimensions(newDimensions);
 
-    // Check if significantly different from AI estimate
     if (results?.dimensions) {
       const originalValue = results.dimensions[field];
       const diff = Math.abs(numValue - originalValue);
       const percentDiff = (diff / originalValue) * 100;
-      
       if (percentDiff > 50 && numValue > 0) {
         setDimensionWarning(`That's quite different from the AI estimate (${originalValue}cm). Are you sure?`);
       } else {
@@ -1133,7 +1019,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
       }
     }
 
-    // Recalculate packaging with new dimensions
     if (results?.weight && results?.fragility) {
       const newPackaging = recommendPackaging(newDimensions, results.weight, results.fragility);
       setPackaging(newPackaging);
@@ -1143,14 +1028,12 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
   const saveDimensionEdits = () => {
     setEditingDimensions(false);
     setDimensionWarning(null);
-    // Recalculate packaging
     if (results?.weight && results?.fragility) {
       const newPackaging = recommendPackaging(editedDimensions, results.weight, results.fragility);
       setPackaging(newPackaging);
     }
   };
 
-  // Format time for display
   const formatTime = (minutes) => {
     if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
@@ -1166,7 +1049,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
     <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 font-sans p-4">
       {showConfetti && <Confetti numberOfPieces={250} recycle={false} />}
 
-      {/* ✨ NEW: Kudos Notification */}
       {showKudosNotification && (
         <div className="fixed top-4 right-4 z-50 animate-bounce">
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-3 rounded-2xl shadow-lg">
@@ -1176,31 +1058,24 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
         </div>
       )}
 
-      {/* eBay Export Toast */}
       {showEbayToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-md bg-green-700 text-white rounded-2xl shadow-xl px-5 py-4">
           <p className="font-bold text-base mb-1">🎉 Your eBay drafts are ready!</p>
-              <p className="text-sm text-green-100 mb-2">Upload at eBay Seller Hub → Reports → Upload.</p>
-              <p className="text-sm text-green-100 mb-3">Open each one on your phone to add photos, set shipping and publish.</p>
-              <a href="https://www.ebay.co.uk/sh/reports/uploads" target="_blank" rel="noreferrer" className="inline-block bg-white text-green-800 font-bold text-sm px-4 py-2 rounded-xl hover:bg-green-50 transition-colors">Open eBay Seller Hub →</a>
-            </div>
+          <p className="text-sm text-green-100 mb-2">Upload at eBay Seller Hub → Reports → Upload.</p>
+          <p className="text-sm text-green-100 mb-3">Open each one on your phone to add photos, set shipping and publish.</p>
+          <a href="https://www.ebay.co.uk/sh/reports/uploads" target="_blank" rel="noreferrer" className="inline-block bg-white text-green-800 font-bold text-sm px-4 py-2 rounded-xl hover:bg-green-50 transition-colors">Open eBay Seller Hub →</a>
+        </div>
       )}
 
-      {/* ✨ NEW: Upgrade Modal */}
       {showUpgradeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
-            <button 
-              onClick={() => setShowUpgradeModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
+            <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
               <X size={24} />
             </button>
-            
             <div className="text-center">
               <h2 className="text-2xl font-black text-gray-800 mb-2">✨ You're on fire!</h2>
               <p className="text-gray-600 mb-4">You've created {listingCount} listings this month!</p>
-
               <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-4 rounded-2xl mb-4 text-left">
                 <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                   <Crown className="text-yellow-500" size={20} />
@@ -1214,12 +1089,10 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   <li>💬 Priority support</li>
                 </ul>
               </div>
-
               <div className="bg-green-50 p-3 rounded-xl mb-4 border border-green-200">
                 <p className="text-xs text-green-700 font-bold uppercase tracking-wider">🎉 Early Adopter Pricing</p>
                 <p className="text-green-800 text-sm">First 1000 Founder Villagers get <strong>half price forever</strong></p>
               </div>
-
               <a
                 href={TIER_LIMITS.pro.stripeLink}
                 target="_blank"
@@ -1229,11 +1102,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 Become a Founder Villager - £4.95/month
               </a>
               <p className="text-xs text-gray-400 mb-3">Regular price £9.90/month after first 1000</p>
-
-              <button
-                onClick={() => setShowUpgradeModal(false)}
-                className="text-gray-500 text-sm hover:text-gray-700"
-              >
+              <button onClick={() => setShowUpgradeModal(false)} className="text-gray-500 text-sm hover:text-gray-700">
                 Maybe Later
               </button>
             </div>
@@ -1262,7 +1131,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             Sell your clutter without a stutter
           </p>
 
-          {/* THE TOGGLE: Vanilla vs Spicy */}
           <div className="flex justify-center mt-6">
             <div className="bg-white p-1.5 rounded-full shadow-md inline-flex border border-orange-100">
               <button
@@ -1295,14 +1163,12 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
               <Camera className="w-16 h-16 mb-4 text-orange-300" />
               <p className="font-bold text-xl mb-2 text-gray-700">📸 Snap Something to Sell!</p>
               <p className="text-sm text-gray-500 px-4 text-center mb-6">Photo an item you want to flog and I'll write the listing for you</p>
-              
               <div className="flex gap-3 w-full max-w-xs">
                 <label className="flex-1 bg-gradient-to-r from-orange-400 to-red-500 text-white py-4 px-4 rounded-2xl font-bold text-center cursor-pointer hover:from-orange-500 hover:to-red-600 transition-all shadow-lg hover:scale-[1.02] active:scale-95">
                   <span className="text-2xl block mb-1">📷</span>
                   Camera
                   <input type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
                 </label>
-                
                 <label className="flex-1 bg-white border-2 border-orange-300 text-orange-600 py-4 px-4 rounded-2xl font-bold text-center cursor-pointer hover:bg-orange-50 transition-all shadow-md hover:scale-[1.02] active:scale-95">
                   <span className="text-2xl block mb-1">🖼️</span>
                   Gallery
@@ -1320,7 +1186,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   <Trash2 size={24} />
                 </button>
               </div>
-
               <button
                 onClick={analyzeItem}
                 disabled={loading}
@@ -1344,7 +1209,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
           {/* BULK GRID VIEW */}
           {showGrid && items.length > 0 && (
             <div className="space-y-4">
-              {/* Bulk Header */}
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-800">
@@ -1362,15 +1226,11 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     )}
                   </p>
                 </div>
-                <button
-                  onClick={resetApp}
-                  className="text-gray-400 hover:text-red-500 p-2"
-                >
+                <button onClick={resetApp} className="text-gray-400 hover:text-red-500 p-2">
                   <X size={24} />
                 </button>
               </div>
 
-              {/* Progress Bar + Fun Messages */}
               {bulkProcessing && (
                 <div className="bg-orange-50 p-4 rounded-2xl border border-orange-200 space-y-3">
                   <div className="flex items-center justify-between mb-2">
@@ -1387,14 +1247,10 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                       style={{ width: `${(processProgress.current / processProgress.total) * 100}%` }}
                     ></div>
                   </div>
-
-                  {/* Fun waiting message */}
                   {waitingMessage && (
                     <div className="bg-white p-4 rounded-xl border border-orange-100 text-center transition-all">
                       <span className="text-2xl block mb-2">{MESSAGE_TYPE_EMOJI[waitingMessage.type] || '✨'}</span>
-                      <p className="text-sm text-gray-700 leading-relaxed font-medium">
-                        {waitingMessage.text}
-                      </p>
+                      <p className="text-sm text-gray-700 leading-relaxed font-medium">{waitingMessage.text}</p>
                       <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-wider">
                         {waitingMessage.type === 'joke' && 'Dad Joke Break'}
                         {waitingMessage.type === 'fact' && 'Did You Know?'}
@@ -1406,7 +1262,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 </div>
               )}
 
-              {/* Items Grid */}
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {items.map((item, index) => (
                   <div
@@ -1423,11 +1278,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     }`}
                   >
                     {item.preview ? (
-                      <img
-                        src={item.preview}
-                        alt={`Item ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={item.preview} alt={`Item ${index + 1}`} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 to-indigo-900 text-white">
                         <span className="text-3xl mb-1">🔮</span>
@@ -1435,7 +1286,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                       </div>
                     )}
 
-                    {/* Status Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center">
                       {item.status === 'done' && (
                         <div className="bg-green-500 text-white rounded-full p-1.5 shadow-lg">
@@ -1457,14 +1307,12 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                       )}
                     </div>
 
-                    {/* Price badge for done items */}
                     {item.status === 'done' && item.results && (
                       <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 text-center">
                         {userCurrency.symbol}{item.results.priceLow}-{item.results.priceHigh}
                       </div>
                     )}
 
-                    {/* Remove button */}
                     {!bulkProcessing && (
                       <button
                         onClick={(e) => { e.stopPropagation(); removeItem(index); }}
@@ -1477,7 +1325,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 ))}
               </div>
 
-              {/* Extra Context Box */}
               {!bulkProcessing && items.some(i => i.status === 'pending') && (
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
                   <label className="text-xs font-bold uppercase text-gray-500 tracking-wider block mb-2">
@@ -1494,7 +1341,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 </div>
               )}
 
-              {/* Generate All Button */}
               {!bulkProcessing && items.some(i => i.status === 'pending') && (
                 <button
                   onClick={processAllItems}
@@ -1508,7 +1354,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 </button>
               )}
 
-              {/* Bulk Actions (when items are done) */}
               {items.some(i => i.status === 'done') && !bulkProcessing && (
                 <div className="space-y-3">
                   {/* CSV Export - Primary Action */}
@@ -1519,67 +1364,45 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     <Package size={22} />
                     Download eBay Drafts CSV ({items.filter(i => i.status === 'done').length} items)
                   </button>
-{/* SpicyDrafter callout */}
 
-  href="https://spicydrafter.netlify.app"
-  target="_blank"
-  rel="noreferrer"
-  className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-300 text-orange-700 hover:bg-orange-100 transition-colors"
->
-  <span>🌶️</span>
-  Uploading via File Exchange? Open SpicyDrafter →
-</a>
+                  {/* SpicyDrafter callout */}
+                  <a
+                    href="https://spicydrafter.netlify.app"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-300 text-orange-700 hover:bg-orange-100 transition-colors"
+                  >
+                    <span>🌶️</span>
+                    Uploading via File Exchange? Open SpicyDrafter →
+                  </a>
+
                   {/* Quick Bulk Actions */}
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
                     <p className="text-xs font-bold uppercase text-gray-500 tracking-wider">Bulk Actions</p>
-
                     <div className="flex gap-2 flex-wrap">
-                      <button
-                        onClick={() => applyBulkCondition('Excellent condition')}
-                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
-                      >
+                      <button onClick={() => applyBulkCondition('Excellent condition')} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100">
                         All "Excellent"
                       </button>
-                      <button
-                        onClick={() => applyBulkCondition('Very good condition')}
-                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
-                      >
+                      <button onClick={() => applyBulkCondition('Very good condition')} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100">
                         All "Very Good"
                       </button>
-                      <button
-                        onClick={() => applyBulkCondition('Good condition')}
-                        className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
-                      >
+                      <button onClick={() => applyBulkCondition('Good condition')} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100">
                         All "Good"
                       </button>
                     </div>
-
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => applyPriceAdjust(10)}
-                        className="flex-1 bg-green-50 border border-green-200 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-100"
-                      >
+                      <button onClick={() => applyPriceAdjust(10)} className="flex-1 bg-green-50 border border-green-200 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-100">
                         Prices +10%
                       </button>
-                      <button
-                        onClick={() => applyPriceAdjust(-10)}
-                        className="flex-1 bg-red-50 border border-red-200 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100"
-                      >
+                      <button onClick={() => applyPriceAdjust(-10)} className="flex-1 bg-red-50 border border-red-200 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100">
                         Prices -10%
                       </button>
                     </div>
-
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => applyBulkNote('From a smoke-free, pet-free home.')}
-                        className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
-                      >
+                      <button onClick={() => applyBulkNote('From a smoke-free, pet-free home.')} className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100">
                         + Smoke-free home
                       </button>
-                      <button
-                        onClick={() => applyBulkNote('Happy to combine postage on multiple items.')}
-                        className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100"
-                      >
+                      <button onClick={() => applyBulkNote('Happy to combine postage on multiple items.')} className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-100">
                         + Combine postage
                       </button>
                     </div>
@@ -1601,7 +1424,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                 </div>
               )}
 
-              {/* All Done Celebration */}
               {!bulkProcessing && items.length > 0 && items.every(i => i.status === 'done' || i.status === 'error') && items.some(i => i.status === 'done') && (
                 <div className="text-center p-4">
                   <p className="text-sm text-gray-500">
@@ -1615,17 +1437,12 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
           {results && !showGrid && (
             <div className="space-y-6">
 
-              {/* Back to Grid button (when viewing from bulk) */}
               {items.length > 0 && (
-                <button
-                  onClick={backToGrid}
-                  className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium text-sm mb-2"
-                >
+                <button onClick={backToGrid} className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium text-sm mb-2">
                   <span>&larr;</span> Back to all {items.length} items
                 </button>
               )}
 
-              {/* Oracle Import Banner */}
               {items.some(i => i.oracleImport) && !image && (
                 <div className="bg-gradient-to-r from-purple-100 to-indigo-100 border border-purple-200 rounded-2xl p-4 text-center">
                   <p className="text-sm font-bold text-purple-800">🔮 Imported from Magic-Oid Oracle</p>
@@ -1643,7 +1460,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   </div>
                 )}
 
-                {/* Title Card */}
                 <div className="bg-orange-50 p-5 rounded-2xl border border-orange-100 mb-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-orange-600 tracking-wider">Listing Title</span>
@@ -1654,7 +1470,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   <h2 className="text-xl font-bold text-gray-900 leading-tight">{results.title}</h2>
                 </div>
 
-                {/* Description Card */}
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 mb-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Description</span>
@@ -1665,7 +1480,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{results.description}</p>
                 </div>
 
-                {/* Price & Category Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
                     <span className="text-xs font-bold uppercase text-green-600">Est. Value</span>
@@ -1677,17 +1491,13 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   </div>
                 </div>
 
-                {/* ✨ NEW: Dimensions Card */}
                 <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Ruler className="text-blue-600" size={20} />
                       <span className="text-xs font-bold uppercase text-blue-600">Dimensions & Weight</span>
                     </div>
-                    <button 
-                      onClick={() => setEditingDimensions(!editingDimensions)}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
+                    <button onClick={() => setEditingDimensions(!editingDimensions)} className="text-blue-500 hover:text-blue-700">
                       <Edit3 size={18} />
                     </button>
                   </div>
@@ -1744,32 +1554,25 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                           />
                         </div>
                       </div>
-                      
                       {dimensionWarning && (
                         <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
                           <AlertCircle size={16} />
                           {dimensionWarning}
                         </div>
                       )}
-                      
-                      <button
-                        onClick={saveDimensionEdits}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm"
-                      >
+                      <button onClick={saveDimensionEdits} className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold text-sm">
                         Save Dimensions
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* ✨ NEW: Packaging Recommendation Card */}
                 {packaging && !hasOwnPackaging && (
                   <div className="bg-orange-50 p-5 rounded-2xl border border-orange-200 mb-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Package className="text-orange-600" size={20} />
                       <span className="text-xs font-bold uppercase text-orange-600">Recommended Packaging</span>
                     </div>
-                    
                     <div className="bg-white p-4 rounded-xl border-2 border-orange-300 mb-3">
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">{packaging.details.icon}</span>
@@ -1781,56 +1584,40 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-black text-orange-600">
-                            £{packaging.details.price.toFixed(2)}
-                          </p>
+                          <p className="text-2xl font-black text-orange-600">£{packaging.details.price.toFixed(2)}</p>
                         </div>
                       </div>
                     </div>
-                    
                     <div className="flex gap-2">
                       <button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-bold text-sm transition-colors">
                         Order This Size
                       </button>
-                      <button 
-                        onClick={() => setHasOwnPackaging(true)}
-                        className="flex-1 bg-white border-2 border-orange-200 text-orange-600 py-2 rounded-lg font-bold text-sm hover:bg-orange-50 transition-colors"
-                      >
+                      <button onClick={() => setHasOwnPackaging(true)} className="flex-1 bg-white border-2 border-orange-200 text-orange-600 py-2 rounded-lg font-bold text-sm hover:bg-orange-50 transition-colors">
                         I Have It
                       </button>
                     </div>
-                    
                     {packaging.alternatives && packaging.alternatives.length > 0 && (
                       <p className="text-xs text-gray-500 mt-3 text-center">
                         Alternative: {packaging.alternatives[0].name} (£{packaging.alternatives[0].price.toFixed(2)})
                       </p>
                     )}
-                    
-                    <p className="text-xs text-orange-600 mt-2 text-center italic">
-                      {packaging.reasoning}
-                    </p>
+                    <p className="text-xs text-orange-600 mt-2 text-center italic">{packaging.reasoning}</p>
                   </div>
                 )}
 
-                {/* Packaging confirmed message */}
                 {hasOwnPackaging && (
                   <div className="bg-green-50 p-4 rounded-2xl border border-green-200 mb-4 text-center">
                     <p className="text-green-700 font-bold flex items-center justify-center gap-2">
                       <Check size={20} /> Using your own packaging
                     </p>
-                    <button 
-                      onClick={() => setHasOwnPackaging(false)}
-                      className="text-green-600 text-sm underline mt-1"
-                    >
+                    <button onClick={() => setHasOwnPackaging(false)} className="text-green-600 text-sm underline mt-1">
                       Show recommendations again
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="space-y-3">
-                {/* PRIMARY: Send to Store Button */}
                 <button
                   onClick={sendToStore}
                   className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
@@ -1839,7 +1626,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   Send to SpicyLister Store
                 </button>
 
-                {/* SECONDARY: Other Actions */}
                 <div className="grid grid-cols-4 gap-2">
                   <button
                     onClick={() => {
@@ -1851,65 +1637,44 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     <span className="text-lg">🛒</span>
                     <span className="text-xs">eBay</span>
                   </button>
-
-                  <button
-                    onClick={copyForStore}
-                    className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
-                  >
+                  <button onClick={copyForStore} className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors">
                     {copiedStore ? <Check size={18} /> : <Copy size={18} />}
                     <span className="text-xs">{copiedStore ? 'Copied!' : 'Copy'}</span>
                   </button>
-
-                  <button
-                    onClick={shareResult}
-                    className="bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors"
-                  >
+                  <button onClick={shareResult} className="bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 text-sm transition-colors">
                     <Share2 size={18} />
                     <span className="text-xs">Share</span>
                   </button>
-
-                  <button
-                    onClick={resetApp}
-                    className="bg-white border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 flex flex-col items-center justify-center gap-1 text-sm transition-colors"
-                  >
+                  <button onClick={resetApp} className="bg-white border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 flex flex-col items-center justify-center gap-1 text-sm transition-colors">
                     <Trash2 size={18} />
                     <span className="text-xs">New</span>
                   </button>
                 </div>
               </div>
 
-              {/* ✨ NEW: Savings Celebration Card */}
               {currentSavings && (
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-3xl border-2 border-green-200 text-center">
                   <h2 className="text-3xl font-black text-green-700 mb-3">
                     {milestone?.show ? milestone.message : '🎉 Well Done!'}
                   </h2>
-                  
                   <div className="bg-white p-4 rounded-2xl mb-4">
                     <p className="text-gray-700 mb-2">You've saved:</p>
                     <p className="text-3xl font-black text-green-600">
                       {SAVINGS_PER_LISTING.time} min & £{SAVINGS_PER_LISTING.cost.toFixed(2)}
                     </p>
                   </div>
-                  
                   {currentReward && (
                     <div className="bg-green-100 p-4 rounded-2xl mb-4">
-                      <p className="text-sm text-green-800 mb-2 font-semibold">
-                        You've earned time for:
-                      </p>
-                      <p className="text-lg font-bold text-green-700">
-                        {currentReward}
-                      </p>
+                      <p className="text-sm text-green-800 mb-2 font-semibold">You've earned time for:</p>
+                      <p className="text-lg font-bold text-green-700">{currentReward}</p>
                     </div>
                   )}
-                  
                   <p className="text-xs text-green-600">
                     💚 Total saved: {formatTime(currentSavings.time)}, £{currentSavings.cost.toFixed(2)} across {currentSavings.count} listings
                   </p>
                 </div>
               )}
 
-              {/* Pro Tier Teaser (shows after 3 listings) */}
               {!isPro && listingCount >= 3 && listingCount < TIER_LIMITS.free.listingsPerMonth && (
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-2xl border border-yellow-200 flex items-center gap-3">
                   <Crown size={24} className="text-yellow-500 flex-shrink-0" />
@@ -1933,8 +1698,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
 
         {/* FOOTER */}
         <div className="mt-12 text-center space-y-6 pb-12">
-          
-          {/* Retro Hit Counter - GlowGadgets Callback */}
+
           <div className="inline-block bg-black px-5 py-3 rounded-lg border-2 border-green-500 shadow-lg shadow-green-500/20">
             <p className="text-[10px] text-green-400 uppercase tracking-widest mb-1">🌍 Global Listings Generated</p>
             <div className="font-mono text-3xl text-green-400 tracking-wider" style={{ textShadow: '0 0 10px #22c55e' }}>
@@ -1946,105 +1710,61 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             <p className="text-[8px] text-green-700 mt-1 opacity-70">~ GlowGadgets Vibes ~</p>
           </div>
 
-          {/* AuDHD Creator Credit - OBVIOUS */}
           <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 p-4 rounded-2xl border-2 border-purple-200">
             <p className="text-lg font-black text-gray-800 mb-1">
               Made with 🧠✨ by <span className="text-purple-600">AuDHD</span> Chris P Tee
             </p>
             <div className="flex flex-wrap justify-center gap-2 mt-2">
-              <a
-                href="https://www.tiktok.com/@chrispteemagician"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-gray-800 transition-colors"
-              >
+              <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-gray-800 transition-colors">
                 <span>🎵</span> @chrispteemagician
               </a>
-              <a
-                href="https://www.instagram.com/spicylister"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-opacity"
-              >
+              <a href="https://www.instagram.com/spicylister" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
                 <span>📸</span> @spicylister
               </a>
             </div>
           </div>
 
-          {/* Coffeeware Section */}
           <div className="bg-white px-6 py-5 rounded-3xl shadow-md border-2 border-yellow-200">
             <h3 className="text-xl font-black text-gray-800 flex items-center justify-center gap-2 mb-2">
               <Coffee className="text-yellow-500" /> This is Coffeeware
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Free to use forever. If it helps you, pay it forward! 💚
-            </p>
-
+            <p className="text-sm text-gray-600 mb-4">Free to use forever. If it helps you, pay it forward! 💚</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
-              <a
-                href="https://ko-fi.com/zoom"
-                target="_blank"
-                rel="noreferrer"
-                className="bg-[#13C3FF] text-white font-bold py-2 px-5 rounded-xl hover:bg-[#00b4f0] transition-colors flex items-center justify-center gap-2"
-              >
+              <a href="https://ko-fi.com/zoom" target="_blank" rel="noreferrer" className="bg-[#13C3FF] text-white font-bold py-2 px-5 rounded-xl hover:bg-[#00b4f0] transition-colors flex items-center justify-center gap-2">
                 ☕ Ko-fi
               </a>
-              <a
-                href="https://buymeacoffee.com/chrispteemagician"
-                target="_blank"
-                rel="noreferrer"
-                className="bg-yellow-400 text-yellow-900 font-bold py-2 px-5 rounded-xl hover:bg-yellow-500 transition-colors flex items-center justify-center gap-2"
-              >
+              <a href="https://buymeacoffee.com/chrispteemagician" target="_blank" rel="noreferrer" className="bg-yellow-400 text-yellow-900 font-bold py-2 px-5 rounded-xl hover:bg-yellow-500 transition-colors flex items-center justify-center gap-2">
                 ☕ Buy Me a Coffee
               </a>
             </div>
-
             <p className="text-sm font-bold text-green-600 bg-green-50 py-2 px-4 rounded-full inline-block">
               🎁 I'll Pay it Forward & You Get the Kudos!
             </p>
           </div>
 
-          {/* Chris P Tee's Recommendations */}
           <div className="bg-white px-6 py-5 rounded-3xl shadow-md border-2 border-gray-200">
             <h3 className="text-lg font-black text-gray-800 mb-4">📚 Chris P Tee Recommends</h3>
 
-            {/* Your Books - Featured */}
             <div className="bg-yellow-50 p-4 rounded-2xl border-2 border-yellow-300 mb-4">
               <p className="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2">✨ My Books</p>
               <div className="space-y-2 text-sm">
-                <a href="https://amzn.to/3NPNm8q" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
-                  📖 The Stress Free Guide to Kids Magic Parties
-                </a>
-                <a href="https://amzn.eu/d/5JsR1XH" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
-                  📖 Modern Entertainer Insights
-                </a>
-                <a href="https://amzn.to/3NITj7f" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
-                  📖 More Performer Wisdom
-                </a>
+                <a href="https://amzn.to/3NPNm8q" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">📖 The Stress Free Guide to Kids Magic Parties</a>
+                <a href="https://amzn.eu/d/5JsR1XH" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">📖 Modern Entertainer Insights</a>
+                <a href="https://amzn.to/3NITj7f" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">📖 More Performer Wisdom</a>
               </div>
             </div>
 
-            {/* Coffee Gear - Featured */}
             <div className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-300 mb-4">
               <p className="text-xs font-bold text-orange-700 uppercase tracking-wider mb-2">☕ My Coffee Gear (10+ Years Use)</p>
               <p className="text-xs text-orange-600 mb-2 italic">"ADHD + Coffee = Functional Human"</p>
               <div className="space-y-2 text-sm">
-                <a href="https://amzn.to/3LLjx8x" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
-                  ⏰ Bedside Alarm Clock Coffee Maker (on my bedside NOW)
-                </a>
-                <a href="https://amzn.to/4kcn4cr" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
-                  🏆 Aeropress Classic (10 years old, good as new)
-                </a>
-                <a href="https://amzn.to/45GzK5B" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
-                  ♻️ Reusable Metal Filter (no more paper!)
-                </a>
-                <a href="https://amzn.to/4bvlRee" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">
-                  🇮🇹 Bialetti Moka Pot (bulletproof Italian coffee)
-                </a>
+                <a href="https://amzn.to/3LLjx8x" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">⏰ Bedside Alarm Clock Coffee Maker (on my bedside NOW)</a>
+                <a href="https://amzn.to/4kcn4cr" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">🏆 Aeropress Classic (10 years old, good as new)</a>
+                <a href="https://amzn.to/45GzK5B" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">♻️ Reusable Metal Filter (no more paper!)</a>
+                <a href="https://amzn.to/4bvlRee" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">🇮🇹 Bialetti Moka Pot (bulletproof Italian coffee)</a>
               </div>
             </div>
 
-            {/* Bristol Rave Book */}
             <div className="bg-purple-50 p-4 rounded-2xl border-2 border-purple-300">
               <p className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-2">🎵 From a TikTok Friend</p>
               <a href="https://amzn.to/4q6XLd9" target="_blank" rel="noreferrer" className="block text-sm text-gray-700 hover:text-purple-600">
@@ -2055,7 +1775,6 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
             <p className="text-xs text-gray-400 mt-3 text-center">Affiliate links support SpicyLister 💚</p>
           </div>
 
-          {/* Community Links */}
           <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
             <a href="https://comedymagic.co.uk" target="_blank" rel="noreferrer" className="hover:text-purple-500 transition-colors">
               Support the <strong>Community Comedy Magic Tour</strong>
