@@ -830,13 +830,14 @@ export default function App() {
         const doneItems = items.filter(item => item.status === 'done' && item.results);
         if (doneItems.length === 0) return;
 
-        const INFO_ROW_1 = 'INFO,Version0.0.2,Template eBay-draft-listings-templateGB';
-        const INFO_ROW_2 = 'INFO,-----------';
-        const INFO_ROW_3 = 'INFO,Action and Category ID are required fields. 1 Set Action to Draft 2 Please find the category ID for your listings here https://pages.ebay.com/sellerinformation/news/categorychanges.html';
-        const INFO_ROW_4 = 'INFO,After you\'ve successfully uploaded your draft from the Seller Hub Reports tab, complete your drafts to active listings here https://www.ebay.co.uk/sh/lst/drafts';
+        // #INFO rows matching official eBay draft template exactly
+        const INFO_ROW_1 = '#INFO,Version=0.0.2,Template= eBay-draft-listings-template_GB,,,,,,,,';
+        const INFO_ROW_2 = '#INFO Action and Category ID are required fields. 1) Set Action to Draft 2) Please find the category ID for your listings here: https://pages.ebay.com/sellerinformation/news/categorychanges.html,,,,,,,,,,';
+        const INFO_ROW_3 = '"#INFO After you\'ve successfully uploaded your draft from the Seller Hub Reports tab, complete your drafts to active listings here: https://www.ebay.co.uk/sh/lst/drafts",,,,,,,,,,';
+        const INFO_ROW_4 = '#INFO,,,,,,,,,,';
 
         const HEADERS = [
-            '*Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)',
+            'Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)',
             'Custom label (SKU)',
             'Category ID',
             'Title',
@@ -868,12 +869,14 @@ export default function App() {
             const r = item.results;
             const condKey = mapCondition(r.condition);
             const conditionId = conditionIdMap[condKey] || '3000';
-            const price = (r.priceLow || 0.99).toFixed(2);
+            // Guard against £0 — eBay rejects it
+            const rawPrice = parseFloat(r.priceLow);
+            const price = (!rawPrice || rawPrice <= 0) ? '0.99' : rawPrice.toFixed(2);
 
             const values = [
                 'Draft',
                 '',
-                '427',
+                '',           // Category ID blank — set in Seller Hub when reviewing draft
                 (r.title || '').substring(0, 80),
                 '',
                 price,
@@ -1617,15 +1620,13 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             </div>
 
                             <div className="space-y-3">
-                                <a
-                                    href="https://feelfamous.com"
-                                    target="_blank"
-                                    rel="noreferrer"
+                                <button
+                                    onClick={sendToStore}
                                     className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
                                 >
                                     <ExternalLink size={20} />
-                                    Join the FeelFamous Family 💚
-                                </a>
+                                    Send to SpicyLister Store
+                                </button>
 
                                 <div className="grid grid-cols-4 gap-2">
                                     <button
