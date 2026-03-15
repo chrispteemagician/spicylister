@@ -1616,7 +1616,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                   </div>
                 )}
               </div>
-
+              
               <div className="space-y-3">
                 href="https://feelfamous.com"
   target="_blank"
