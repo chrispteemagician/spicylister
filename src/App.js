@@ -1519,7 +1519,16 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                     <Package size={22} />
                     Download eBay Drafts CSV ({items.filter(i => i.status === 'done').length} items)
                   </button>
+{/* SpicyDrafter callout */}
 
+  href="https://spicydrafter.netlify.app"
+  target="_blank"
+  rel="noreferrer"
+  className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-300 text-orange-700 hover:bg-orange-100 transition-colors"
+>
+  <span>🌶️</span>
+  Uploading via File Exchange? Open SpicyDrafter →
+</a>
                   {/* Quick Bulk Actions */}
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
                     <p className="text-xs font-bold uppercase text-gray-500 tracking-wider">Bulk Actions</p>
