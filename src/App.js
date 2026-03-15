@@ -1618,13 +1618,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
               </div>
 
               <div className="space-y-3">
-                <button
-                  onClick={sendToStore}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
-                >
-                  <ExternalLink size={20} />
-                  Send to SpicyLister Store
-                </button>
+                href="https://feelfamous.com"
+  target="_blank"
+  rel="noreferrer"
+  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
+>
+  <ExternalLink size={20} />
+  Join the FeelFamous Family 💚
+</a>
 
                 <div className="grid grid-cols-4 gap-2">
                   <button
