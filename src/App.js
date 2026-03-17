@@ -1371,23 +1371,20 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                     <button
                                         onClick={() => {
                                             const doneItems = items.filter(i => i.status === 'done' && i.results);
-                                            const text = doneItems.map((item, n) => {
+                                            const lines = [];
+                                            doneItems.forEach((item, n) => {
                                                 const r = item.results;
-                                                return [
-                                                    '─────────────────────────',
-                                                    'ITEM ' + (n + 1) + ' of ' + doneItems.length,
-                                                    '─────────────────────────',
-                                                    'TITLE: ' + (r.title || ''),
-                                                    'PRICE: ' + userCurrency.symbol + (r.priceLow || 0) + ' – ' + userCurrency.symbol + (r.priceHigh || 0),
-                                                    'CONDITION: ' + (r.condition || ''),
-                                                    '',
-                                                    r.description || '',
-                                                    '',
-                                                ].join('
-');
-                                            }).join('
-');
-                                            const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+                                                lines.push('─────────────────────────');
+                                                lines.push('ITEM ' + (n + 1) + ' of ' + doneItems.length);
+                                                lines.push('─────────────────────────');
+                                                lines.push('TITLE: ' + (r.title || ''));
+                                                lines.push('PRICE: ' + userCurrency.symbol + (r.priceLow || 0) + ' – ' + userCurrency.symbol + (r.priceHigh || 0));
+                                                lines.push('CONDITION: ' + (r.condition || ''));
+                                                lines.push('');
+                                                lines.push(r.description || '');
+                                                lines.push('');
+                                            });
+                                            const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8;' });
                                             const url = URL.createObjectURL(blob);
                                             const a = document.createElement('a');
                                             a.href = url;
