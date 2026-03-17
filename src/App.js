@@ -858,6 +858,15 @@ export default function App() {
             'fair': '5000'
         };
 
+        // eBay draft format uses text condition labels, not numeric IDs
+        const conditionTextMap = {
+            'new': 'NEW',
+            'like-new': 'LIKE_NEW',
+            'excellent': 'VERY_GOOD',
+            'good': 'GOOD',
+            'fair': 'ACCEPTABLE'
+        };
+
         const csvEscape = (value) => {
             if (value === null || value === undefined) return '';
             const str = String(value);
@@ -876,13 +885,13 @@ export default function App() {
             const values = [
                 'Draft',
                 '',
-                '9800',       // Category ID — Everything Else (change per item in Seller Hub)
+                '',           // Category ID blank — set in Seller Hub when reviewing draft
                 (r.title || '').substring(0, 80),
                 '',
                 price,
                 '1',
                 '',
-                conditionId,
+                conditionTextMap[condKey] || 'USED',
                 (r.description || ''),
                 'FixedPrice',
             ];
