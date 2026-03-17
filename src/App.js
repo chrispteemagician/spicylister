@@ -850,15 +850,7 @@ export default function App() {
             'Format',
         ];
 
-        const conditionIdMap = {
-            'new': '1000',
-            'like-new': '3000',
-            'excellent': '3000',
-            'good': '4000',
-            'fair': '5000'
-        };
-
-        // eBay draft format uses text condition labels, not numeric IDs
+        // eBay draft format uses text condition labels
         const conditionTextMap = {
             'new': 'NEW',
             'like-new': 'LIKE_NEW',
@@ -877,15 +869,13 @@ export default function App() {
         const dataRows = doneItems.map(item => {
             const r = item.results;
             const condKey = mapCondition(r.condition);
-            const conditionId = conditionIdMap[condKey] || '3000';
-            // Guard against £0 — eBay rejects it
             const rawPrice = parseFloat(r.priceLow);
             const price = (!rawPrice || rawPrice <= 0) ? '0.99' : rawPrice.toFixed(2);
 
             const values = [
                 'Draft',
                 '',
-                '',           // Category ID blank — set in Seller Hub when reviewing draft
+                '9800',       // Everything Else — change per item in Seller Hub
                 (r.title || '').substring(0, 80),
                 '',
                 price,
@@ -1376,15 +1366,46 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                         Download eBay Drafts CSV ({items.filter(i => i.status === 'done').length} items)
                                     </button>
 
-                                    {/* SpicyDrafter callout */}
+                                    {/* Plain text for Vinted, Gumtree, Craigslist etc */}
+                                    <button
+                                        onClick={() => {
+                                            const doneItems = items.filter(i => i.status === 'done' && i.results);
+                                            const lines = [];
+                                            doneItems.forEach((item, n) => {
+                                                const r = item.results;
+                                                lines.push('─────────────────────────');
+                                                lines.push('ITEM ' + (n + 1) + ' of ' + doneItems.length);
+                                                lines.push('─────────────────────────');
+                                                lines.push('TITLE: ' + (r.title || ''));
+                                                lines.push('PRICE: ' + userCurrency.symbol + (r.priceLow || 0) + ' – ' + userCurrency.symbol + (r.priceHigh || 0));
+                                                lines.push('CONDITION: ' + (r.condition || ''));
+                                                lines.push('');
+                                                lines.push(r.description || '');
+                                                lines.push('');
+                                            });
+                                            const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8;' });
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = 'listings-' + new Date().toISOString().split('T')[0] + '.txt';
+                                            a.click();
+                                            URL.revokeObjectURL(url);
+                                        }}
+                                        className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-purple-50 border-2 border-purple-300 text-purple-700 hover:bg-purple-100 transition-colors"
+                                    >
+                                        <span>📋</span>
+                                        Download Plain Text (Vinted · Gumtree · Craigslist)
+                                    </button>
+
+                                    {/* Upload to eBay Seller Hub */}
                                     <a
-                                        href="https://spicydrafter.netlify.app"
+                                        href="https://www.ebay.co.uk/sh/reports/uploads"
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-300 text-orange-700 hover:bg-orange-100 transition-colors"
+                                        className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 bg-red-50 border-2 border-red-300 text-red-700 hover:bg-red-100 transition-colors"
                                     >
-                                        <span>🌶️</span>
-                                        Uploading via File Exchange? Open SpicyDrafter →
+                                        <span>🏪</span>
+                                        Upload CSV to eBay Seller Hub →
                                     </a>
 
                                     {/* Quick Bulk Actions */}
@@ -1438,7 +1459,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             {!bulkProcessing && items.length > 0 && items.every(i => i.status === 'done' || i.status === 'error') && items.some(i => i.status === 'done') && (
                                 <div className="text-center p-4">
                                     <p className="text-sm text-gray-500">
-                                        Click any item to view/edit details. Export CSV to upload to eBay File Exchange.
+                                        Click any item to view/edit details. Download CSV → upload to eBay Seller Hub → add photos to each draft → publish.
                                     </p>
                                 </div>
                             )}
@@ -1629,13 +1650,15 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             </div>
 
                             <div className="space-y-3">
-                                <button
-                                    onClick={sendToStore}
+                                <a
+                                    href="https://feelfamous.com"
+                                    target="_blank"
+                                    rel="noreferrer"
                                     className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
                                 >
                                     <ExternalLink size={20} />
-                                    Send to SpicyLister Store
-                                </button>
+                                    Join the FeelFamous Family 💚
+                                </a>
 
                                 <div className="grid grid-cols-4 gap-2">
                                     <button
