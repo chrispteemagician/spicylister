@@ -152,11 +152,7 @@ const TIER_LIMITS = {
         features: ['Single photo', 'Basic AI', 'Packaging recommendations']
     },
     pro: {
-        price: 4.95,
-        regularPrice: 9.90,
         listingsPerMonth: 200,
-        founderSlots: 1000,
-        stripeLink: 'https://buy.stripe.com/aFabJ1fJ10Vw6zT89NfrW00',
         features: [
             'Video assessment',
             'Batch processing (10+ items)',
@@ -166,6 +162,9 @@ const TIER_LIMITS = {
         ]
     }
 };
+
+const PATREON_PAGE = 'https://www.patreon.com/chrisptee';
+const PATREON_OAUTH_URL = `https://www.patreon.com/oauth2/authorize?response_type=code&client_id=${process.env.REACT_APP_PATREON_CLIENT_ID}&redirect_uri=https://spicylister.com/auth/patreon&scope=identity%20identity.memberships`;
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -371,6 +370,7 @@ export default function App() {
     const [currentReward, setCurrentReward] = useState(null);
     const [milestone, setMilestone] = useState(null);
     const [isPro, setIsPro] = useState(false);
+    const [patreonTier, setPatreonTier] = useState(null);
     const [listingCount, setListingCount] = useState(() => {
         const saved = localStorage.getItem('spicylister_count');
         return saved ? parseInt(saved) : 0;
@@ -409,6 +409,50 @@ export default function App() {
             }
         };
         fetchGlobalCount();
+    }, []);
+
+    // Restore Patreon session from localStorage (24hr expiry)
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('patreon_session');
+            if (raw) {
+                const session = JSON.parse(raw);
+                if (session.expires && Date.now() < session.expires) {
+                    setIsPro(session.isPro || false);
+                    setPatreonTier(session.tier || null);
+                } else {
+                    localStorage.removeItem('patreon_session');
+                }
+            }
+        } catch (e) {
+            localStorage.removeItem('patreon_session');
+        }
+    }, []);
+
+    // Handle /auth/patreon OAuth redirect (?code=XXX)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (!code) return;
+
+        // Clean the URL immediately
+        window.history.replaceState(null, '', window.location.pathname);
+
+        fetch(`/.netlify/functions/patreon-auth?code=${encodeURIComponent(code)}`)
+            .then((r) => r.json())
+            .then((data) => {
+                if (data.isPro !== undefined) {
+                    setIsPro(data.isPro);
+                    setPatreonTier(data.tier || null);
+                    const session = {
+                        isPro: data.isPro,
+                        tier: data.tier || null,
+                        expires: Date.now() + 24 * 60 * 60 * 1000
+                    };
+                    localStorage.setItem('patreon_session', JSON.stringify(session));
+                }
+            })
+            .catch((err) => console.error('Patreon auth error:', err));
     }, []);
 
     useEffect(() => {
@@ -1091,19 +1135,32 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                     <li>💬 Priority support</li>
                                 </ul>
                             </div>
-                            <div className="bg-green-50 p-3 rounded-xl mb-4 border border-green-200">
-                                <p className="text-xs text-green-700 font-bold uppercase tracking-wider">🎉 Early Adopter Pricing</p>
-                                <p className="text-green-800 text-sm">First 1000 Founder Villagers get <strong>half price forever</strong></p>
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <a href={PATREON_PAGE} target="_blank" rel="noreferrer" className="flex flex-col items-center bg-orange-50 border-2 border-orange-200 rounded-2xl p-3 hover:border-orange-400 transition-colors">
+                                    <span className="text-lg mb-1">🏡</span>
+                                    <span className="font-black text-gray-800 text-sm">Villager</span>
+                                    <span className="text-orange-600 font-bold text-xs">£3/mo</span>
+                                    <span className="text-gray-500 text-[10px] mt-1">Pro access</span>
+                                </a>
+                                <a href={PATREON_PAGE} target="_blank" rel="noreferrer" className="flex flex-col items-center bg-purple-50 border-2 border-purple-300 rounded-2xl p-3 hover:border-purple-500 transition-colors">
+                                    <span className="text-lg mb-1">⚔️</span>
+                                    <span className="font-black text-gray-800 text-sm">Elder</span>
+                                    <span className="text-purple-600 font-bold text-xs">£7/mo</span>
+                                    <span className="text-gray-500 text-[10px] mt-1">+ Elder badge</span>
+                                </a>
+                                <a href={PATREON_PAGE} target="_blank" rel="noreferrer" className="flex flex-col items-center bg-yellow-50 border-2 border-yellow-400 rounded-2xl p-3 hover:border-yellow-600 transition-colors">
+                                    <span className="text-lg mb-1">🏛️</span>
+                                    <span className="font-black text-gray-800 text-sm">Founder</span>
+                                    <span className="text-yellow-600 font-bold text-xs">£15/mo</span>
+                                    <span className="text-gray-500 text-[10px] mt-1">+ Founder badge</span>
+                                </a>
                             </div>
                             <a
-                                href={TIER_LIMITS.pro.stripeLink}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 rounded-xl font-bold mb-3 hover:from-yellow-500 hover:to-orange-600 transition-colors text-center"
+                                href={PATREON_OAUTH_URL}
+                                className="block w-full bg-[#FF424D] text-white py-3 rounded-xl font-bold mb-3 hover:bg-[#e03a44] transition-colors text-center"
                             >
-                                Become a Founder Villager - £4.95/month
+                                🎨 Sign in with Patreon
                             </a>
-                            <p className="text-xs text-gray-400 mb-3">Regular price £9.90/month after first 1000</p>
                             <button onClick={() => setShowUpgradeModal(false)} className="text-gray-500 text-sm hover:text-gray-700">
                                 Maybe Later
                             </button>
@@ -1154,6 +1211,24 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                         <p className="text-xs text-orange-600 mt-2 font-medium animate-pulse">🔥 Neurospicy Mode: Engaged</p>
                     ) : (
                         <p className="text-xs text-blue-500 mt-2 font-medium">🍦 Professional Mode: Clean & Simple</p>
+                    )}
+
+                    {!isPro && (
+                        <div className="mt-4">
+                            <a
+                                href={PATREON_OAUTH_URL}
+                                className="inline-flex items-center gap-2 bg-[#FF424D] text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-[#e03a44] transition-colors"
+                            >
+                                <span>🎨</span> Sign in with Patreon
+                            </a>
+                        </div>
+                    )}
+                    {isPro && patreonTier && (
+                        <div className="mt-3">
+                            <span className="inline-block bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full capitalize">
+                                {patreonTier === 'founder' ? '🏛️ Founder' : patreonTier === 'elder' ? '⚔️ Elder' : '🏡 Villager'} — Pro Active
+                            </span>
+                        </div>
                     )}
                 </div>
 
@@ -1713,16 +1788,16 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-2xl border border-yellow-200 flex items-center gap-3">
                                     <Crown size={24} className="text-yellow-500 flex-shrink-0" />
                                     <div className="flex-1">
-                                        <p className="font-bold text-gray-800">Become a Founder Villager</p>
-                                        <p className="text-sm text-gray-600">Half price forever for first 1000</p>
+                                        <p className="font-bold text-gray-800">Unlock Pro on Patreon</p>
+                                        <p className="text-sm text-gray-600">From £3/mo — support SpicyLister</p>
                                     </div>
                                     <a
-                                        href={TIER_LIMITS.pro.stripeLink}
+                                        href={PATREON_PAGE}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm hover:from-yellow-500 hover:to-orange-600 transition-colors whitespace-nowrap"
+                                        className="bg-[#FF424D] text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-[#e03a44] transition-colors whitespace-nowrap"
                                     >
-                                        £4.95/mo
+                                        Support on Patreon →
                                     </a>
                                 </div>
                             )}
@@ -1748,32 +1823,35 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                         <p className="text-lg font-black text-gray-800 mb-1">
                             Made with 🧠✨ by <span className="text-purple-600">AuDHD</span> Chris P Tee
                         </p>
-                        <div className="flex flex-wrap justify-center gap-2 mt-2">
-                            <a href="https://www.tiktok.com/@chrispteemagician" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-gray-800 transition-colors">
-                                <span>🎵</span> @chrispteemagician
-                            </a>
-                            <a href="https://www.instagram.com/spicylister" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
-                                <span>📸</span> @spicylister
-                            </a>
-                        </div>
                     </div>
 
-                    <div className="bg-white px-6 py-5 rounded-3xl shadow-md border-2 border-yellow-200">
+                    <div className="bg-white px-6 py-5 rounded-3xl shadow-md border-2 border-[#FF424D]">
                         <h3 className="text-xl font-black text-gray-800 flex items-center justify-center gap-2 mb-2">
-                            <Coffee className="text-yellow-500" /> This is Coffeeware
+                            🎨 Support SpicyLister on Patreon
                         </h3>
                         <p className="text-sm text-gray-600 mb-4">Free to use forever. If it helps you, pay it forward! 💚</p>
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
-                            <a href="https://ko-fi.com/zoom" target="_blank" rel="noreferrer" className="bg-[#13C3FF] text-white font-bold py-2 px-5 rounded-xl hover:bg-[#00b4f0] transition-colors flex items-center justify-center gap-2">
-                                ☕ Ko-fi
-                            </a>
-                            <a href="https://buymeacoffee.com/chrispteemagician" target="_blank" rel="noreferrer" className="bg-yellow-400 text-yellow-900 font-bold py-2 px-5 rounded-xl hover:bg-yellow-500 transition-colors flex items-center justify-center gap-2">
-                                ☕ Buy Me a Coffee
-                            </a>
+                        <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-2">
+                                <p className="font-black text-gray-800 text-sm">🏡 Villager</p>
+                                <p className="text-orange-600 font-bold text-xs">£3/mo</p>
+                            </div>
+                            <div className="bg-purple-50 border border-purple-200 rounded-xl p-2">
+                                <p className="font-black text-gray-800 text-sm">⚔️ Elder</p>
+                                <p className="text-purple-600 font-bold text-xs">£7/mo</p>
+                            </div>
+                            <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-2">
+                                <p className="font-black text-gray-800 text-sm">🏛️ Founder</p>
+                                <p className="text-yellow-600 font-bold text-xs">£15/mo</p>
+                            </div>
                         </div>
-                        <p className="text-sm font-bold text-green-600 bg-green-50 py-2 px-4 rounded-full inline-block">
-                            🎁 I'll Pay it Forward & You Get the Kudos!
-                        </p>
+                        <a
+                            href={PATREON_PAGE}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block w-full bg-[#FF424D] text-white font-bold py-3 px-5 rounded-xl hover:bg-[#e03a44] transition-colors text-center"
+                        >
+                            Support on Patreon → patreon.com/chrisptee
+                        </a>
                     </div>
 
                     <div className="bg-white px-6 py-5 rounded-3xl shadow-md border-2 border-gray-200">
