@@ -14,3 +14,18 @@
   from = "/auth/patreon"
   to = "/index.html"
   status = 200
+
+[[redirects]]
+  from = "/story"
+  to = "/story.html"
+  status = 200
+
+[[redirects]]
+  from = "/why-free"
+  to = "/why-free.html"
+  status = 200
+
+[[redirects]]
+  from = "/ebay-listing-tool-for-adhd"
+  to = "/ebay-listing-tool-for-adhd.html"
+  status = 200
