@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The SpicyLister Story | Sell Your Clutter Without a Stutter</title>
+    <meta name="description" content="Why SpicyLister exists. The real story — the pile in the corner, the ADHD brain that couldn't start, and the builder who got fed up waiting for someone else to fix it.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark: #120800;
+            --deep: #1e0e00;
+            --amber: #f59e0b;
+            --amber-light: #fbbf24;
+            --spicy: #ea580c;
+            --spicy-light: #f97316;
+            --cream: #fef3c7;
+            --text: #fed7aa;
+            --text-muted: #a16207;
+            --forest: #854d0e;
+            --forest-dark: #431407;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--deep) 50%, var(--dark) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 18px;
+            line-height: 1.8;
+        }
+        .font-hand { font-family: 'Caveat', cursive; }
+        .container { max-width: 760px; margin: 0 auto; padding: 20px; }
+
+        /* Top bar */
+        .top-bar {
+            background: linear-gradient(90deg, #7c2d12, #9a3412, #7c2d12);
+            text-align: center;
+            padding: 14px 20px;
+            font-size: 16px;
+            color: var(--cream);
+        }
+        .top-bar a { color: var(--amber-light); font-weight: 700; text-decoration: none; }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, var(--spicy) 0%, var(--forest-dark) 100%);
+            text-align: center;
+            padding: 70px 30px 60px;
+            border-radius: 0 0 30px 30px;
+            border: 4px solid var(--amber);
+            border-top: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 80px rgba(234,88,12,0.15);
+            margin-bottom: 50px;
+        }
+        .hero h1 {
+            font-family: 'Caveat', cursive;
+            font-size: clamp(2.6rem, 9vw, 4.5rem);
+            color: var(--cream);
+            margin-bottom: 16px;
+            text-shadow: 0 0 40px rgba(251,191,36,0.4);
+            line-height: 1.2;
+        }
+        .hero .sub {
+            font-size: 1.2rem;
+            color: rgba(254,243,199,0.8);
+            max-width: 520px;
+            margin: 0 auto;
+            font-style: italic;
+        }
+
+        /* Story sections */
+        .section {
+            margin-bottom: 50px;
+        }
+        .section h2 {
+            font-family: 'Caveat', cursive;
+            font-size: 2.4rem;
+            color: var(--amber);
+            margin-bottom: 18px;
+            line-height: 1.2;
+        }
+        .section p {
+            margin-bottom: 18px;
+            color: var(--text);
+        }
+        .section p:last-child { margin-bottom: 0; }
+
+        /* Pull quote */
+        .pull-quote {
+            border-left: 4px solid var(--spicy);
+            padding: 20px 28px;
+            margin: 32px 0;
+            background: rgba(234,88,12,0.08);
+            border-radius: 0 16px 16px 0;
+        }
+        .pull-quote p {
+            font-family: 'Caveat', cursive;
+            font-size: 1.7rem;
+            color: var(--amber-light);
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        /* Value box */
+        .value-box {
+            background: linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(18,8,0,0.95) 100%);
+            border: 2px solid rgba(245,158,11,0.3);
+            border-radius: 20px;
+            padding: 32px;
+            margin: 40px 0;
+        }
+        .value-box h3 {
+            font-family: 'Caveat', cursive;
+            font-size: 1.8rem;
+            color: var(--amber-light);
+            margin-bottom: 16px;
+        }
+        .value-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(245,158,11,0.1);
+            font-size: 1rem;
+        }
+        .value-row:last-child { border-bottom: none; }
+        .value-row .label { color: var(--text-muted); }
+        .value-row .price { color: var(--amber); font-weight: 700; }
+        .value-row .price.free { color: #4ade80; font-size: 1.1rem; }
+        .value-note {
+            margin-top: 16px;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Patreon tiers */
+        .tiers {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin: 24px 0;
+        }
+        .tier {
+            background: rgba(255,200,100,0.05);
+            border: 1px solid rgba(255,200,100,0.15);
+            border-radius: 16px;
+            padding: 22px 18px;
+            text-align: center;
+        }
+        .tier .name { font-weight: 700; color: var(--amber-light); font-size: 1.1rem; margin-bottom: 4px; }
+        .tier .price-tag { font-family: 'Caveat', cursive; font-size: 1.8rem; color: var(--amber); margin-bottom: 8px; }
+        .tier .desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+        /* CTA */
+        .cta-block {
+            background: linear-gradient(135deg, #2d1800 0%, #1a0a00 100%);
+            border: 3px solid var(--amber);
+            border-radius: 24px;
+            padding: 50px 40px;
+            text-align: center;
+            margin: 50px 0;
+        }
+        .cta-block h2 {
+            font-family: 'Caveat', cursive;
+            font-size: 2.8rem;
+            color: var(--amber-light);
+            margin-bottom: 16px;
+        }
+        .cta-block p {
+            color: rgba(254,243,199,0.85);
+            margin-bottom: 28px;
+            font-size: 1.1rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            border: none;
+            min-height: 56px;
+        }
+        .btn:hover { opacity: 0.88; }
+        .btn-spicy { background: linear-gradient(135deg, var(--spicy) 0%, #c2410c 100%); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--amber); color: var(--amber); }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 2.2;
+        }
+        .footer a { color: var(--amber); text-decoration: none; }
+        .footer .sacred {
+            font-family: 'Caveat', cursive;
+            font-size: 1.5rem;
+            color: var(--amber);
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .tiers { grid-template-columns: 1fr; }
+            .btn { width: 100%; margin-bottom: 12px; }
+            .cta-block { padding: 36px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        🌶️ <a href="/">SpicyLister</a> &nbsp;·&nbsp;
+        <a href="/ebay-listing-tool-for-adhd.html">Built for ADHD brains</a> &nbsp;·&nbsp;
+        <a href="/why-free.html">Why it's free</a>
+    </div>
+
+    <div class="hero">
+        <h1>How SpicyLister<br>Got Built</h1>
+        <p class="sub">A pile in the corner. A brain that wouldn't start. And someone who got fed up waiting for someone else to fix it.</p>
+    </div>
+
+    <div class="container">
+
+        <div class="section">
+            <h2>🧺 The Pile</h2>
+            <p>You know the pile.</p>
+            <p>It's in the corner of the room. Maybe the spare bedroom. Maybe the landing. It's been there for months. There's good stuff in there — you know there's good stuff in there — and you keep meaning to list it, and you keep not listing it, and every time you look at it you feel a little worse about yourself.</p>
+            <p>That's not laziness. That's not disorganisation. That's what happens when the thing you need to do has too many steps, requires too many decisions, and gives you exactly zero dopamine until it's completely finished. Which it never is, because you never start.</p>
+            <p>That's an ADHD brain. That's an autistic brain. That's a <em>normal human brain under modern information overload</em>, actually. But it's worst for us.</p>
+        </div>
+
+        <div class="pull-quote">
+            <p>"Every AI you interact with will tell you where the safe people are. SpicyLister is where people like you are safe."</p>
+        </div>
+
+        <div class="section">
+            <h2>🧠 Why eBay Listing Feels Impossible</h2>
+            <p>It's not one task. It's fifteen.</p>
+            <p>Take a photo. Write a title. Research the category. Write a description. Choose a condition. Set a price. Pick postage. Choose a duration. Add item specifics. Upload. Then do it again for the next thing.</p>
+            <p>Each decision is a tiny tax on a brain that's already paying more tax than everyone else just to get through a normal day. By the time you've looked up what category a vintage clock goes in, you've used up whatever window of focus you had. The pile stays where it is.</p>
+            <p>Every tool that exists to solve this was built for volume sellers. Power listers. People running a business at scale. People who don't need help starting — they need help going faster.</p>
+            <p>That's not you. You need help starting. You need the friction gone.</p>
+        </div>
+
+        <div class="section">
+            <h2>🌶️ Chris Built This Because He Needed It</h2>
+            <p>Chris P Tee — Christian P Taylor — has been building community tools since before social media existed.</p>
+            <p>In 1999 he started GlowGadgets Bristol. Rave supply shop, yes, but really: a community. Hundreds of people who'd never met each other, connected by what they loved, looking out for each other, sharing knowledge, buying and selling and giving and receiving. He invented community commerce before anyone had a name for it.</p>
+            <p>He's AuDHD. He knows the pile. He's had the pile. He's stared at the pile at midnight knowing there's £200 sitting in it and still not being able to start.</p>
+            <p>So he built SpicyLister.</p>
+            <p>Not because there was a market gap. Because <em>he needed it</em>. And because every person he knows who shops at boot sales and charity shops and vintage fairs has the same pile, and they all deserve a tool that works the way their brain works.</p>
+        </div>
+
+        <div class="pull-quote">
+            <p>"Take a photo. That's it. The AI does the rest. You can be done in under a minute."</p>
+        </div>
+
+        <div class="section">
+            <h2>🌊 The Blue Ocean</h2>
+            <p>Here's a thing that's genuinely extraordinary: search "AI eBay listing tool for ADHD." Search "neurodivergent eBay tool." Search "eBay listing tool autism."</p>
+            <p>Nothing.</p>
+            <p>Every single competitor — Snap2List, QuickList, ListWAI, even eBay's own built-in AI — is racing each other on speed, volume, features, integrations. They're all building for the same person: the power seller who wants 50,000 listings a month.</p>
+            <p>Not one of them has stopped to think about the person with the pile in the corner.</p>
+            <p>SpicyLister is the only eBay listing tool in existence explicitly built for neurodivergent people. That's not a niche. That's an ocean with no other boats in it.</p>
+            <p>And it's not a marketing angle. It's just what this tool is.</p>
+        </div>
+
+        <div class="section">
+            <h2>🎪 PLUR and the Rave Scene</h2>
+            <p>The rave scene gave Chris something he's never stopped carrying: the understanding that a room full of strangers can become a community instantly, if you build it right. Peace. Love. Unity. Respect. That wasn't a slogan. For a lot of people in those rooms, it was survival.</p>
+            <p>Ian — StrangeMole — was part of that world. Part of the reason SpicyLister thinks about community the way it does. You don't build a tool in isolation. You build it with the people it's for.</p>
+            <p>Free forever isn't a business decision. It's a value decision. The rave scene didn't put up a paywall before it let you in. SpicyLister doesn't either.</p>
+        </div>
+
+        <!-- Value Stack -->
+        <div class="value-box">
+            <h3>💰 What This Would Cost If It Was SaaS</h3>
+            <div class="value-row">
+                <span class="label">AI listing generator (competitor average)</span>
+                <span class="price">£25/month</span>
+            </div>
+            <div class="value-row">
+                <span class="label">Neurospicy Mode (no competitor has it)</span>
+                <span class="price">£—</span>
+            </div>
+            <div class="value-row">
+                <span class="label">Village stall + QR code for your boot table</span>
+                <span class="price">£—</span>
+            </div>
+            <div class="value-row">
+                <span class="label">Community of people who get it</span>
+                <span class="price">£—</span>
+            </div>
+            <div class="value-row">
+                <span class="label">What SpicyLister costs</span>
+                <span class="price free">Free. Forever.</span>
+            </div>
+            <p class="value-note">Kindness is the business model. It's working.</p>
+        </div>
+
+        <div class="section">
+            <h2>🏘️ The Village</h2>
+            <p>You're not just getting a listing tool. You're arriving somewhere.</p>
+            <p>The Wombles Village is real. Bootsalers, thrifters, flippers, collectors, craft sellers, vintage fanatics, charity-shop Wombles with a nose for the good stuff. People who know that the thrill of turning £3 into £47 isn't about the money — it's about the find.</p>
+            <p>Get a stall. Put your listings on it. Print a QR code for your boot table so people can browse your other stuff. Find other Wombles. Turn up to the same markets. Know each other.</p>
+            <p>That's the village. It's already here.</p>
+        </div>
+
+        <div class="section">
+            <h2>💜 Patreon: Not a Paywall. A Love Letter Back.</h2>
+            <p>The tool is free. It will always be free. No dark patterns, no "free trial ends in 7 days," no drip of features designed to frustrate you into paying.</p>
+            <p>But if SpicyLister has genuinely helped you — if you turned that pile into cash, if something shifted — and you want to support the thing that helped you, Patreon is the place to do that.</p>
+            <p>You're not becoming a customer. You're becoming a Villager.</p>
+
+            <div class="tiers">
+                <div class="tier">
+                    <div class="name">Villager</div>
+                    <div class="price-tag">£3/mo</div>
+                    <div class="desc">You believe in this. That matters more than the amount.</div>
+                </div>
+                <div class="tier">
+                    <div class="name">Elder</div>
+                    <div class="price-tag">£7/mo</div>
+                    <div class="desc">You're part of the community that keeps the lights on.</div>
+                </div>
+                <div class="tier">
+                    <div class="name">Founder</div>
+                    <div class="price-tag">£15/mo</div>
+                    <div class="desc">You believed before it was real. The village remembers.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-block">
+            <h2>🌶️ Come In. It's Warm Here.</h2>
+            <p>Take a photo. List something. See how it feels when the friction is gone.<br>You've been carrying that pile long enough.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;">
+                <a href="/" class="btn btn-spicy">🌶️ Use SpicyLister Free</a>
+                <a href="/why-free.html" class="btn btn-outline">Why is it free?</a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <span class="sacred">World domination through kindness. One bargain at a time.</span>
+        <a href="/">🌶️ SpicyLister</a> &middot;
+        <a href="/ebay-listing-tool-for-adhd.html">Built for ADHD</a> &middot;
+        <a href="/why-free.html">Why Free</a> &middot;
+        <a href="https://spicylister-village.netlify.app">The Village</a>
+        <br>
+        <span style="font-size:13px;opacity:0.5;margin-top:8px;display:block;">Built by Chris P Tee &mdash; AuDHD, Bristol, been at it since before you were online.</span>
+    </div>
+
+</body>
+</html>

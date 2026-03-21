@@ -210,6 +210,28 @@ function App() {
                     </div>
                 )}
             </div>
+
+            {/* Why SpicyLister Exists */}
+            <div className="mt-10 pt-8 border-t border-gray-200">
+                <div className="text-center max-w-xl mx-auto">
+                    <h2 className="text-lg font-bold text-gray-700 mb-3">Why SpicyLister Exists</h2>
+                    <p className="text-gray-500 text-base leading-relaxed mb-4">
+                        Chris P Tee built this because he had the pile too. AuDHD brain, too many micro-decisions,
+                        no tool that worked the way his mind works. Every other listing tool was built for power sellers.
+                        This one was built for people who just need to start — no friction, no dark patterns, free forever.
+                    </p>
+                    <a
+                        href="/story.html"
+                        className="text-orange-500 hover:text-orange-600 font-semibold text-sm underline underline-offset-2"
+                    >
+                        Read the full story →
+                    </a>
+                    <p className="mt-5 text-xs text-gray-300 italic">
+                        "World domination through kindness. One bargain at a time."
+                    </p>
+                </div>
+            </div>
+
         </div>
     );
 }

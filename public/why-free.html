@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why SpicyLister is Free | No, Really</title>
+    <meta name="description" content="SpicyLister is free. No trial, no hidden tier, no dark patterns. Here's the actual reason — it's not complicated.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark: #120800;
+            --deep: #1e0e00;
+            --amber: #f59e0b;
+            --amber-light: #fbbf24;
+            --spicy: #ea580c;
+            --cream: #fef3c7;
+            --text: #fed7aa;
+            --text-muted: #a16207;
+            --forest-dark: #431407;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--deep) 50%, var(--dark) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 19px;
+            line-height: 1.85;
+        }
+        .container { max-width: 680px; margin: 0 auto; padding: 20px; }
+
+        .top-bar {
+            background: linear-gradient(90deg, #7c2d12, #9a3412, #7c2d12);
+            text-align: center;
+            padding: 14px 20px;
+            font-size: 16px;
+            color: var(--cream);
+        }
+        .top-bar a { color: var(--amber-light); font-weight: 700; text-decoration: none; }
+
+        .hero {
+            background: linear-gradient(135deg, var(--spicy) 0%, var(--forest-dark) 100%);
+            text-align: center;
+            padding: 70px 30px 60px;
+            border-radius: 0 0 30px 30px;
+            border: 4px solid var(--amber);
+            border-top: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            margin-bottom: 60px;
+        }
+        .hero h1 {
+            font-family: 'Caveat', cursive;
+            font-size: clamp(3rem, 10vw, 5.5rem);
+            color: var(--cream);
+            line-height: 1.15;
+            margin-bottom: 16px;
+            text-shadow: 0 0 40px rgba(251,191,36,0.35);
+        }
+        .hero .sub {
+            font-size: 1.15rem;
+            color: rgba(254,243,199,0.75);
+            font-style: italic;
+        }
+
+        .body-text {
+            margin-bottom: 28px;
+            color: var(--text);
+        }
+
+        .pull {
+            border-left: 4px solid var(--spicy);
+            padding: 18px 26px;
+            margin: 40px 0;
+            background: rgba(234,88,12,0.08);
+            border-radius: 0 16px 16px 0;
+            font-family: 'Caveat', cursive;
+            font-size: 1.8rem;
+            color: var(--amber-light);
+            line-height: 1.4;
+        }
+
+        .reason-block {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,200,100,0.12);
+            border-radius: 20px;
+            padding: 28px 32px;
+            margin: 32px 0;
+        }
+        .reason-block h2 {
+            font-family: 'Caveat', cursive;
+            font-size: 2rem;
+            color: var(--amber);
+            margin-bottom: 14px;
+        }
+
+        .cta {
+            background: linear-gradient(135deg, #2d1800 0%, #1a0a00 100%);
+            border: 3px solid var(--amber);
+            border-radius: 24px;
+            padding: 50px 36px;
+            text-align: center;
+            margin: 50px 0 30px;
+        }
+        .cta h2 {
+            font-family: 'Caveat', cursive;
+            font-size: 2.6rem;
+            color: var(--amber-light);
+            margin-bottom: 14px;
+        }
+        .cta p { color: rgba(254,243,199,0.85); margin-bottom: 28px; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 16px 36px; border-radius: 12px; font-size: 1.1rem;
+            font-weight: 700; text-decoration: none; font-family: 'Outfit', sans-serif;
+            transition: opacity 0.2s; border: none; min-height: 56px;
+        }
+        .btn:hover { opacity: 0.88; }
+        .btn-spicy { background: linear-gradient(135deg, var(--spicy) 0%, #c2410c 100%); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--amber); color: var(--amber); }
+
+        .footer {
+            text-align: center;
+            padding: 36px 20px;
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 2.2;
+        }
+        .footer a { color: var(--amber); text-decoration: none; }
+        .footer .sacred {
+            font-family: 'Caveat', cursive;
+            font-size: 1.5rem;
+            color: var(--amber);
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .btn { width: 100%; margin-bottom: 12px; }
+            .cta { padding: 36px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        🌶️ <a href="/">SpicyLister</a> &nbsp;·&nbsp;
+        <a href="/story.html">The Story</a> &nbsp;·&nbsp;
+        <a href="/ebay-listing-tool-for-adhd.html">Built for ADHD brains</a>
+    </div>
+
+    <div class="hero">
+        <h1>Why Is This<br>Actually Free?</h1>
+        <p class="sub">No trial. No hidden tier. No "premium features coming soon." Just free.</p>
+    </div>
+
+    <div class="container">
+
+        <p class="body-text">It's a fair question. You've been burned before. Some tool said free, then locked the useful bits behind a paywall after you'd already got attached. So when SpicyLister says free, your brain says: <em>yeah but</em>.</p>
+
+        <p class="body-text">Here's the actual answer. Not marketing copy. The real one.</p>
+
+        <div class="reason-block">
+            <h2>🎪 The Rave Scene Taught Me This</h2>
+            <p>In 1999 Chris P Tee opened GlowGadgets Bristol. Rave supply shop. But really: a community. Hundreds of strangers who became regulars who became friends. The rave scene ran on PLUR — Peace, Love, Unity, Respect. Nobody put up a paywall before they let you feel that.</p>
+            <p style="margin-top:14px;">You didn't earn your way in by spending money. You belonged because you showed up. SpicyLister inherited that.</p>
+        </div>
+
+        <div class="reason-block">
+            <h2>🤝 Ian Showed Me How Community Works</h2>
+            <p>Ian — StrangeMole — is one of the people whose spirit is woven into this project. The kind of person who helps because helping is just what you do. No invoice. No conditions. SpicyLister is built in that tradition.</p>
+            <p style="margin-top:14px;">The world has enough tools that charge you to use them and don't care whether they actually help you. This is something different.</p>
+        </div>
+
+        <div class="pull">
+            "Give first. Give massively. Trust that the value comes back."
+        </div>
+
+        <div class="reason-block">
+            <h2>⚡ Kindness Is the Infrastructure</h2>
+            <p>SpicyLister is free because Chris built it for people like himself — AuDHD, with a pile in the corner, who needed the friction gone. Charging for that felt wrong. If the person who most needs this tool is also the person least likely to have disposable income for another monthly subscription, then a paywall is the wrong architecture.</p>
+            <p style="margin-top:14px;">Free forever is a choice. It's a values statement. It keeps the tool accessible to the people it was actually built for.</p>
+        </div>
+
+        <div class="reason-block">
+            <h2>💜 Patreon Is Optional. Always.</h2>
+            <p>There's a Patreon. Villager £3/month, Elder £7/month, Founder £15/month. If SpicyLister has genuinely helped you and you want to put something back in, that's the place. But it is never a condition. It is never a nag. It is never the reason a feature exists or doesn't.</p>
+            <p style="margin-top:14px;">Patreon supporters are people who chose to invest in something they believe in. That's beautiful and it's enough.</p>
+        </div>
+
+        <p class="body-text" style="color:rgba(254,211,140,0.7);font-style:italic;font-size:1rem;margin-top:40px;">
+            There are affiliate links on site — books, coffee gear, tools Chris actually uses and actually recommends. If you buy through one, it sends a small percentage back this way at no cost to you. That's the full commercial picture. No mystery.
+        </p>
+
+        <div class="cta">
+            <h2>🌶️ Right. Let's Go.</h2>
+            <p>Take a photo of something in the pile. See what SpicyLister does with it.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;">
+                <a href="/" class="btn btn-spicy">🌶️ Use It Free</a>
+                <a href="/story.html" class="btn btn-outline">Read the full story</a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <span class="sacred">World domination through kindness. One bargain at a time.</span>
+        <a href="/">🌶️ SpicyLister</a> &middot;
+        <a href="/story.html">The Story</a> &middot;
+        <a href="/ebay-listing-tool-for-adhd.html">Built for ADHD</a> &middot;
+        <a href="https://spicylister-village.netlify.app">The Village</a>
+    </div>
+
+</body>
+</html>

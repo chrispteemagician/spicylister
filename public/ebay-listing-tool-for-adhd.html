@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBay Listing Tool for ADHD | SpicyLister — Built for Neurodivergent Brains</title>
+    <meta name="description" content="SpicyLister is the only eBay listing tool built specifically for ADHD and autistic brains. Take a photo. AI writes the listing. No overwhelm, no dark patterns, no cognitive overload. Free forever.">
+    <meta name="keywords" content="ebay listing tool ADHD, ebay listing tool autism, neurodivergent ebay tool, ADHD selling tool, ebay AI listing generator ADHD, neurospicy ebay listing, ebay listing for autistic people">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="The eBay Listing Tool Built for ADHD and Autistic Brains">
+    <meta property="og:description" content="Take a photo. AI writes your eBay listing. No overwhelm, no dark patterns, no pile-guilt. Free forever.">
+    <meta property="og:type" content="website">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark: #120800;
+            --deep: #1e0e00;
+            --amber: #f59e0b;
+            --amber-light: #fbbf24;
+            --spicy: #ea580c;
+            --cream: #fef3c7;
+            --text: #fed7aa;
+            --text-muted: #a16207;
+            --forest-dark: #431407;
+            --green: #4ade80;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--deep) 50%, var(--dark) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 18px;
+            line-height: 1.8;
+        }
+        .container { max-width: 760px; margin: 0 auto; padding: 20px; }
+
+        .top-bar {
+            background: linear-gradient(90deg, #7c2d12, #9a3412, #7c2d12);
+            text-align: center;
+            padding: 14px 20px;
+            font-size: 16px;
+            color: var(--cream);
+        }
+        .top-bar a { color: var(--amber-light); font-weight: 700; text-decoration: none; }
+
+        /* Hero — this is the SEO flag, so it earns its space */
+        .hero {
+            background: linear-gradient(135deg, var(--spicy) 0%, var(--forest-dark) 100%);
+            padding: 70px 36px 60px;
+            border-radius: 0 0 30px 30px;
+            border: 4px solid var(--amber);
+            border-top: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 80px rgba(234,88,12,0.15);
+            margin-bottom: 50px;
+        }
+        .hero h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: clamp(1.9rem, 5vw, 3rem);
+            color: var(--cream);
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+        .hero .sub {
+            font-size: 1.15rem;
+            color: rgba(254,243,199,0.8);
+            max-width: 580px;
+            margin-bottom: 28px;
+            line-height: 1.7;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--green);
+            color: #052e16;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 20px;
+        }
+
+        /* Pain section */
+        .pain-list {
+            list-style: none;
+            margin: 20px 0;
+        }
+        .pain-list li {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,200,100,0.07);
+            color: var(--text);
+        }
+        .pain-list li:last-child { border-bottom: none; }
+        .pain-list .icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+
+        /* Feature cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 24px 0;
+        }
+        .feature-card {
+            background: rgba(255,200,100,0.05);
+            border: 1px solid rgba(255,200,100,0.15);
+            border-radius: 16px;
+            padding: 24px 20px;
+        }
+        .feature-card .icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .feature-card h3 { font-weight: 700; color: var(--amber-light); margin-bottom: 8px; font-size: 1.05rem; }
+        .feature-card p { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; }
+
+        /* Steps */
+        .steps { display: flex; flex-direction: column; gap: 16px; margin: 24px 0; }
+        .step { display: flex; gap: 16px; align-items: flex-start; }
+        .step-num {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--spicy), #c2410c);
+            color: white; font-weight: 800; font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .step-body strong { color: var(--amber-light); display: block; margin-bottom: 2px; font-size: 1.05rem; }
+        .step-body span { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Section headings */
+        .section { margin-bottom: 50px; }
+        .section h2 {
+            font-family: 'Caveat', cursive;
+            font-size: 2.3rem;
+            color: var(--amber);
+            margin-bottom: 18px;
+            line-height: 1.2;
+        }
+        .section p { margin-bottom: 16px; }
+
+        /* Pull quote */
+        .pull {
+            border-left: 4px solid var(--spicy);
+            padding: 18px 26px;
+            margin: 36px 0;
+            background: rgba(234,88,12,0.08);
+            border-radius: 0 16px 16px 0;
+            font-family: 'Caveat', cursive;
+            font-size: 1.7rem;
+            color: var(--amber-light);
+            line-height: 1.4;
+        }
+
+        /* Comparison table */
+        .compare {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,200,100,0.12);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 32px 0;
+        }
+        .compare-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 0;
+            border-bottom: 1px solid rgba(255,200,100,0.07);
+        }
+        .compare-row:last-child { border-bottom: none; }
+        .compare-row.header {
+            background: rgba(234,88,12,0.15);
+            font-weight: 700;
+        }
+        .compare-cell {
+            padding: 14px 18px;
+            font-size: 0.95rem;
+            border-right: 1px solid rgba(255,200,100,0.07);
+        }
+        .compare-cell:last-child { border-right: none; }
+        .compare-row.header .compare-cell { color: var(--amber-light); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+        .yes { color: var(--green); font-weight: 700; }
+        .no { color: #f87171; }
+        .maybe { color: var(--text-muted); font-style: italic; }
+
+        /* CTA */
+        .cta {
+            background: linear-gradient(135deg, #2d1800 0%, #1a0a00 100%);
+            border: 3px solid var(--amber);
+            border-radius: 24px;
+            padding: 56px 40px;
+            text-align: center;
+            margin: 50px 0 30px;
+        }
+        .cta h2 {
+            font-family: 'Caveat', cursive;
+            font-size: 3rem;
+            color: var(--amber-light);
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+        .cta p { color: rgba(254,243,199,0.85); margin-bottom: 28px; font-size: 1.1rem; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 18px 40px; border-radius: 12px; font-size: 1.15rem;
+            font-weight: 700; text-decoration: none; font-family: 'Outfit', sans-serif;
+            transition: opacity 0.2s; border: none; min-height: 58px;
+        }
+        .btn:hover { opacity: 0.88; }
+        .btn-spicy { background: linear-gradient(135deg, var(--spicy) 0%, #c2410c 100%); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--amber); color: var(--amber); }
+
+        .footer {
+            text-align: center;
+            padding: 36px 20px;
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 2.2;
+        }
+        .footer a { color: var(--amber); text-decoration: none; }
+        .footer .sacred {
+            font-family: 'Caveat', cursive;
+            font-size: 1.5rem;
+            color: var(--amber);
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .feature-grid { grid-template-columns: 1fr; }
+            .compare-row { grid-template-columns: 1.5fr 1fr 1fr; }
+            .btn { width: 100%; margin-bottom: 12px; }
+            .cta { padding: 36px 20px; }
+            .hero { padding: 50px 24px 44px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        🌶️ <a href="/">SpicyLister</a> &nbsp;·&nbsp;
+        <a href="/story.html">The Story</a> &nbsp;·&nbsp;
+        <a href="/why-free.html">Why It's Free</a>
+    </div>
+
+    <div class="hero">
+        <div class="badge">✓ Free Forever · No Paywall</div>
+        <h1>The eBay Listing Tool Built for ADHD and Autistic Brains</h1>
+        <p class="sub">
+            Take a photo of something you want to sell. SpicyLister writes the full eBay listing — title, description, category, price suggestion — in under a minute. No decisions, no friction, no pile-guilt.
+        </p>
+        <a href="/" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#ea580c,#c2410c);color:white;padding:16px 36px;border-radius:12px;font-weight:700;font-size:1.1rem;text-decoration:none;">
+            🌶️ Try It Free — No Signup Needed
+        </a>
+    </div>
+
+    <div class="container">
+
+        <!-- THE PAIN -->
+        <div class="section">
+            <h2>🧠 We Know What That Pile Feels Like</h2>
+            <p>You're not imagining it. eBay listing genuinely is harder when you're ADHD or autistic. Not because you're less capable — because the task is badly designed for how your brain works.</p>
+
+            <ul class="pain-list">
+                <li>
+                    <span class="icon">😶</span>
+                    <span><strong style="color:var(--amber-light);">Too many micro-decisions at once.</strong> Category. Condition. Postage type. Duration. Collection only or not? Each one is a small context switch that drains executive function you don't have spare.</span>
+                </li>
+                <li>
+                    <span class="icon">🔁</span>
+                    <span><strong style="color:var(--amber-light);">The task has no clear start.</strong> ADHD brains need a clear first step. "List this thing" isn't a step. It's a project. So you open the app, stare at it, and put it down.</span>
+                </li>
+                <li>
+                    <span class="icon">📝</span>
+                    <span><strong style="color:var(--amber-light);">Writing descriptions is agonising.</strong> The blank text box. The pressure to sound professional. The fear of missing something that will get you a bad review. Autistic perfectionism and ADHD avoidance, tag-teaming against you.</span>
+                </li>
+                <li>
+                    <span class="icon">⏱️</span>
+                    <span><strong style="color:var(--amber-light);">No dopamine until it's done.</strong> And the task is never done because you never start. The pile grows. The guilt grows. You feel worse about something you're perfectly capable of.</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="pull">
+            "The friction isn't you. The friction is bad design. SpicyLister removes it."
+        </div>
+
+        <!-- WHAT SPICYLISTER DOES DIFFERENTLY -->
+        <div class="section">
+            <h2>🌶️ What SpicyLister Does Differently</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="icon">📷</span>
+                    <h3>One Step to Start</h3>
+                    <p>Take a photo. That's the whole first step. One action. The AI handles everything that comes next.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="icon">🧠</span>
+                    <h3>Neurospicy Mode</h3>
+                    <p>No cognitive overload. Decisions get made for you. You can review, tweak, or just accept and list.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="icon">🚫</span>
+                    <h3>No Dark Patterns</h3>
+                    <p>No countdown timers. No fake urgency. No drip of locked features. No guilt trip if you don't upgrade.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="icon">💚</span>
+                    <h3>Free Forever</h3>
+                    <p>Not a trial. Not a freemium trap. The tool that helps you most is the tool you can afford most — so it's free.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="icon">⚡</span>
+                    <h3>Under a Minute</h3>
+                    <p>Full listing in under 60 seconds. Title, description, category, price. You can still tweak — but you don't have to.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="icon">🏘️</span>
+                    <h3>A Village, Not an App</h3>
+                    <p>You're not a user. You're arriving at a community of people who think like you and sell like you.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOW IT WORKS -->
+        <div class="section">
+            <h2>⚡ How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-body">
+                        <strong>Take a photo of the thing</strong>
+                        <span>Doesn't need to be perfect. A phone photo in natural light is fine. That's the only decision you make.</span>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-body">
+                        <strong>SpicyLister reads the image with AI</strong>
+                        <span>It identifies what the item is, what condition it's in, and what a buyer would want to know about it.</span>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-body">
+                        <strong>You get a complete listing</strong>
+                        <span>Title optimised for eBay search. Description written. Category suggested. Price range recommended.</span>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">4</div>
+                    <div class="step-body">
+                        <strong>Copy it across to eBay</strong>
+                        <span>Review if you want to. Tweak if you want to. Or copy and paste it straight across. You're done.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPARISON -->
+        <div class="section">
+            <h2>🌊 SpicyLister vs Everyone Else</h2>
+            <p>Every other AI listing tool was built for power sellers. Here's how SpicyLister actually compares for someone who just has a pile and needs to start.</p>
+
+            <div class="compare">
+                <div class="compare-row header">
+                    <div class="compare-cell">Feature</div>
+                    <div class="compare-cell">SpicyLister</div>
+                    <div class="compare-cell">Competitors</div>
+                </div>
+                <div class="compare-row">
+                    <div class="compare-cell">Built for ADHD / autistic brains</div>
+                    <div class="compare-cell yes">✓ Yes</div>
+                    <div class="compare-cell no">✗ No</div>
+                </div>
+                <div class="compare-row">
+                    <div class="compare-cell">Free forever</div>
+                    <div class="compare-cell yes">✓ Yes</div>
+                    <div class="compare-cell no">Trial only</div>
+                </div>
+                <div class="compare-row">
+                    <div class="compare-cell">Single photo → complete listing</div>
+                    <div class="compare-cell yes">✓ Yes</div>
+                    <div class="compare-cell maybe">Some</div>
+                </div>
+                <div class="compare-row">
+                    <div class="compare-cell">No dark patterns</div>
+                    <div class="compare-cell yes">✓ Yes</div>
+                    <div class="compare-cell no">✗ No</div>
+                </div>
+                <div class="compare-row">
+                    <div class="compare-cell">Community / village</div>
+                    <div class="compare-cell yes">✓ Yes</div>
+                    <div class="compare-cell no">✗ No</div>
+                </div>
+                <div class="compare-row">
+                    <div class="compare-cell">Designed for occasional sellers</div>
+                    <div class="compare-cell yes">✓ Yes</div>
+                    <div class="compare-cell no">Power sellers only</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WHO IT'S FOR -->
+        <div class="section">
+            <h2>👋 You're In the Right Place If...</h2>
+            <p>You've got a pile that's been there longer than you'd like to admit.</p>
+            <p>You know there's money sitting in it. You're not bad at selling — you're bad at starting, because starting has too many steps and none of them give you dopamine until you're done.</p>
+            <p>You've tried eBay's own listing tool and got lost in the categories. You've looked at the competitors and they all talk about "bulk volume" and "power selling" like you're running a warehouse. You're not. You've got a vintage lamp, some DVDs, and a ceramic cat your mum gave you that has to go.</p>
+            <p>SpicyLister was built for the ceramic cat situation. It was built for <em>you</em>.</p>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta">
+            <h2>Come In.<br>It's Warm Here.</h2>
+            <p>Take a photo of one thing in the pile. Just one. See how different it feels when the friction is gone.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;">
+                <a href="/" class="btn btn-spicy">🌶️ Try SpicyLister Free</a>
+                <a href="/story.html" class="btn btn-outline">Read the full story</a>
+            </div>
+            <p style="margin-top:24px;font-size:0.9rem;color:rgba(245,158,11,0.5);">No account needed. No credit card. No trial period. Just the tool.</p>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <span class="sacred">World domination through kindness. One bargain at a time.</span>
+        <a href="/">🌶️ SpicyLister</a> &middot;
+        <a href="/story.html">The Story</a> &middot;
+        <a href="/why-free.html">Why Free</a> &middot;
+        <a href="https://spicylister-village.netlify.app">The Village</a>
+        <br>
+        <span style="font-size:13px;opacity:0.5;margin-top:8px;display:block;">Built by Chris P Tee &mdash; AuDHD, with a pile that became a project that became a community.</span>
+    </div>
+
+</body>
+</html>
