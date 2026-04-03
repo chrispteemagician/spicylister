@@ -164,7 +164,7 @@ const TIER_LIMITS = {
 };
 
 const PATREON_PAGE = 'https://www.patreon.com/chrisptee';
-const PATREON_OAUTH_URL = `https://www.patreon.com/oauth2/authorize?response_type=code&client_id=${process.env.REACT_APP_PATREON_CLIENT_ID}&redirect_uri=https://spicylister.com/auth/patreon&scope=identity%20identity.memberships`;
+const PATREON_OAUTH_URL = '/.netlify/functions/patreon-initiate';
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -1726,7 +1726,7 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
 
                             <div className="space-y-3">
                                 <a
-                                    href="https://feelfamous.com"
+                                    href="https://feelfamous.co.uk"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg"
