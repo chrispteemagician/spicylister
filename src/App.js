@@ -397,6 +397,46 @@ export default function App() {
         }
     }, []);
 
+    // Restore last generated listing so navigating to eBay (or any tab switch that
+    // kills the background tab on mobile) doesn't wipe out the user's work.
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('spicylister_auto_save');
+            if (!raw) return;
+            const saved = JSON.parse(raw);
+            const FOUR_HOURS = 4 * 60 * 60 * 1000;
+            if (saved.savedAt && Date.now() - saved.savedAt < FOUR_HOURS) {
+                if (saved.results) setResults(saved.results);
+                if (saved.imagePreview) setImagePreview(saved.imagePreview);
+            } else {
+                localStorage.removeItem('spicylister_auto_save');
+            }
+        } catch (e) {
+            localStorage.removeItem('spicylister_auto_save');
+        }
+    }, []);
+
+    // Persist listing to localStorage whenever it changes so it survives tab kills.
+    useEffect(() => {
+        if (!results) return;
+        try {
+            localStorage.setItem('spicylister_auto_save', JSON.stringify({
+                results,
+                imagePreview,
+                savedAt: Date.now()
+            }));
+        } catch (e) {
+            // Retry without the image if quota is exceeded (imagePreview can be ~200 KB)
+            try {
+                localStorage.setItem('spicylister_auto_save', JSON.stringify({
+                    results,
+                    imagePreview: null,
+                    savedAt: Date.now()
+                }));
+            } catch (e2) { /* nothing more we can do */ }
+        }
+    }, [results, imagePreview]);
+
     useEffect(() => {
         const fetchGlobalCount = async () => {
             try {
@@ -579,6 +619,7 @@ export default function App() {
     };
 
     const resetApp = () => {
+        localStorage.removeItem('spicylister_auto_save');
         setImage(null);
         setImagePreview(null);
         setResults(null);
