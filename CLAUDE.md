@@ -4,7 +4,7 @@
 ## What This Is
 eBay listing generator for AuDHD brains. Upload a photo → AI writes the title,
 description, condition, price range, and packaging recommendation. Deployed at
-spicylister.co.uk via Netlify (GitHub push = auto-deploy).
+spicylister.com via Netlify (GitHub push = auto-deploy).
 
 ## Stack
 - React 18 (Create React App) — single file: `src/App.js`
