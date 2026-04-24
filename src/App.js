@@ -238,6 +238,40 @@ const mapCategory = (category) => {
     return 'Other';
 };
 
+const OID_NETWORK = [
+    { name: 'Motor-Oid', emoji: '🚗', url: 'https://motor-oid.co.uk', tagline: 'AI vehicle parts identifier', keywords: ['car','vehicle','auto','motor','engine','exhaust','bumper','wheel','tyre','tire','brake','gearbox','clutch','radiator','suspension','van','truck','lorry','motorcycle','motorbike','moped','scooter','carburettor','carburetor','alternator','headlight','bonnet','dashboard','steering','cambelt','camshaft','piston','manifold','diff','differential'] },
+    { name: 'Watch-Oid', emoji: '⌚', url: 'https://watch-oid.co.uk', tagline: 'AI watch identifier', keywords: ['watch','timepiece','chronograph','rolex','seiko','omega','casio','citizen','timex','wristwatch','pocket watch','movement','dial','bezel','bracelet','strap','clasp','automatic','quartz','mechanical','horology'] },
+    { name: 'Sail-Oid', emoji: '⛵', url: 'https://sail-oid.co.uk', tagline: 'AI boat & marine gear identifier', keywords: ['boat','sail','marine','nautical','anchor','rope','ship','vessel','yacht','canoe','kayak','outboard','tiller','rudder','mast','boom','winch','cleat','fender','buoy','life jacket','bilge','propeller','marina','dinghy'] },
+    { name: 'Radi-Oid', emoji: '📻', url: 'https://radi-oid.co.uk', tagline: 'AI vintage radio & hi-fi identifier', keywords: ['radio','hifi','hi-fi','hi fi','amplifier','valve','tube','transistor','receiver','tuner','speaker','turntable','cassette','reel to reel','tape deck','stereo','audiophile','gramophone','phonograph','vhf','am fm'] },
+    { name: 'Vinyl-Oid', emoji: '🎵', url: 'https://vinyl-oid.co.uk', tagline: 'AI vinyl record identifier', keywords: ['vinyl','record','lp','ep','7"','12"','7 inch','12 inch','pressing','first press','gatefold','rpm','45rpm','33rpm','shellac','78','sleeve','picture disc'] },
+    { name: 'Guit-Oid', emoji: '🎸', url: 'https://guit-oid.co.uk', tagline: 'AI guitar & instrument identifier', keywords: ['guitar','bass guitar','ukulele','mandolin','banjo','fender','gibson','stratocaster','telecaster','les paul','acoustic','electric guitar','effects pedal','pickup','humbucker','single coil','amplifier','amp'] },
+    { name: 'Coin-Oid', emoji: '🪙', url: 'https://coin-oid.co.uk', tagline: 'AI coin & medal identifier', keywords: ['coin','medal','numismatic','bullion','sovereign','crown','penny','shilling','florin','farthing','sixpence','halfpenny','gold coin','silver coin','proof coin','uncirculated','mint condition','obverse','reverse'] },
+    { name: 'Stamp-Oid', emoji: '📮', url: 'https://stamp-oid.co.uk', tagline: 'AI stamp identifier', keywords: ['stamp','postage stamp','philately','philatelic','overprint','perforated','imperforate','first day cover','royal mail','postal','franked','mint stamp','used stamp'] },
+    { name: 'Magic-Oid', emoji: '🎩', url: 'https://magic-oid.co.uk', tagline: 'AI magic trick identifier', keywords: ['magic','magic trick','illusion','wand','card trick','conjuring','magician','mentalism','mentalist','prediction','vanish','production','transformation','close-up magic'] },
+    { name: 'Miniature-Oid', emoji: '🐉', url: 'https://miniature-oid.co.uk', tagline: 'AI miniature & figurine identifier', keywords: ['miniature','figurine','warhammer','model','diorama','toy soldier','pewter','resin','40k','age of sigmar','dungeons and dragons','d&d','rpg','citadel','painted miniature'] },
+    { name: 'Designer-Oid', emoji: '👜', url: 'https://designer-oid.co.uk', tagline: 'AI designer item identifier', keywords: ['designer','luxury','handbag','gucci','louis vuitton','lv','prada','chanel','hermes','dior','versace','burberry','coach','mulberry','branded','authentic','genuine leather','dust bag'] },
+    { name: 'Camera-Oid', emoji: '📷', url: 'https://camera-oid.co.uk', tagline: 'AI camera & lens identifier', keywords: ['camera','lens','photography','film camera','dslr','mirrorless','nikon','canon','sony','fuji','fujifilm','leica','olympus','pentax','minolta','rangefinder','slr','medium format','darkroom','enlarger'] },
+    { name: 'Travel-Oid', emoji: '✈️', url: 'https://travel-oid.co.uk', tagline: 'AI travel gear identifier', keywords: ['luggage','suitcase','backpack','travel bag','duffel','holdall','carry on','trolley','samsonite','rimowa','american tourister','delsey','antler','packing cube'] },
+    { name: 'Fish-Oid', emoji: '🐟', url: 'https://fish-oid.co.uk', tagline: 'AI fish & tackle identifier', keywords: ['fish','fishing','tackle','rod','reel','lure','fly fishing','bait','taxidermy fish','stuffed fish','fishing equipment','spinning rod','sea fishing','coarse fishing','feeder'] },
+];
+
+const getOidRecommendation = (results) => {
+    if (!results) return null;
+    const haystack = `${results.title} ${results.category || ''} ${results.description || ''}`.toLowerCase();
+    let best = null;
+    let bestScore = 0;
+    for (const oid of OID_NETWORK) {
+        let score = 0;
+        for (const kw of oid.keywords) {
+            if (haystack.includes(kw)) {
+                score += results.title.toLowerCase().includes(kw) ? 3 : 1;
+            }
+        }
+        if (score > bestScore) { bestScore = score; best = oid; }
+    }
+    return bestScore >= 2 ? best : null;
+};
+
 const CONDITION_MAP = {
     'New with tags': 'new',
     'New': 'new',
@@ -1793,6 +1827,24 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                     </div>
                                 )}
                             </div>
+
+                            {(() => {
+                                const oid = getOidRecommendation(results);
+                                return oid ? (
+                                    <a
+                                        href={oid.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-3 bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 mb-3 hover:border-indigo-400 hover:bg-indigo-100 transition-colors"
+                                    >
+                                        <span className="text-3xl">{oid.emoji}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-black text-indigo-900 text-sm leading-tight">Know exactly what you've got?</p>
+                                            <p className="text-indigo-700 text-sm font-medium">{oid.name} — {oid.tagline} →</p>
+                                        </div>
+                                    </a>
+                                ) : null;
+                            })()}
 
                             <div className="space-y-3">
                                 <a
