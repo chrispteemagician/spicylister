@@ -451,6 +451,19 @@ export default function App() {
                     };
                     localStorage.setItem('patreon_session', JSON.stringify(session));
                 }
+
+                // Restore any results that were saved before the OAuth redirect
+                try {
+                    const saved = sessionStorage.getItem('spicylister_pending_results');
+                    if (saved) {
+                        const { savedResults, savedImagePreview } = JSON.parse(saved);
+                        if (savedResults) setResults(savedResults);
+                        if (savedImagePreview) setImagePreview(savedImagePreview);
+                        sessionStorage.removeItem('spicylister_pending_results');
+                    }
+                } catch (e) {
+                    sessionStorage.removeItem('spicylister_pending_results');
+                }
             })
             .catch((err) => console.error('Patreon auth error:', err));
     }, []);
@@ -1158,6 +1171,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             <a
                                 href={PATREON_OAUTH_URL}
                                 className="block w-full bg-[#FF424D] text-white py-3 rounded-xl font-bold mb-3 hover:bg-[#e03a44] transition-colors text-center"
+                                onClick={() => {
+                                    try {
+                                        sessionStorage.setItem('spicylister_pending_results', JSON.stringify({
+                                            savedResults: results,
+                                            savedImagePreview: imagePreview
+                                        }));
+                                    } catch (e) { /* quota exceeded — results will be lost but auth will work */ }
+                                }}
                             >
                                 🎨 Sign in with Patreon
                             </a>
@@ -1218,6 +1239,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             <a
                                 href={PATREON_OAUTH_URL}
                                 className="inline-flex items-center gap-2 bg-[#FF424D] text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-[#e03a44] transition-colors"
+                                onClick={() => {
+                                    try {
+                                        sessionStorage.setItem('spicylister_pending_results', JSON.stringify({
+                                            savedResults: results,
+                                            savedImagePreview: imagePreview
+                                        }));
+                                    } catch (e) { /* quota exceeded — results will be lost but auth will work */ }
+                                }}
                             >
                                 <span>🎨</span> Sign in with Patreon
                             </a>
