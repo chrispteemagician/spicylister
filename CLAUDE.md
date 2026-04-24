@@ -1,7 +1,17 @@
 # SpicyLister — CLAUDE.md
 *For Trinity. Read before touching anything.*
 
-## What This Is
+## Two Domains — Two Things
+
+| Domain | What It Is |
+|--------|-----------|
+| `spicylister.com` | The AI listing tool — this repo. Photo → eBay listing. |
+| `spicylister.co.uk` | The Womble Village — real-life community marketplace. Boot sales, stall locations, follow your favourite sellers. Kind buyers and sellers. |
+
+The app (spicylister.com) links to the village (spicylister.co.uk) via the amber
+community card in the results section. Keep both mentions accurate.
+
+## What The App Does
 eBay listing generator for AuDHD brains. Upload a photo → AI writes the title,
 description, condition, price range, and packaging recommendation. Deployed at
 spicylister.com via Netlify (GitHub push = auto-deploy).

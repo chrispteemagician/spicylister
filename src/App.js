@@ -1883,6 +1883,20 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                 </div>
                             </div>
 
+                            <a
+                                href="https://spicylister.co.uk"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-start gap-3 bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl p-4 mt-3 hover:border-amber-400 transition-colors"
+                            >
+                                <span className="text-3xl">🏘️</span>
+                                <div>
+                                    <p className="font-black text-amber-900 text-sm">Sell it in real life too</p>
+                                    <p className="text-amber-800 text-sm mt-1 leading-snug">The Womble Village — a community marketplace for kind buyers and sellers. Find your nearest boot sale, see where your favourite sellers have their stall, and let people know when you're out selling.</p>
+                                    <p className="text-amber-600 text-xs font-bold mt-2">spicylister.co.uk →</p>
+                                </div>
+                            </a>
+
                             {currentSavings && (
                                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-3xl border-2 border-green-200 text-center">
                                     <h2 className="text-3xl font-black text-green-700 mb-3">
