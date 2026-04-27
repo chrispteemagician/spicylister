@@ -238,6 +238,42 @@ const mapCategory = (category) => {
     return 'Other';
 };
 
+// URLs sourced from feelfamous.co.uk Village Grid source — 2026-04-24
+const OID_NETWORK = [
+    { name: 'Motor-Oid', emoji: '🔧', url: 'https://motor-oid.co.uk', tagline: 'AI vehicle parts identifier', keywords: ['car','vehicle','auto','motor','engine','exhaust','bumper','wheel','tyre','tire','brake','gearbox','clutch','radiator','suspension','van','truck','lorry','motorcycle','motorbike','moped','scooter','carburettor','carburetor','alternator','headlight','bonnet','dashboard','steering','cambelt','camshaft','piston','manifold','diff','differential'] },
+    { name: 'Watch-Oid', emoji: '⌚', url: 'https://watch-oid.co.uk', tagline: 'AI watch identifier', keywords: ['watch','timepiece','chronograph','rolex','seiko','omega','casio','citizen','timex','wristwatch','pocket watch','movement','dial','bezel','bracelet','strap','clasp','automatic','quartz','mechanical','horology'] },
+    { name: 'Sail-Oid', emoji: '⛵', url: 'https://sail-oid.co.uk', tagline: 'AI boat & marine gear identifier', keywords: ['boat','sail','marine','nautical','anchor','rope','ship','vessel','yacht','canoe','kayak','outboard','tiller','rudder','mast','boom','winch','cleat','fender','buoy','life jacket','bilge','propeller','marina','dinghy'] },
+    { name: 'Radi-Oid', emoji: '📻', url: 'https://radi-oid.co.uk', tagline: 'AI vintage radio & hi-fi identifier', keywords: ['radio','hifi','hi-fi','hi fi','amplifier','valve','tube','transistor','receiver','tuner','speaker','turntable','cassette','reel to reel','tape deck','stereo','audiophile','gramophone','phonograph','vhf','am fm','cb radio','ham radio'] },
+    { name: 'Vinyl-Oid', emoji: '🎵', url: 'https://vinyl-oid.co.uk', tagline: 'AI vinyl record identifier', keywords: ['vinyl','record','lp','ep','7"','12"','7 inch','12 inch','pressing','first press','gatefold','rpm','45rpm','33rpm','shellac','78','sleeve','picture disc'] },
+    { name: 'Guit-Oid', emoji: '🎸', url: 'https://guit-oid.co.uk', tagline: 'AI guitar & instrument identifier', keywords: ['guitar','bass guitar','ukulele','mandolin','banjo','fender','gibson','stratocaster','telecaster','les paul','acoustic','electric guitar','effects pedal','pickup','humbucker','single coil','amplifier','amp'] },
+    { name: 'Coin-Oid', emoji: '🪙', url: 'https://coin-oid.netlify.app', tagline: 'AI coin & medal identifier', keywords: ['coin','medal','numismatic','bullion','sovereign','crown','penny','shilling','florin','farthing','sixpence','halfpenny','gold coin','silver coin','proof coin','uncirculated','mint condition','obverse','reverse'] },
+    { name: 'Stamp-Oid', emoji: '✉️', url: 'https://stamp-oid.netlify.app', tagline: 'AI stamp identifier', keywords: ['stamp','postage stamp','philately','philatelic','overprint','perforated','imperforate','first day cover','royal mail','postal','franked','mint stamp','used stamp'] },
+    { name: 'Magic-Oid', emoji: '🎩', url: 'https://magic-oid.co.uk', tagline: 'AI magic trick identifier', keywords: ['magic','magic trick','illusion','wand','card trick','conjuring','magician','mentalism','mentalist','prediction','vanish','production','transformation','close-up magic'] },
+    { name: 'Miniature-Oid', emoji: '🏠', url: 'https://miniature-oid.netlify.app', tagline: 'AI miniature & dollhouse identifier', keywords: ['miniature','dollhouse','doll house','dolls house','figurine','warhammer','model','diorama','toy soldier','pewter','resin','40k','age of sigmar','dungeons and dragons','d&d','rpg','citadel','painted miniature','scale model'] },
+    { name: 'Designer-Oid', emoji: '👗', url: 'https://designer-oid.co.uk', tagline: 'AI designer fashion identifier', keywords: ['designer','luxury','handbag','gucci','louis vuitton','lv','prada','chanel','hermes','dior','versace','burberry','coach','mulberry','branded','authentic','genuine leather','dust bag'] },
+    { name: 'Camera-Oid', emoji: '📷', url: 'https://camera-oid.co.uk', tagline: 'AI camera & lens identifier', keywords: ['camera','lens','photography','film camera','dslr','mirrorless','nikon','canon','sony','fuji','fujifilm','leica','olympus','pentax','minolta','rangefinder','slr','medium format','darkroom','enlarger'] },
+    { name: 'Travel-Oid', emoji: '✈️', url: 'https://travel-oid.co.uk', tagline: 'AI travel gear identifier', keywords: ['luggage','suitcase','backpack','travel bag','duffel','holdall','carry on','trolley','samsonite','rimowa','american tourister','delsey','antler','packing cube'] },
+    { name: 'Fish-Oid', emoji: '🐟', url: 'https://fish-oid.netlify.app', tagline: 'AI fish & tackle identifier', keywords: ['fish','fishing','tackle','rod','reel','lure','fly fishing','bait','taxidermy fish','stuffed fish','fishing equipment','spinning rod','sea fishing','coarse fishing','feeder'] },
+    { name: 'Cannabin-Oid', emoji: '🌿', url: 'https://cannabin-oid.co.uk', tagline: 'AI cannabis strain identifier', keywords: ['cannabis','strain','terpene','cbd','thc','indica','sativa','hybrid','bud','flower','hemp','hash','resin','trichome'] },
+];
+
+const getOidRecommendation = (results) => {
+    if (!results) return null;
+    const haystack = `${results.title} ${results.category || ''} ${results.description || ''}`.toLowerCase();
+    let best = null;
+    let bestScore = 0;
+    for (const oid of OID_NETWORK) {
+        let score = 0;
+        for (const kw of oid.keywords) {
+            if (haystack.includes(kw)) {
+                score += results.title.toLowerCase().includes(kw) ? 3 : 1;
+            }
+        }
+        if (score > bestScore) { bestScore = score; best = oid; }
+    }
+    return bestScore >= 2 ? best : null;
+};
+
 const CONDITION_MAP = {
     'New with tags': 'new',
     'New': 'new',
@@ -397,6 +433,46 @@ export default function App() {
         }
     }, []);
 
+    // Restore last generated listing so navigating to eBay (or any tab switch that
+    // kills the background tab on mobile) doesn't wipe out the user's work.
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('spicylister_auto_save');
+            if (!raw) return;
+            const saved = JSON.parse(raw);
+            const FOUR_HOURS = 4 * 60 * 60 * 1000;
+            if (saved.savedAt && Date.now() - saved.savedAt < FOUR_HOURS) {
+                if (saved.results) setResults(saved.results);
+                if (saved.imagePreview) setImagePreview(saved.imagePreview);
+            } else {
+                localStorage.removeItem('spicylister_auto_save');
+            }
+        } catch (e) {
+            localStorage.removeItem('spicylister_auto_save');
+        }
+    }, []);
+
+    // Persist listing to localStorage whenever it changes so it survives tab kills.
+    useEffect(() => {
+        if (!results) return;
+        try {
+            localStorage.setItem('spicylister_auto_save', JSON.stringify({
+                results,
+                imagePreview,
+                savedAt: Date.now()
+            }));
+        } catch (e) {
+            // Retry without the image if quota is exceeded (imagePreview can be ~200 KB)
+            try {
+                localStorage.setItem('spicylister_auto_save', JSON.stringify({
+                    results,
+                    imagePreview: null,
+                    savedAt: Date.now()
+                }));
+            } catch (e2) { /* nothing more we can do */ }
+        }
+    }, [results, imagePreview]);
+
     useEffect(() => {
         const fetchGlobalCount = async () => {
             try {
@@ -450,6 +526,19 @@ export default function App() {
                         expires: Date.now() + 24 * 60 * 60 * 1000
                     };
                     localStorage.setItem('patreon_session', JSON.stringify(session));
+                }
+
+                // Restore any results that were saved before the OAuth redirect
+                try {
+                    const saved = sessionStorage.getItem('spicylister_pending_results');
+                    if (saved) {
+                        const { savedResults, savedImagePreview } = JSON.parse(saved);
+                        if (savedResults) setResults(savedResults);
+                        if (savedImagePreview) setImagePreview(savedImagePreview);
+                        sessionStorage.removeItem('spicylister_pending_results');
+                    }
+                } catch (e) {
+                    sessionStorage.removeItem('spicylister_pending_results');
                 }
             })
             .catch((err) => console.error('Patreon auth error:', err));
@@ -566,6 +655,7 @@ export default function App() {
     };
 
     const resetApp = () => {
+        localStorage.removeItem('spicylister_auto_save');
         setImage(null);
         setImagePreview(null);
         setResults(null);
@@ -1158,6 +1248,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             <a
                                 href={PATREON_OAUTH_URL}
                                 className="block w-full bg-[#FF424D] text-white py-3 rounded-xl font-bold mb-3 hover:bg-[#e03a44] transition-colors text-center"
+                                onClick={() => {
+                                    try {
+                                        sessionStorage.setItem('spicylister_pending_results', JSON.stringify({
+                                            savedResults: results,
+                                            savedImagePreview: imagePreview
+                                        }));
+                                    } catch (e) { /* quota exceeded — results will be lost but auth will work */ }
+                                }}
                             >
                                 🎨 Sign in with Patreon
                             </a>
@@ -1218,6 +1316,14 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             <a
                                 href={PATREON_OAUTH_URL}
                                 className="inline-flex items-center gap-2 bg-[#FF424D] text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-[#e03a44] transition-colors"
+                                onClick={() => {
+                                    try {
+                                        sessionStorage.setItem('spicylister_pending_results', JSON.stringify({
+                                            savedResults: results,
+                                            savedImagePreview: imagePreview
+                                        }));
+                                    } catch (e) { /* quota exceeded — results will be lost but auth will work */ }
+                                }}
                             >
                                 <span>🎨</span> Sign in with Patreon
                             </a>
@@ -1729,6 +1835,24 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                 )}
                             </div>
 
+                            {(() => {
+                                const oid = getOidRecommendation(results);
+                                return oid ? (
+                                    <a
+                                        href={oid.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-3 bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 mb-3 hover:border-indigo-400 hover:bg-indigo-100 transition-colors"
+                                    >
+                                        <span className="text-3xl">{oid.emoji}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-black text-indigo-900 text-sm leading-tight">Know exactly what you've got?</p>
+                                            <p className="text-indigo-700 text-sm font-medium">{oid.name} — {oid.tagline} →</p>
+                                        </div>
+                                    </a>
+                                ) : null;
+                            })()}
+
                             <div className="space-y-3">
                                 <a
                                     href="https://feelfamous.co.uk"
@@ -1765,6 +1889,20 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                                     </button>
                                 </div>
                             </div>
+
+                            <a
+                                href="https://spicylister.co.uk"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-start gap-3 bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl p-4 mt-3 hover:border-amber-400 transition-colors"
+                            >
+                                <span className="text-3xl">🏘️</span>
+                                <div>
+                                    <p className="font-black text-amber-900 text-sm">Sell it in real life too</p>
+                                    <p className="text-amber-800 text-sm mt-1 leading-snug">The Womble Village — a community marketplace for kind buyers and sellers. Find your nearest boot sale, see where your favourite sellers have their stall, and let people know when you're out selling.</p>
+                                    <p className="text-amber-600 text-xs font-bold mt-2">spicylister.co.uk →</p>
+                                </div>
+                            </a>
 
                             {currentSavings && (
                                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-3xl border-2 border-green-200 text-center">
