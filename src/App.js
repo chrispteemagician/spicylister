@@ -1558,6 +1558,11 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                             )}
 
                             <div ref={resultCardRef} className="bg-white p-2 rounded-xl">
+                                {results._securityWarning && (
+                                    <div className="mb-4 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-sm font-medium">
+                                        ⚠️ {results._securityWarning}
+                                    </div>
+                                )}
                                 {isSpicyMode && (
                                     <div className={`mb-6 p-4 rounded-2xl border-2 ${getRarityStyle(results.rarity).bg} ${getRarityStyle(results.rarity).color} text-center`}>
                                         <p className="text-lg font-bold italic text-gray-800">"{results.spicyComment}"</p>
