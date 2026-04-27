@@ -1,22 +1,27 @@
 /**
  * SpicyLister v2.3 - Enhanced Analyze Item Function
- * 
+ *
  * Now includes:
  * - Dimension estimation (L×W×H in cm)
  * - Weight estimation (grams)
  * - Material composition detection
  * - Fragility assessment
  * - Confidence scores
- * 
+ * - IPI security hardening
+ *
  * Built with 💚 for the neurodivergent community
  */
 
+const { sanitize } = require('./ipi-sanitize');
+const { buildSecureSystemPrompt, validateImageMime, logImageMeta, SECURITY_HEADERS } = require('./gemini-secure-wrapper');
+const { logThreat } = require('./security-log');
+
 exports.handler = async (event, context) => {
-  // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    ...SECURITY_HEADERS,
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -46,6 +51,33 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Sanitize extraInfo (highest injection risk — goes into system prompt template)
+    let safeExtraInfo = '';
+    let extraInfoFlagged = false;
+    if (extraInfo) {
+      const sanity = sanitize(extraInfo, 'extraInfo');
+      if (sanity.highRisk) {
+        logThreat('spicylister', 'extraInfo', sanity.threats);
+        // Don't abort the whole request — just skip the extra info and flag it
+        extraInfoFlagged = true;
+        safeExtraInfo = '';
+      } else {
+        safeExtraInfo = sanity.clean;
+      }
+    }
+
+    // Validate image MIME types
+    for (const img of images) {
+      if (!validateImageMime(img.mimeType)) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: `Invalid image type: ${img.mimeType}` }),
+        };
+      }
+      logImageMeta('spicylister', img.mimeType, (img.data || '').length);
+    }
+
     // Get API key from environment (try multiple possible names)
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY;
 
@@ -62,7 +94,7 @@ exports.handler = async (event, context) => {
     }
 
     // ✨ ENHANCED: SpicyBrain prompt now includes shipping intelligence
-    const systemPrompt = `You are **"SpicyBrain,"** an expert online reseller with 10+ years of experience on eBay, Vinted, Depop, and Facebook Marketplace. You have an encyclopedic knowledge of current market values, pricing trends, AND shipping logistics. Your special skill is helping neurodivergent individuals overcome executive dysfunction to declutter and get that dopamine boost from selling.
+    const SPICYBRAIN_EXPERT = `You are **"SpicyBrain,"** an expert online reseller with 10+ years of experience on eBay, Vinted, Depop, and Facebook Marketplace. You have an encyclopedic knowledge of current market values, pricing trends, AND shipping logistics. Your special skill is helping neurodivergent individuals overcome executive dysfunction to declutter and get that dopamine boost from selling.
 
 **YOUR MISSION:** Analyze the user-submitted image(s) and generate a complete listing package INCLUDING shipping intelligence.
 
@@ -154,16 +186,17 @@ Good pricing for ${region} market:
 - Your pricing should reflect what buyers actually pay, not wishful thinking
 - Be conservative with estimates - underpromise and overdeliver
 
-${extraInfo ? `\n\n**Additional context from seller:** "${extraInfo}" - Use this information to improve pricing accuracy and add relevant details. If they mention original purchase price, consider depreciation realistically.` : ''}
+${safeExtraInfo ? `\n\n**Additional context from seller:** "${safeExtraInfo}" - Use this information to improve pricing accuracy and add relevant details. If they mention original purchase price, consider depreciation realistically.` : ''}
 
 ${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! Roast junk items, hype valuable finds. Assign creative rarity tiers.` : '\n**PROFESSIONAL MODE:** Keep it clean, factual, and businesslike.'}
 
 **IMPORTANT:** Respond ONLY with valid JSON. Do not include any text outside of the JSON structure.`;
 
-    // Prepare content for Gemini
+    const systemPrompt = buildSecureSystemPrompt(SPICYBRAIN_EXPERT);
+
+    // Prepare content for Gemini (system prompt via system_instruction, not inline)
     const contents = [{
       parts: [
-        { text: systemPrompt },
         ...images.map(image => ({
           inline_data: {
             mime_type: image.mimeType,
@@ -183,10 +216,12 @@ ${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! R
       try {
         response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ contents }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+          }),
         });
 
         if (response.ok) break;
@@ -341,6 +376,11 @@ ${isSpicyMode ? `\n**SPICY MODE ACTIVE:** Be witty, British, and entertaining! R
       parsedResult.fragility
     );
     parsedResult.recommendedPackaging = shippingRecommendation;
+
+    // Flag if extraInfo was blocked
+    if (extraInfoFlagged) {
+      parsedResult._securityWarning = 'Additional description contained suspicious content and was removed.';
+    }
 
     return {
       statusCode: 200,
