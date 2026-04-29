@@ -2001,11 +2001,18 @@ PACKAGING: ${packaging?.details?.name || 'SpicyLister Small Box'}`;
                         <h3 className="text-lg font-black text-gray-800 mb-4">📚 Chris P Tee Recommends</h3>
 
                         <div className="bg-yellow-50 p-4 rounded-2xl border-2 border-yellow-300 mb-4">
-                            <p className="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2">✨ My Books</p>
-                            <div className="space-y-2 text-sm">
-                                <a href="https://amzn.to/3NPNm8q" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">📖 The Stress Free Guide to Kids Magic Parties</a>
-                                <a href="https://amzn.eu/d/5JsR1XH" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">📖 Modern Entertainer Insights</a>
-                                <a href="https://amzn.to/3NITj7f" target="_blank" rel="noreferrer" className="block text-gray-700 hover:text-orange-600">📖 More Performer Wisdom</a>
+                            <p className="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2">✨ My Guides — Direct from the Author</p>
+                            <div className="space-y-3 text-sm">
+                                <a href="https://glowgadgeteer.gumroad.com/l/uk-medical-cannabis-patient-guide" target="_blank" rel="noreferrer" className="block bg-green-50 border border-green-200 rounded-xl p-3 text-gray-700 hover:bg-green-100 transition-colors">
+                                    <span className="block font-bold text-green-800">📖 Your First Cannabis Prescription — £9</span>
+                                    <span className="block text-xs text-green-700 mt-1">What nobody tells you. UK patient guide by Doc Strange.</span>
+                                </a>
+                                <a href="https://glowgadgeteer.gumroad.com/l/kids-magic-party-guide" target="_blank" rel="noreferrer" className="block bg-purple-50 border border-purple-200 rounded-xl p-3 text-gray-700 hover:bg-purple-100 transition-colors">
+                                    <span className="block font-bold text-purple-800">🪄 Stress-Free Kids Magic Parties — £5</span>
+                                    <span className="block text-xs text-purple-700 mt-1">Magic Circle pro. 25 years. Everything you need to know.</span>
+                                </a>
+                                <a href="https://amzn.eu/d/5JsR1XH" target="_blank" rel="noreferrer" className="block text-gray-500 hover:text-orange-600 text-xs">📖 Modern Entertainer Insights</a>
+                                <a href="https://amzn.to/3NITj7f" target="_blank" rel="noreferrer" className="block text-gray-500 hover:text-orange-600 text-xs">📖 More Performer Wisdom</a>
                             </div>
                         </div>
 
